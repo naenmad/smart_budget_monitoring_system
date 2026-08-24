@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import logo from '../assets/sai_logo.png'
+import logo from '../assets/sai_logo.webp'
 import s from './Login.module.css'
 export default function Login() {
   const { user, login } = useAuth()

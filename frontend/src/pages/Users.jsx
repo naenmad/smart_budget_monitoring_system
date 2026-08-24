@@ -173,8 +173,8 @@ export default function Users() {
                 value={form.role}
                 onChange={e => handleChange('role', e.target.value)}
               >
-                <option value="admin">Admin — akses penuh</option>
-                <option value="manager">Manager — view + klasifikasi</option>
+                <option value="admin">Admin — Akses Penuh</option>
+                <option value="manager">Manager — View + Klasifikasi</option>
               </select>
             </div>
 
