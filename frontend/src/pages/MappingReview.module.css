@@ -1,209 +1,173 @@
 /* ==== Layout ==== */
 .page {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    width: 100%;
+    padding: 2rem;
+    max-width: 1000px;
+    margin: 0 auto;
 }
 
 .header {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+    margin-bottom: 2rem;
 }
 
 .title {
-    font-size: 1.25rem;
-    font-weight: 700;
-    letter-spacing: -0.01em;
-    color: var(--text-main);
-    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.5rem;
 }
 
 .subtitle {
-    font-size: 13px;
-    color: var(--text-muted);
-    margin: 0;
+    color: var(--text2);
 }
 
 .loadingState,
 .emptyState {
     text-align: center;
     padding: 3rem;
-    color: var(--text-muted);
-    background: #ffffff;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
+    color: var(--text2);
+}
+
+.emptyState {
+    padding: 4rem 2rem;
 }
 
 .list {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 1.5rem;
 }
 
 /* ==== Card ==== */
 .card {
-    background: #ffffff;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    padding: 1.25rem 1.5rem;
-    box-shadow: var(--shadow-sm);
+    padding: 1.5rem;
 }
 
 .cardNoCandidate {
-    border-left: 4px solid var(--danger);
-    background-color: var(--danger-light);
+    border-left: 4px solid #ef4444;
+    background-color: #fef2f2;
 }
 
 .cardHeader {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    gap: 12px;
-    margin-bottom: 1rem;
-    padding: 8px 10px;
-    border-radius: var(--radius-sm);
-    margin: -8px -10px 12px -10px;
-    transition: background-color 0.15s ease;
+    margin-bottom: 1.25rem;
+    transition: background-color 0.2s ease;
+    padding: 0.5rem;
+    border-radius: 8px;
+    margin: -0.5rem -0.5rem 0.75rem -0.5rem;
 }
 
 .cardHeader:hover {
-    background-color: var(--bg-subtle);
+    background-color: var(--bg2);
 }
 
 .cardDescription {
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: var(--text-main);
-    margin-bottom: 4px;
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    letter-spacing: -0.01em;
 }
 
 .cardMeta {
-    color: var(--text-muted);
+    color: var(--text2);
     display: flex;
-    gap: 12px;
-    font-size: 12.5px;
-    flex-wrap: wrap;
+    gap: 1rem;
+    font-size: 0.875rem;
 }
 
 .cardMetaLabel {
-    font-weight: 600;
-    color: var(--text-body);
+    font-weight: 500;
 }
 
 .cardMetaCode {
-    background: var(--bg-subtle);
-    border: 1px solid var(--border-color);
-    padding: 1px 6px;
+    background: var(--bg2);
+    padding: 1px 5px;
     border-radius: 4px;
-    font-size: 11.5px;
-    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
 }
 
 .statusBadge {
-    background: var(--danger-light);
-    color: var(--danger-text);
-    border: 1px solid var(--danger-border);
-    font-size: 11px;
-    font-weight: 700;
-    padding: 3px 8px;
-    border-radius: 6px;
-    white-space: nowrap;
+    background: #FEE2E2;
+    color: #991B1B;
 }
 
 /* ==== Kandidat section ==== */
 .candidateBox {
-    background: var(--bg-subtle);
-    border-radius: var(--radius-sm);
-    padding: 12px 14px;
-    border: 1px solid var(--border-color);
+    background: var(--bg2);
+    border-radius: 8px;
+    padding: 1rem;
+    border: 0.5px solid var(--border);
 }
 
 .candidateBoxHeader {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 12px;
-    flex-wrap: wrap;
+    margin-bottom: 1rem;
 }
 
 .sectionLabel {
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-muted);
     margin: 0;
 }
 
 .actionGroup {
     display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
+    gap: 0.5rem;
 }
 
 .noCandidateText {
-    color: var(--danger-text);
-    font-size: 13px;
+    color: #b91c1c;
+    font-size: 0.9rem;
     margin: 0;
     font-weight: 500;
-    padding: 6px 0;
-    display: flex;
-    align-items: center;
+    padding: 0.5rem 0;
 }
 
 .candidateList {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 0.5rem;
 }
 
 .candidateRow {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    background: #ffffff;
-    padding: 10px 14px;
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--border-color);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+    background: var(--bg);
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    border: 0.5px solid var(--border);
 }
 
 .candidateLeft {
     display: flex;
     align-items: center;
-    gap: 12px;
-    min-width: 0;
+    gap: 1rem;
 }
 
 .candidateRank {
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text2);
     width: 24px;
-    flex-shrink: 0;
 }
 
 .candidateItemName {
-    font-weight: 600;
-    font-size: 13.5px;
-    color: var(--text-main);
-    margin-bottom: 2px;
+    font-weight: 500;
+    font-size: 0.9375rem;
+    margin-bottom: 0.125rem;
 }
 
 .candidateAmount {
-    font-size: 12px;
-    color: var(--text-muted);
+    font-size: 0.75rem;
+    color: var(--text2);
 }
 
 .candidateRight {
     display: flex;
     align-items: center;
-    gap: 14px;
-    flex-shrink: 0;
+    gap: 1.5rem;
 }
 
 .mismatchBadge {
@@ -211,195 +175,180 @@
 }
 
 .mismatchLabel {
-    font-size: 10px;
+    font-size: 0.7rem;
     font-weight: 700;
-    color: var(--warning-text);
-    background: var(--warning-light);
-    border: 1px solid var(--warning-border);
+    color: #D97706;
+    background: #FEF3C7;
+    border: 1px solid #FCD34D;
     border-radius: 4px;
     padding: 2px 6px;
     letter-spacing: 0.04em;
-    display: inline-flex;
-    align-items: center;
 }
 
 .mismatchDetail {
-    font-size: 10px;
-    color: var(--warning-text);
+    font-size: 0.65rem;
+    color: #92400E;
     margin-top: 2px;
 }
 
 .scoreBox {
     text-align: right;
-    min-width: 44px;
 }
 
 .scoreValue {
-    font-size: 15px;
-    font-weight: 700;
+    font-size: 1rem;
+    font-weight: 600;
 }
 
 .scoreHigh {
-    color: var(--success);
+    color: #1D9E75;
 }
 
 .scoreMedium {
-    color: var(--warning);
+    color: #BA7517;
 }
 
 .scoreLow {
-    color: var(--danger);
+    color: #e85d3a;
 }
 
 .scoreLabel {
-    font-size: 9.5px;
-    color: var(--text-muted);
+    font-size: 0.7rem;
+    color: var(--text2);
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
 
 .btnConfirm {
-    padding: 6px 14px;
-    font-size: 12px;
+    padding: 8px 16px;
+    background: var(--text);
 }
 
 .btnOop {
-    background: var(--danger);
-    border-color: var(--danger);
-    color: #ffffff;
+    background: #dc2626;
+    border-color: #dc2626;
     padding: 6px 12px;
-    font-size: 12px;
-}
-
-.btnOop:hover {
-    background: #b91c1c;
+    font-size: 0.8rem;
 }
 
 .btnSearchManual {
     padding: 6px 12px;
-    font-size: 12px;
+    font-size: 0.8rem;
 }
 
 /* ==== Pagination ==== */
 .pagination {
     display: flex;
-    gap: 8px;
-    margin-top: 8px;
+    gap: 0.5rem;
+    margin-top: 2rem;
     justify-content: center;
-    align-items: center;
 }
 
 .pageInfo {
-    font-size: 13px;
-    color: var(--text-muted);
+    align-self: center;
+    font-size: 0.875rem;
+    color: var(--text2);
+    margin: 0 0.5rem;
 }
 
 /* ==== Modal search manual ==== */
 .modalOverlay {
     position: fixed;
     inset: 0;
-    background: rgba(15, 23, 42, 0.5);
-    backdrop-filter: blur(4px);
+    background: rgba(0, 0, 0, 0.5);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 1000;
-    padding: 16px;
 }
 
 .modalContent {
-    background: #ffffff;
-    border-radius: var(--radius-md);
+    background: var(--bg);
+    border-radius: 12px;
     padding: 24px;
-    width: 100%;
-    max-width: 520px;
-    max-height: 80vh;
+    width: 480px;
+    max-height: 70vh;
     overflow-y: auto;
-    box-shadow: var(--shadow-lg);
 }
 
 .modalHeader {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
+    margin-bottom: 1rem;
 }
 
 .modalTitle {
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--text-main);
     margin: 0;
 }
 
 .modalClose {
     background: none;
     border: none;
-    color: var(--text-muted);
+    font-size: 1.2rem;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    padding: 4px;
-    border-radius: 4px;
-}
-
-.modalClose:hover {
-    background: var(--bg-subtle);
-    color: var(--text-main);
 }
 
 .modalContext {
-    color: var(--text-body);
-    font-size: 13px;
-    margin-bottom: 14px;
+    color: var(--text2);
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+}
+
+.modalSearchInput {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 1rem;
+    box-sizing: border-box;
+}
+
+.modalLoading {
+    color: var(--text2);
+}
+
+.modalResultList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.modalResultRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg2);
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+}
+
+.modalResultItem {
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.modalResultMeta {
+    font-size: 0.75rem;
+    color: var(--text2);
+}
+
+.modalNoResult {
+    color: var(--text2);
+    font-size: 0.875rem;
+}
+
+.modalPickBtn {
+    padding: 6px 14px;
+    font-size: 0.8rem;
 }
 
 .searchBox {
     width: 100%;
-    max-width: 380px;
+    max-width: 400px;
     padding: 8px 12px;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    font-size: 13px;
-    background: #ffffff;
-    outline: none;
-}
-
-.searchBox:focus {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
-}
-
-/* ── Responsive ── */
-@media (max-width: 768px) {
-    .candidateRow {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 10px;
-    }
-
-    .candidateRight {
-        justify-content: space-between;
-        width: 100%;
-        border-top: 1px dashed var(--border-color);
-        padding-top: 8px;
-    }
-
-    .candidateBoxHeader {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .actionGroup {
-        width: 100%;
-    }
-
-    .actionGroup button {
-        flex: 1;
-        justify-content: center;
-    }
-
-    .searchBox {
-        max-width: 100%;
-    }
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-top: 0.75rem;
+    box-sizing: border-box;
 }
