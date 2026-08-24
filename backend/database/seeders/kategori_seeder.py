@@ -16,6 +16,6 @@ def seed_kategori():
         if not exist:
             k = Kategori(**cat_data)
             db.session.add(k)
-            print(f"✓ Kategori '{cat_data['kode']}' berhasil dibuat")
+            print(f"[OK] Kategori '{cat_data['kode']}' berhasil dibuat")
         else:
-            print(f"– Kategori '{cat_data['kode']}' sudah ada, dilewati")
+            print(f"[SKIP] Kategori '{cat_data['kode']}' sudah ada, dilewati")

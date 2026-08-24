@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import s from './ChangePasswordModal.module.css'
 import { userApi } from '../api/userApi'
+import { X, CheckCircle2, Eye, EyeOff } from 'lucide-react'
 
 export default function ChangePasswordModal({ userId, onClose }) {
   const [password, setPassword] = useState('')
@@ -17,7 +18,7 @@ export default function ChangePasswordModal({ userId, onClose }) {
     setSuccess('')
 
     if (!password || !confirmPassword) {
-      setError('Semua kolom harus diisi')
+      setError('Kedua field password wajib diisi')
       return
     }
 
@@ -27,7 +28,7 @@ export default function ChangePasswordModal({ userId, onClose }) {
     }
 
     if (password !== confirmPassword) {
-      setError('Konfirmasi password tidak cocok')
+      setError('Password baru dan konfirmasi password tidak cocok')
       return
     }
 
@@ -35,7 +36,7 @@ export default function ChangePasswordModal({ userId, onClose }) {
     try {
       const res = await userApi.update(userId, { password })
       if (res.success) {
-        setSuccess('Password berhasil diubah')
+        setSuccess('Password berhasil diubah!')
         setPassword('')
         setConfirmPassword('')
         setTimeout(() => {
@@ -56,12 +57,19 @@ export default function ChangePasswordModal({ userId, onClose }) {
       <div className={s.modal} onClick={e => e.stopPropagation()}>
         <div className={s.header}>
           <h2>Ganti Password</h2>
-          <button className={s.closeBtn} onClick={onClose}>✕</button>
+          <button className={s.closeBtn} onClick={onClose} aria-label="Tutup">
+            <X size={18} />
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className={s.form}>
           {error && <div className={s.error}>{error}</div>}
-          {success && <div className={s.success}>✓ {success}</div>}
+          {success && (
+            <div className={s.success}>
+              <CheckCircle2 size={15} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+              {success}
+            </div>
+          )}
 
           <div className={s.field}>
             <label className={s.label}>Password Baru</label>

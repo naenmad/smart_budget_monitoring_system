@@ -1,5 +1,5 @@
 # 📋 Project Roadmap & Task List (TODO)
-**Smart Budget Monitoring System (BudgetIQ)**  
+**Smart Budget Monitoring System**  
 *Dokumen pelacakan tugas pengembangan, refactoring, dan optimasi sistem.*
 
 ---

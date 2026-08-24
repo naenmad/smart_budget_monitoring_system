@@ -18,6 +18,7 @@ import PeriodeSwitcher from '../components/SwitchComponent'
 import { budgetApi } from '../api/budgetApi'
 import { prApi } from '../api/prApi'
 import { formatRp } from '../utils/format'
+import { Loader2, AlertTriangle, Download } from 'lucide-react'
 
 export default function Dashboard() {
   const [periode, setPeriode] = useState(String(new Date().getFullYear()))
@@ -37,7 +38,7 @@ export default function Dashboard() {
       setIsExporting(true)
       const canvas = await html2canvas(dashboardRef.current, { scale: 2, useCORS: true, backgroundColor: '#ffffff' })
       const imgData = canvas.toDataURL('image/png')
-      const pdf = new jsPDF('p', 'mm', 'a4') // Portrait A4
+      const pdf = new jsPDF('p', 'mm', 'a4')
 
       const pdfWidth = pdf.internal.pageSize.getWidth()
       const margin = 10
@@ -96,8 +97,9 @@ export default function Dashboard() {
             <p>Memuat data...</p>
           </div>
         </div>
-        <div style={{ textAlign: 'center', padding: 60, color: '#73726c' }}>
-          ⏳ Memuat data dashboard...
+        <div style={{ textAlign: 'center', padding: 60, color: '#73726c', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          <Loader2 size={18} className="animate-spin" />
+          <span>Memuat data dashboard...</span>
         </div>
       </div>
     )
@@ -113,8 +115,10 @@ export default function Dashboard() {
           </div>
         </div>
         <div style={{ textAlign: 'center', padding: 60, color: '#e85d3a' }}>
-          ⚠ {error}
-          <br />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 8 }}>
+            <AlertTriangle size={18} />
+            <span>{error}</span>
+          </div>
           <button className="btn-secondary" style={{ marginTop: 12 }} onClick={fetchSummary}>
             Coba lagi
           </button>
@@ -123,7 +127,6 @@ export default function Dashboard() {
     )
   }
 
-  // Build data from API response
   const totalBudget = summary?.total_budget ?? 0
   const totalActual = summary?.total_actual ?? 0
   const totalSaldo = summary?.total_saldo ?? 0
@@ -133,38 +136,57 @@ export default function Dashboard() {
   const opex = summary?.opex ?? { budget: 0, actual: 0, saldo: 0 }
   const items = summary?.items ?? []
 
-  // Build alerts for over-budget items
-  const alerts = items
-    .filter(i => i.is_over)
-    .map(i => ({
-      title: `Budget ${i.kode} melebihi batas`,
-      desc: `Actual ${formatRp(i.actual)} · Budget ${formatRp(i.budget)} · Over ${Math.abs(Math.round((i.saldo / i.budget) * 100))}%`,
-    }))
+  const alerts = []
+  if (capex.actual > capex.budget && capex.budget > 0) {
+    alerts.push({
+      type: 'danger',
+      message: `CAPEX melebihi budget sebesar ${formatRp(capex.actual - capex.budget)} (${Math.round((capex.actual / capex.budget) * 100)}%)`
+    })
+  }
+  if (opex.actual > opex.budget && opex.budget > 0) {
+    alerts.push({
+      type: 'danger',
+      message: `OPEX melebihi budget sebesar ${formatRp(opex.actual - opex.budget)} (${Math.round((opex.actual / opex.budget) * 100)}%)`
+    })
+  }
 
-  // Build budget data for FormTable
+  // Chart data: CAPEX vs OPEX
+  const chartCapexOpex = [
+    {
+      name: 'CAPEX',
+      budget: Number(capex.budget || 0),
+      actual: Number(capex.actual || 0),
+      saldo: Math.max(0, Number(capex.saldo || 0))
+    },
+    {
+      name: 'OPEX',
+      budget: Number(opex.budget || 0),
+      actual: Number(opex.actual || 0),
+      saldo: Math.max(0, Number(opex.saldo || 0))
+    }
+  ]
+
+  // Chart data: per form
+  const chartForm = items.map(item => ({
+    name: item.kode,
+    budget: Number(item.budget || 0),
+    actual: Number(item.actual || 0),
+    saldo: Math.max(0, Number(item.saldo || 0))
+  }))
+
+  // Form table data map
   const budgetData = {}
   items.forEach(i => {
     budgetData[i.kode] = {
-      budget: i.budget,
-      actual: i.actual,
-      saldo: i.saldo,
+      budget: Number(i.budget || 0),
+      actual: Number(i.actual || 0),
+      saldo: Number(i.saldo || 0),
+      nama: i.nama,
+      type: i.tipe_formulir || i.type,
+      is_over: i.is_over
     }
   })
 
-  // Build chart data
-  const chartCapexOpex = [
-    { name: 'CAPEX', actual: capex.actual, saldo: capex.saldo, budget: capex.budget },
-    { name: 'OPEX', actual: opex.actual, saldo: opex.saldo, budget: opex.budget },
-  ]
-
-  const chartForm = items.map(i => ({
-    name: i.kode,
-    actual: i.actual,
-    saldo: i.saldo,
-    budget: i.budget,
-  }))
-
-  // Find over-budget items for warning sub text
   const overItems = items.filter(i => i.is_over).map(i => i.kode)
   const overSubText = overItems.length > 0
     ? `${overItems.join(', ')} perlu perhatian`
@@ -175,10 +197,9 @@ export default function Dashboard() {
       id: 'overview',
       label: 'Ringkasan Utama',
       content: (
-        <>
-          {/* BUDGET OVERVIEW SECTION */}
-          <section className="card" style={{ padding: '1.5rem' }}>
-            <h2 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '1.25rem', letterSpacing: '-0.01em' }}>Budget Overview</h2>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <section className="card">
+            <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--text-main)' }}>Budget Overview</h2>
             <div className={s.metricGrid}>
               <MetricCard
                 label="Total budget"
@@ -206,9 +227,8 @@ export default function Dashboard() {
             </div>
           </section>
 
-          {/* PR PIPELINE SECTION */}
-          <section className="card" style={{ padding: '1.5rem' }}>
-            <h2 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '1.25rem', letterSpacing: '-0.01em' }}>PR Pipeline Status</h2>
+          <section className="card">
+            <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--text-main)' }}>PR Pipeline Status</h2>
             <div className={s.metricGrid}>
               <MetricCard
                 label="Planning Active"
@@ -234,103 +254,104 @@ export default function Dashboard() {
                 sub="Belum di-mapping"
                 variant="purple"
               />
+            </div>
+          </section>
 
+          <section className="card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: 8 }}>
+              <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>Realisasi Budget vs PR Status</h2>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  className="btn-secondary"
+                  style={{ fontSize: '12px', padding: '4px 10px' }}
+                  onClick={() => setShowCancelledPlanningModal(true)}
+                >
+                  Lihat Planning Dibatalkan
+                </button>
+              </div>
+            </div>
+
+            <div className={s.metricGrid} style={{ gridTemplateColumns: 'repeat(5, minmax(0, 1fr))' }}>
               <MetricCard
-                label="ON PLAN"
+                label="On Plan"
                 value={prSummary?.on_plan || 0}
-                sub="Dalam Budget"
+                sub="Sesuai planning"
                 variant="success"
                 onClick={() => setSelectedForm('ON_PLAN')}
               />
               <MetricCard
-                label="OVER BUDGET"
+                label="Over Plan"
                 value={prSummary?.over_plan || 0}
-                sub="Melebihi Budget"
-                variant="warning"
+                sub="Realisasi melebihi"
+                variant="danger"
                 onClick={() => setSelectedForm('OVER_PLAN')}
               />
               <MetricCard
-                label="UNDER PLAN"
+                label="Under Plan"
                 value={prSummary?.under_plan || 0}
-                sub="Dibawah Budget"
+                sub="Masih ada sisa"
                 variant="info"
                 onClick={() => setSelectedForm('UNDER_PLAN')}
               />
               <MetricCard
-                label="OOP"
-                value={prSummary?.oop || 0}
-                sub="Out of Plan"
-                variant="danger"
+                label="Out of Plan"
+                value={prSummary?.out_of_plan || 0}
+                sub="Tidak ada di plan"
+                variant="warning"
                 onClick={() => setSelectedForm('OOP')}
               />
               <MetricCard
-                label="Remaining Budget"
-                value={formatRp(prSummary?.remaining_budget || 0)}
-                sub="Total Plan - Used"
-                variant={(prSummary?.remaining_budget || 0) < 0 ? 'danger' : 'success'}
-              />
-              <MetricCard
-                label="Total Cancelled"
-                value={(prSummary?.cancelled_count || 0) + (prSummary?.cancelled_pr_count || 0)}
-                sub={
-                  <div style={{ display: 'flex', gap: '8px', fontSize: '0.8rem', opacity: 0.9 }}>
-                    <span onClick={(e) => { e.stopPropagation(); setShowCancelledPlanningModal(true); }} style={{ cursor: 'pointer', textDecoration: 'underline' }}>
-                      Plan: {prSummary?.cancelled_count || 0}
-                    </span>
-                    <span>|</span>
-                    <span onClick={(e) => { e.stopPropagation(); setSelectedForm('CANCELLED_PR'); }} style={{ cursor: 'pointer', textDecoration: 'underline' }}>
-                      PR: {prSummary?.cancelled_pr_count || 0}
-                    </span>
-                  </div>
-                }
+                label="PR Dibatalkan"
+                value={prSummary?.cancelled_pr || 0}
+                sub="PR tidak terealisasi"
                 variant="danger"
+                onClick={() => setSelectedForm('CANCELLED_PR')}
               />
             </div>
           </section>
-        </>
-      )
-    },
-    {
-      id: 'tracking',
-      label: 'Tracking Dokumen',
-      content: (
-        <section className="card" style={{ padding: '1.5rem' }}>
-          <h2 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '1.25rem', letterSpacing: '-0.01em' }}>Document Tracking Stage</h2>
-          <div className={s.metricGrid}>
-            <MetricCard
-              label="PR Stage"
-              value={prSummary?.pr_stage || 0}
-              sub="Purchase Requisition"
-              variant="info"
-              onClick={() => setSelectedForm('STAGE_PR')}
-            />
-            <MetricCard
-              label="PO Stage"
-              value={prSummary?.po_stage || 0}
-              sub="Purchase Order"
-              variant="warning"
-              onClick={() => setSelectedForm('STAGE_PO')}
-            />
-            <MetricCard
-              label="GR Stage"
-              value={prSummary?.gr_stage || 0}
-              sub="Goods Receipt"
-              variant="success"
-              onClick={() => setSelectedForm('STAGE_GR')}
-            />
-          </div>
 
-          <div style={{ marginTop: '1.5rem' }}>
-            <MonthlyPipelineChart title="Statistik PR per Bulan" data={monthlySummary} />
-          </div>
-        </section>
+          <section className="card">
+            <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--text-main)' }}>PR Tracking Stages</h2>
+            <div className={s.metricGrid} style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
+              <MetricCard
+                label="Stage PR"
+                value={prSummary?.stage_pr || 0}
+                sub="Purchase Requisition"
+                variant="warning"
+                onClick={() => setSelectedForm('STAGE_PR')}
+              />
+              <MetricCard
+                label="Stage PO"
+                value={prSummary?.stage_po || 0}
+                sub="Purchase Order Terbit"
+                variant="info"
+                onClick={() => setSelectedForm('STAGE_PO')}
+              />
+              <MetricCard
+                label="Stage GR"
+                value={prSummary?.stage_gr || 0}
+                sub="Goods Receipt Selesai"
+                variant="success"
+                onClick={() => setSelectedForm('STAGE_GR')}
+              />
+            </div>
+          </section>
+
+          <section className="card">
+            <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--text-main)' }}>Tren Realisasi Budget per Bulan ({periode})</h2>
+            <MonthlyPipelineChart
+              data={monthlySummary}
+              onDetailClick={() => setSelectedForm('ALL')}
+            />
+          </section>
+        </div>
       )
     },
     {
       id: 'capex_opex',
       label: 'Analisis CAPEX & OPEX',
       content: (
-        <section className="card" style={{ padding: '1.5rem', background: 'transparent', border: 'none' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div className={s.budgetGrid}>
             <BudgetCard type="CAPEX" {...capex} onClick={() => setSelectedForm('CAPEX')} />
             <BudgetCard type="OPEX" {...opex} onClick={() => setSelectedForm('OPEX')} />
@@ -340,15 +361,15 @@ export default function Dashboard() {
             <BudgetChart title="Grafik CAPEX vs OPEX" data={chartCapexOpex} />
             <BudgetChart title="Grafik per form" data={chartForm} />
           </div>
-        </section>
+        </div>
       )
     },
     {
       id: 'rincian',
       label: 'Rincian Form',
       content: (
-        <section className="card" style={{ padding: '1.5rem' }}>
-          <h2 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '1.25rem', letterSpacing: '-0.01em' }}>Rincian Form</h2>
+        <section className="card">
+          <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--text-main)' }}>Rincian Form Budget</h2>
           <FormTable data={budgetData} onRowClick={setSelectedForm} />
         </section>
       )
@@ -356,28 +377,37 @@ export default function Dashboard() {
   ]
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 600, letterSpacing: '-0.02em', marginBottom: '0.25rem' }}>Dashboard</h1>
-          <p style={{ color: 'var(--text2)', fontSize: '0.9375rem' }}>Monitoring budget & PR Pipeline {periode}</p>
+    <div className={s.page}>
+      <div className={s.header}>
+        <div className={s.headerLeft}>
+          <h1>Dashboard Monitoring</h1>
+          <p>Monitoring budget & PR Pipeline periode {periode}</p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div className={s.headerRight}>
           <PeriodeSwitcher value={periode} onChange={setPeriode} />
           <button
             className="btn-primary"
             onClick={handleExportAll}
             disabled={isExporting}
-            style={{ padding: '9px 16px', background: 'var(--text)', fontSize: '0.875rem' }}
           >
-            {isExporting ? 'Exporting...' : '⬇ Export PDF'}
+            {isExporting ? (
+              <>
+                <Loader2 size={15} className="animate-spin" />
+                <span>Exporting...</span>
+              </>
+            ) : (
+              <>
+                <Download size={15} />
+                <span>Export PDF</span>
+              </>
+            )}
           </button>
         </div>
       </div>
 
       {alerts.length > 0 && <AlertBanner alerts={alerts} />}
 
-      <div ref={dashboardRef} style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      <div ref={dashboardRef} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Tabs tabs={dashboardTabs} />
       </div>
 

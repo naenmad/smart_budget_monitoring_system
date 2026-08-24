@@ -4,6 +4,7 @@ import { prPoDataApi } from '../api/prPoDataApi'
 import { kategoriApi } from '../api/kategoriApi'
 import { useAuth } from '../context/AuthContext'
 import ReviewModal from '../components/ReviewModal'
+import { AlertTriangle, Search, Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
 
 const BADGE_CLS = {
   'E-1': s.badgeE1, 'E-9': s.badgeE9,
@@ -179,8 +180,10 @@ export default function Classification() {
           <p>Riwayat hasil prediksi budget code dari file PR/PO</p>
         </div>
         <div style={{ textAlign: 'center', padding: 60, color: '#e85d3a' }}>
-          ⚠ {error}
-          <br />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 8 }}>
+            <AlertTriangle size={18} />
+            <span>{error}</span>
+          </div>
           <button className="btn-secondary" style={{ marginTop: 12 }} onClick={fetchData}>
             Coba lagi
           </button>
@@ -210,7 +213,9 @@ export default function Classification() {
       <div className={s.toolbar}>
         <div className={s.toolbarLeft}>
           <div className={s.searchWrap}>
-            <span className={s.searchIcon}>🔍</span>
+            <span className={s.searchIcon}>
+              <Search size={14} />
+            </span>
             <input
               className={s.searchInput}
               placeholder="Cari PR DocNum, deskripsi..."
@@ -267,7 +272,12 @@ export default function Classification() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={11} style={{ textAlign: 'center', padding: '40px', color: '#73726c' }}>⏳ Memuat data...</td></tr>
+                <tr>
+                  <td colSpan={11} style={{ textAlign: 'center', padding: '40px', color: '#73726c' }}>
+                    <Loader2 size={16} className="animate-spin" style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+                    Memuat data...
+                  </td>
+                </tr>
               ) : data.length === 0 ? (
                 <tr><td colSpan={11} style={{ textAlign: 'center', padding: '40px', color: '#73726c' }}>Tidak ada data ditemukan</td></tr>
               ) : data.map((r, i) => {
@@ -338,7 +348,8 @@ export default function Classification() {
               disabled={page <= 1 || loading}
               onClick={() => setPage(p => p - 1)}
             >
-              ← Prev
+              <ChevronLeft size={13} style={{ display: 'inline', marginRight: 2, verticalAlign: 'middle' }} />
+              Prev
             </button>
             {Array.from({ length: Math.min(serverTotalPages, 7) }, (_, i) => (
               <button
@@ -356,7 +367,8 @@ export default function Classification() {
               disabled={page >= serverTotalPages || loading}
               onClick={() => setPage(p => p + 1)}
             >
-              Next →
+              Next
+              <ChevronRight size={13} style={{ display: 'inline', marginLeft: 2, verticalAlign: 'middle' }} />
             </button>
           </div>
         </div>

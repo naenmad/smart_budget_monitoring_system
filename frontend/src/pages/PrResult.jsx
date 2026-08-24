@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { prApi } from '../api/prApi'
 import { kategoriApi } from '../api/kategoriApi'
 import { useAuth } from '../context/AuthContext'
+import { XCircle, AlertTriangle } from 'lucide-react'
 import styles from './PrResult.module.css'
 
 const STATUS_CONFIG = {
@@ -184,7 +185,8 @@ export default function PrResult() {
                         )}
                       {pr.status_ai === 'CANCELLED' && (
                         <span className={styles.cancelledNote} title={pr.alasan_pembatalan}>
-                          ✕ Dibatalkan
+                          <XCircle size={13} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+                          Dibatalkan
                         </span>
                       )}
                     </td>
@@ -196,9 +198,9 @@ export default function PrResult() {
 
           {/* Pagination */}
           <div className={styles.pagination}>
-            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className={styles.pgBtn}>‹ Prev</button>
+            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className={styles.pgBtn}>Prev</button>
             <span className={styles.pgLabel}>Hal {page} / {totalPages}</span>
-            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className={styles.pgBtn}>Next ›</button>
+            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className={styles.pgBtn}>Next</button>
           </div>
         </>
       )}
@@ -207,7 +209,10 @@ export default function PrResult() {
       {cancelTarget && (
         <div className={styles.overlay} onClick={closeCancelModal}>
           <div className={styles.modal} onClick={e => e.stopPropagation()}>
-            <h3 className={styles.modalTitle}>⚠ Batalkan PR</h3>
+            <h3 className={styles.modalTitle}>
+              <AlertTriangle size={18} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle', color: '#e85d3a' }} />
+              Batalkan PR
+            </h3>
             <p className={styles.modalDesc}>
               Anda akan membatalkan PR berikut:
             </p>

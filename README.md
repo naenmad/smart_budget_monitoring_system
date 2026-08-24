@@ -1,4 +1,4 @@
-# Smart Budget Monitoring System (BudgetIQ)
+# Smart Budget Monitoring System
 
 ## Deskripsi Singkat
 Sistem monitoring anggaran Quality Control (QC) berbasis web yang mengotomatisasi klasifikasi dan pemetaan dokumen Purchase Requisition (PR) terhadap rencana anggaran (Planning). Sistem ini menyediakan pelacakan status pengadaan end-to-end mulai dari pembuatan PR hingga penerimaan barang (Goods Receipt), yang dirancang khusus untuk meningkatkan efisiensi proses procurement pada PT Summit Adyawinsa Indonesia.

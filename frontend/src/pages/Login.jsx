@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { AlertCircle } from 'lucide-react'
 import logo from '../assets/sai_logo.webp'
 import s from './Login.module.css'
 export default function Login() {
@@ -91,8 +92,10 @@ export default function Login() {
 
           {error && (
             <div className={s.error}>
-              <span className={s.errorIcon}>⚠</span>
-              {error}
+              <span className={s.errorIcon}>
+                <AlertCircle size={15} />
+              </span>
+              <span>{error}</span>
             </div>
           )}
 

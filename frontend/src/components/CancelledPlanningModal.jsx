@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import s from './PrStatusModal.module.css' // reuse styling yang sudah ada, konsisten visual
 import { planningApi } from '../api/planningApi'
 import { formatRp } from '../utils/format'
+import { X, Loader2 } from 'lucide-react'
 
 export default function CancelledPlanningModal({ periode, onClose }) {
     const [items, setItems] = useState([])
@@ -34,13 +35,18 @@ export default function CancelledPlanningModal({ periode, onClose }) {
                         <p>Daftar budget yang sudah dibatalkan (tidak masuk hitungan remaining budget)</p>
                     </div>
                     <div className={s.headerActions}>
-                        <button className={s.closeBtn} onClick={onClose}>✕</button>
+                        <button className={s.closeBtn} onClick={onClose} aria-label="Tutup">
+                            <X size={18} />
+                        </button>
                     </div>
                 </div>
 
                 <div className={s.content}>
                     {loading ? (
-                        <div className={s.loadingState}>⏳ Memuat data...</div>
+                        <div className={s.loadingState}>
+                            <Loader2 size={16} className="animate-spin" style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+                            Memuat data...
+                        </div>
                     ) : items.length === 0 ? (
                         <div className={s.emptyState}>Belum ada item yang dibatalkan</div>
                     ) : (

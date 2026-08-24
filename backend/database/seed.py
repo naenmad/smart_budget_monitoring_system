@@ -22,5 +22,5 @@ if __name__ == "__main__":
         db.session.commit()
 
         print("=" * 40)
-        print("Seeder selesai ✅")
+        print("Seeder selesai")
         print("=" * 40)

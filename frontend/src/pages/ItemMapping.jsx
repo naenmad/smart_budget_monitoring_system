@@ -3,6 +3,7 @@ import toast from 'react-hot-toast'
 import { useState, useEffect } from 'react'
 import { itemMappingApi } from '../api/itemMappingApi'
 import { kategoriApi } from '../api/kategoriApi'
+import { Lightbulb, Plus, Edit2, Trash2, Check, X } from 'lucide-react'
 import styles from './ItemMapping.module.css'
 
 export default function ItemMapping() {
@@ -14,7 +15,6 @@ export default function ItemMapping() {
   const [editData, setEditData] = useState(null)
   const [form, setForm] = useState({ keyword: '', planning_item: '', kategori_id: '', priority: 1, is_active: true })
   const [suggestions, setSuggestions] = useState([])
-  // keyword saran yang sedang diproses lewat form (agar bisa dihapus dari list setelah simpan)
   const [appliedKeyword, setAppliedKeyword] = useState(null)
 
   useEffect(() => { fetchAll() }, [])
@@ -24,17 +24,17 @@ export default function ItemMapping() {
   useEffect(() => {
     itemMappingApi.getSuggestions()
       .then(res => setSuggestions(res.data?.data || []))
-      .catch(() => { /* suggestion opsional, silent fail ok */ })
+      .catch(() => { })
   }, [])
+
   function applySuggestion(s) {
-    setAppliedKeyword(s.description)  // simpan keyword untuk filter ulang saat disubmit
+    setAppliedKeyword(s.description)
     setForm({ keyword: s.description, planning_item: s.planning_item, kategori_id: '', priority: 1, is_active: true })
     setEditData(null)
     setShowForm(true)
   }
 
   function dismissSuggestion(s) {
-    // Hapus optimistis dulu dari UI, lalu simpan sebagai inactive ke backend
     setSuggestions(prev => prev.filter(x => x.description !== s.description))
     itemMappingApi.create({
       keyword: s.description,
@@ -43,7 +43,6 @@ export default function ItemMapping() {
       priority: 1,
       is_active: false
     }).catch(() => {
-      // Kalau gagal simpan, tampilkan toast (saran sudah hilang dari UI, tidak masalah)
       toast.error('Gagal menyimpan dismiss — saran akan muncul lagi setelah refresh')
     })
   }
@@ -70,19 +69,17 @@ export default function ItemMapping() {
     try {
       if (editData) {
         await itemMappingApi.update(editData.id, form)
-        toast.success('Rule berhasil diupdate')
+        toast.success('Mapping berhasil diupdate')
       } else {
         await itemMappingApi.create(form)
-        toast.success('Rule berhasil disimpan')
-        // Hapus saran dari list jika form ini berasal dari saran
+        toast.success('Mapping berhasil dibuat')
         if (appliedKeyword) {
-          setSuggestions(prev => prev.filter(x => x.description !== appliedKeyword))
-          setAppliedKeyword(null)
+          setSuggestions(prev => prev.filter(s => s.description !== appliedKeyword))
         }
       }
-      setShowForm(false)
+      closeForm()
       fetchAll()
-    } catch { toast.error('Gagal menyimpan') }
+    } catch { toast.error('Gagal menyimpan mapping') }
   }
 
   async function handleDelete(id) {
@@ -100,23 +97,46 @@ export default function ItemMapping() {
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <h2 className={styles.title}>Item Mapping</h2>
-        <button onClick={openCreate} className={styles.btnPrimary}>+ Tambah Mapping</button>
+        <div>
+          <h1 className={styles.title}>Item Mapping Keyword</h1>
+          <p className={styles.subtitle}>Kelola aturan pencocokan kata kunci PR ke nama item planning anggaran</p>
+        </div>
+        <button onClick={openCreate} className={styles.btnPrimary}>
+          <Plus size={16} />
+          <span>Tambah Mapping</span>
+        </button>
       </div>
 
       {error && <p className={styles.error}>{error}</p>}
+
       {suggestions.length > 0 && (
         <div className={styles.suggestionPanel}>
-          <h3 className={styles.suggestionTitle}>💡 Saran Rule dari Histori ({suggestions.length})</h3>
-          {suggestions.map((s, i) => (
-            <div key={i} className={styles.suggestionRow}>
-              <span>"{s.description}" → <strong>{s.planning_item}</strong> <em style={{ color: '#6b7280' }}>({s.jumlah_kemunculan}x dipilih)</em></span>
-              <div className={styles.suggestionActions}>
-                <button onClick={() => applySuggestion(s)} className={styles.btnPrimarySm}>+ Jadikan Rule</button>
-                <button onClick={() => dismissSuggestion(s)} className={styles.btnCancelSm}>Abaikan</button>
+          <h3 className={styles.suggestionTitle}>
+            <Lightbulb size={16} style={{ color: '#d97706' }} />
+            <span>Saran Rule dari Histori Realisasi ({suggestions.length})</span>
+          </h3>
+          <div className={styles.suggestionList}>
+            {suggestions.map((s, i) => (
+              <div key={i} className={styles.suggestionRow}>
+                <div>
+                  <span className={styles.sugKeyword}>"{s.description}"</span>
+                  <span className={styles.sugArrow}> → </span>
+                  <strong className={styles.sugItem}>{s.planning_item}</strong>
+                  <span className={styles.sugCount}> ({s.jumlah_kemunculan}x dipilih)</span>
+                </div>
+                <div className={styles.suggestionActions}>
+                  <button onClick={() => applySuggestion(s)} className={styles.btnPrimarySm}>
+                    <Check size={13} />
+                    <span>Jadikan Rule</span>
+                  </button>
+                  <button onClick={() => dismissSuggestion(s)} className={styles.btnCancelSm}>
+                    <X size={13} />
+                    <span>Abaikan</span>
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 
@@ -125,29 +145,38 @@ export default function ItemMapping() {
         <div className={styles.overlay}>
           <div className={styles.modal}>
             <h3 className={styles.modalTitle}>{editData ? 'Edit' : 'Tambah'} Item Mapping</h3>
-            <form onSubmit={handleSubmit}>
-              <label className={styles.label}>Keyword *</label>
-              <input className={styles.input} value={form.keyword} onChange={e => setForm({ ...form, keyword: e.target.value })} required />
+            <form onSubmit={handleSubmit} className={styles.formGroup}>
+              <div>
+                <label className={styles.label}>Keyword PR *</label>
+                <input className={styles.input} placeholder="Kata kunci pada PR" value={form.keyword} onChange={e => setForm({ ...form, keyword: e.target.value })} required />
+              </div>
 
-              <label className={styles.label}>Planning Item *</label>
-              <input className={styles.input} value={form.planning_item} onChange={e => setForm({ ...form, planning_item: e.target.value })} required />
+              <div>
+                <label className={styles.label}>Planning Item Target *</label>
+                <input className={styles.input} placeholder="Nama item pada Budget Planning" value={form.planning_item} onChange={e => setForm({ ...form, planning_item: e.target.value })} required />
+              </div>
 
-              <label className={styles.label}>Kategori</label>
-              <select className={styles.input} value={form.kategori_id} onChange={e => setForm({ ...form, kategori_id: e.target.value })}>
-                <option value="">-- Semua Kategori --</option>
-                {kategoris.map(k => <option key={k.id} value={k.id}>{k.kode} - {k.nama}</option>)}
-              </select>
+              <div>
+                <label className={styles.label}>Kategori Form</label>
+                <select className={styles.select} value={form.kategori_id} onChange={e => setForm({ ...form, kategori_id: e.target.value })}>
+                  <option value="">-- Semua Kategori --</option>
+                  {kategoris.map(k => <option key={k.id} value={k.id}>{k.kode} - {k.nama}</option>)}
+                </select>
+              </div>
 
-              <label className={styles.label}>Priority</label>
-              <input type="number" className={styles.input} value={form.priority} min={1} onChange={e => setForm({ ...form, priority: parseInt(e.target.value) })} />
+              <div>
+                <label className={styles.label}>Priority Order</label>
+                <input type="number" className={styles.input} value={form.priority} min={1} onChange={e => setForm({ ...form, priority: parseInt(e.target.value) || 1 })} />
+              </div>
 
-              <label className={`${styles.label} ${styles.checkboxLabel}`}>
-                <input type="checkbox" checked={form.is_active} onChange={e => setForm({ ...form, is_active: e.target.checked })} /> Aktif
+              <label className={styles.checkboxLabel}>
+                <input type="checkbox" checked={form.is_active} onChange={e => setForm({ ...form, is_active: e.target.checked })} />
+                <span>Aktifkan Rule Mapping Ini</span>
               </label>
 
               <div className={styles.actionRow}>
-                <button type="submit" className={styles.btnPrimary}>Simpan</button>
                 <button type="button" onClick={closeForm} className={styles.btnCancel}>Batal</button>
+                <button type="submit" className={styles.btnSubmit}>Simpan Rule</button>
               </div>
             </form>
           </div>
@@ -155,35 +184,52 @@ export default function ItemMapping() {
       )}
 
       {/* Table */}
-      {loading ? <p>Memuat...</p> : (
-        <table className={styles.table}>
-          <thead>
-            <tr className={styles.tableHeader}>
-              {['#', 'Keyword', 'Planning Item', 'Kategori', 'Priority', 'Status', 'Aksi'].map(h => (
-                <th key={h} className={styles.th}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {mappings.length === 0 && <tr><td colSpan={7} className={styles.emptyState}>Belum ada data</td></tr>}
-            {mappings.map((m, i) => (
-              <tr key={m.id} className={styles.tr}>
-                <td className={styles.td}>{i + 1}</td>
-                <td className={styles.td}>{m.keyword}</td>
-                <td className={styles.td}>{m.planning_item}</td>
-                <td className={styles.td}>{m.kategori_id || '-'}</td>
-                <td className={styles.td}>{m.priority}</td>
-                <td className={styles.td}>{statusBadge(m.is_active)}</td>
-                <td className={styles.td}>
-                  <button onClick={() => openEdit(m)} className={styles.btnEdit}>Edit</button>
-                  {' '}
-                  <button onClick={() => handleDelete(m.id)} className={styles.btnDelete}>Hapus</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      <div className={styles.card}>
+        <div className={styles.tableWrap}>
+          {loading ? (
+            <p className={styles.loading}>Memuat data mapping...</p>
+          ) : (
+            <table className={styles.table}>
+              <thead>
+                <tr className={styles.tableHeader}>
+                  {['#', 'Keyword', 'Planning Item Target', 'Kategori', 'Priority', 'Status', 'Aksi'].map(h => (
+                    <th key={h} className={styles.th}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {mappings.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className={styles.emptyState}>Belum ada data rule mapping</td>
+                  </tr>
+                )}
+                {mappings.map((m, i) => (
+                  <tr key={m.id} className={styles.tr}>
+                    <td className={styles.td} style={{ width: 40 }}>{i + 1}</td>
+                    <td className={styles.td}><strong>{m.keyword}</strong></td>
+                    <td className={styles.td}>{m.planning_item}</td>
+                    <td className={styles.td}>{m.kategori_id || '-'}</td>
+                    <td className={styles.td}>{m.priority}</td>
+                    <td className={styles.td}>{statusBadge(m.is_active)}</td>
+                    <td className={styles.td}>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button onClick={() => openEdit(m)} className={styles.btnEdit} title="Edit Mapping">
+                          <Edit2 size={13} />
+                          <span>Edit</span>
+                        </button>
+                        <button onClick={() => handleDelete(m.id)} className={styles.btnDelete} title="Hapus Mapping">
+                          <Trash2 size={13} />
+                          <span>Hapus</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

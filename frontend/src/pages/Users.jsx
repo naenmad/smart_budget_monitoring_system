@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import s from './Users.module.css'
 import { userApi } from '../api/userApi'
 import { useAuth } from '../context/AuthContext'
+import { CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
 
 const EMPTY_FORM = { username: '', password: '', role: 'admin' }
 
@@ -113,7 +114,12 @@ export default function Users() {
 
           {feedback.text && (
             <div className={`${s.feedback} ${feedback.type === 'success' ? s.feedbackSuccess : s.feedbackError}`}>
-              {feedback.type === 'success' ? '✓' : '⚠'} {feedback.text}
+              {feedback.type === 'success' ? (
+                <CheckCircle2 size={15} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+              ) : (
+                <AlertCircle size={15} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+              )}
+              {feedback.text}
             </div>
           )}
 
@@ -200,7 +206,10 @@ export default function Users() {
           </div>
 
           {loading ? (
-            <div className={s.loading}>⏳ Memuat...</div>
+            <div className={s.loading}>
+              <Loader2 size={16} className="animate-spin" style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+              Memuat...
+            </div>
           ) : users.length === 0 ? (
             <div className={s.emptyState}>Belum ada pengguna</div>
           ) : (

@@ -5,6 +5,7 @@ import { mappingApi } from '../api/mappingApi'
 import { formatRp } from '../utils/format'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import { FileText, X, Loader2, Undo2 } from 'lucide-react'
 
 export default function PrStatusModal({ status, onClose }) {
     const [prList, setPrList] = useState([])
@@ -110,17 +111,21 @@ export default function PrStatusModal({ status, onClose }) {
                                 onClick={handleExportPDF}
                                 className={s.exportBtn}
                             >
-                                📄 Export PDF
+                                <FileText size={14} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+                                Export PDF
                             </button>
                         )}
-                        <button className={s.closeBtn} onClick={onClose}>✕</button>
+                        <button className={s.closeBtn} onClick={onClose} aria-label="Tutup">
+                            <X size={18} />
+                        </button>
                     </div>
                 </div>
 
                 <div className={s.content}>
                     {loading ? (
                         <div className={s.loadingState}>
-                            ⏳ Memuat data...
+                            <Loader2 size={16} className="animate-spin" style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+                            Memuat data...
                         </div>
                     ) : prList.length === 0 ? (
                         <div className={s.emptyState}>
@@ -155,7 +160,14 @@ export default function PrStatusModal({ status, onClose }) {
                                                         onClick={() => handleUndo(pr.id)}
                                                         disabled={processingId === pr.id}
                                                     >
-                                                        {processingId === pr.id ? '...' : '↩️ Batalkan'}
+                                                        {processingId === pr.id ? (
+                                                            '...'
+                                                        ) : (
+                                                            <>
+                                                                <Undo2 size={13} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+                                                                Batalkan
+                                                            </>
+                                                        )}
                                                     </button>
                                                 </td>
                                             )}

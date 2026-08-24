@@ -1,5 +1,7 @@
+# pyrefly: ignore [missing-import]
 from dotenv import load_dotenv
 load_dotenv()
+# pyrefly: ignore [missing-import]
 from flask import Flask
 from flask_cors import CORS
 from sqlalchemy import text
@@ -95,14 +97,14 @@ app.register_blueprint(
 
 @app.route("/")
 def home():
-    return "🚀 SAI QC Backend Running"
+    return "SAI QC Backend Running"
 
 
 @app.route("/health")
 def health():
     return {
         "status": "OK",
-        "message": "Backend Running 🚀"
+        "message": "Backend Running"
     }
 
 

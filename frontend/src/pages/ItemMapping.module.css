@@ -1,233 +1,405 @@
 .page {
-  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-main);
   margin: 0;
+  letter-spacing: -0.01em;
 }
 
-.error {
-  color: red;
-}
-
-.overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal {
-  background: #fff;
-  border-radius: 12px;
-  padding: 28px;
-  width: 480px;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
-.modalTitle {
-  margin-top: 0;
-}
-
-.label {
-  display: block;
+.subtitle {
   font-size: 13px;
-  font-weight: 600;
-  margin-bottom: 4px;
-  color: #374151;
-}
-
-.input {
-  width: 100%;
-  padding: 8px 10px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  margin-bottom: 12px;
-  box-sizing: border-box;
-  font-size: 14px;
-}
-
-.checkboxLabel {
-  display: flex;
-  gap: 8px;
-  align-items: center;
+  color: var(--text-muted);
+  margin-top: 2px;
 }
 
 .btnPrimary {
-  background: #2563eb;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 8px 16px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: background 0.15s;
-}
-.btnPrimary:hover { background: #1d4ed8; }
-
-.btnCancel {
-  background: #6b7280;
-  color: #fff;
+  background: var(--primary);
+  color: #ffffff;
   border: none;
-  border-radius: 6px;
-  padding: 8px 16px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: background 0.15s;
-}
-.btnCancel:hover { background: #4b5563; }
-
-/* Varian kecil — dipakai di suggestion row */
-.btnPrimarySm {
-  background: #2563eb;
-  color: #fff;
-  border: none;
-  border-radius: 5px;
-  padding: 4px 10px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.btnPrimarySm:hover { background: #1d4ed8; }
-
-.btnCancelSm {
-  background: #e5e7eb;
-  color: #374151;
-  border: none;
-  border-radius: 5px;
-  padding: 4px 10px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.btnCancelSm:hover { background: #d1d5db; }
-
-.btnEdit {
-  background: #f59e0b;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  padding: 4px 10px;
-  font-size: 12px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: background 0.15s;
-}
-.btnEdit:hover { background: #d97706; }
-
-.btnDelete {
-  background: #ef4444;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  padding: 4px 10px;
-  font-size: 12px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: background 0.15s;
-}
-.btnDelete:hover { background: #dc2626; }
-
-.actionRow {
-  display: flex;
-  gap: 8px;
-  margin-top: 16px;
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  background: #fff;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-}
-
-.tableHeader {
-  background: #f1f5f9;
-}
-
-.th {
-  padding: 10px 14px;
-  text-align: left;
-  font-weight: 700;
+  border-radius: var(--radius-sm);
   font-size: 13px;
-  color: #475569;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: var(--shadow-sm);
 }
 
-.tr {
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.td {
-  padding: 10px 14px;
-  font-size: 13px;
-}
-
-.badgeActive {
-  background: #dcfce7;
-  color: #166534;
-  border-radius: 4px;
-  padding: 2px 8px;
-  font-size: 12px;
-}
-
-.badgeInactive {
-  background: #fee2e2;
-  color: #991b1b;
-  border-radius: 4px;
-  padding: 2px 8px;
-  font-size: 12px;
-}
-
-.emptyState {
-  text-align: center;
-  padding: 20px;
-  color: #888;
+.btnPrimary:hover {
+  background: var(--primary-hover);
 }
 
 .suggestionPanel {
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 20px;
+  background: var(--warning-light);
+  border: 1px solid var(--warning-border);
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .suggestionTitle {
-  margin: 0 0 12px 0;
-  font-size: 15px;
-  color: #1e3a8a;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--warning-text);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.suggestionList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .suggestionRow {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid #dbeafe;
+  gap: 12px;
   font-size: 13px;
+  color: #78350f;
+  background: #ffffff;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid #fef08a;
+  flex-wrap: wrap;
 }
 
-.suggestionRow:last-child {
-  border-bottom: none;
+.sugKeyword {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+  background: #fef9c3;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.sugArrow {
+  color: #d97706;
+  font-weight: 700;
+}
+
+.sugItem {
+  color: var(--text-main);
+}
+
+.sugCount {
+  color: var(--text-muted);
+  font-size: 12px;
 }
 
 .suggestionActions {
   display: flex;
   gap: 8px;
-  flex-shrink: 0;
+}
+
+.btnPrimarySm {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.btnPrimarySm:hover {
+  background: var(--primary-hover);
+}
+
+.btnCancelSm {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  background: #ffffff;
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btnCancelSm:hover {
+  background: var(--bg-subtle);
+  color: var(--text-main);
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.tableWrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tableHeader {
+  background: #f8fafc;
+}
+
+.th {
+  padding: 10px 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-color);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.tr {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.td {
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--text-body);
+}
+
+.badgeActive {
+  display: inline-flex;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--success-light);
+  color: var(--success-text);
+  border: 1px solid var(--success-border);
+}
+
+.badgeInactive {
+  display: inline-flex;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--bg-subtle);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+}
+
+.btnEdit {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-body);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btnEdit:hover {
+  background: var(--bg-subtle);
+  color: var(--primary);
+  border-color: var(--primary-border);
+}
+
+.btnDelete {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: var(--danger-light);
+  border: 1px solid var(--danger-border);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--danger);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btnDelete:hover {
+  background: #fee2e2;
+}
+
+.emptyState,
+.loading {
+  text-align: center;
+  padding: 32px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* Modal */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 16px;
+}
+
+.modal {
+  background: #ffffff;
+  border-radius: var(--radius-md);
+  padding: 24px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.modalTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-body);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.input,
+.select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  background: #ffffff;
+  color: var(--text-main);
+  outline: none;
+}
+
+.input:focus,
+.select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.checkboxLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-body);
+  cursor: pointer;
+}
+
+.checkboxLabel input {
+  cursor: pointer;
+}
+
+.actionRow {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.btnSubmit {
+  padding: 8px 16px;
+  background: var(--primary);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.btnSubmit:hover {
+  background: var(--primary-hover);
+}
+
+.btnCancel {
+  padding: 8px 16px;
+  background: #ffffff;
+  color: var(--text-body);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.btnCancel:hover {
+  background: var(--bg-subtle);
+}
+
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .header button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .suggestionRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .suggestionActions {
+    justify-content: flex-end;
+  }
 }

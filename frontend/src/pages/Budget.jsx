@@ -4,6 +4,7 @@ import s from './Budget.module.css'
 import { budgetApi } from '../api/budgetApi'
 import { kategoriApi } from '../api/kategoriApi'
 import { useAuth } from '../context/AuthContext'
+import { CheckCircle2, AlertCircle, Save, Trash2, BarChart3, Download } from 'lucide-react'
 
 const CURRENT_YEAR = String(new Date().getFullYear())
 
@@ -226,6 +227,39 @@ export default function Budget() {
     }
   })
 
+  const [isDragging, setIsDragging] = useState(false)
+
+  const handleDragOver = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!saving) setIsDragging(true)
+  }
+
+  const handleDragLeave = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+  }
+
+  const handleDrop = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+    if (saving) return
+
+    const droppedFiles = e.dataTransfer.files
+    if (droppedFiles && droppedFiles.length > 0) {
+      const droppedFile = droppedFiles[0]
+      const ext = droppedFile.name.split('.').pop().toLowerCase()
+      if (ext === 'xlsx' || ext === 'xls') {
+        // Trigger handleFile with synthetic event
+        handleFile({ target: { files: [droppedFile] } })
+      } else {
+        setMessage({ type: 'error', text: 'Format file harus berupa Excel (.xlsx atau .xls)' })
+      }
+    }
+  }
+
   return (
     <div className={s.page}>
       <div className={s.header}>
@@ -235,15 +269,23 @@ export default function Budget() {
 
       {message.text && (
         <div style={{
-          padding: '10px 16px',
+          padding: '10px 14px',
           borderRadius: 8,
           marginBottom: 16,
           fontSize: 13,
           background: message.type === 'success' ? '#ecfdf5' : '#fef2f2',
           color: message.type === 'success' ? '#065f46' : '#991b1b',
           border: `1px solid ${message.type === 'success' ? '#a7f3d0' : '#fecaca'}`,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6
         }}>
-          {message.type === 'success' ? '✓' : '⚠'} {message.text}
+          {message.type === 'success' ? (
+            <CheckCircle2 size={15} style={{ flexShrink: 0 }} />
+          ) : (
+            <AlertCircle size={15} style={{ flexShrink: 0 }} />
+          )}
+          <span>{message.text}</span>
         </div>
       )}
 
@@ -326,42 +368,52 @@ export default function Budget() {
               <div className={s.actions}>
                 <button className="btn-secondary" onClick={handleReset}>Reset</button>
                 <button className="btn-primary" onClick={handleSave} disabled={saving}>
-                  {saving ? 'Menyimpan...' : '💾 Simpan budget'}
+                  <Save size={13} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+                  {saving ? 'Menyimpan...' : 'Simpan budget'}
                 </button>
               </div>
             </div>
           </div>
 
           <div className={s.card}>
-            <div className={s.sectionLabel}>Budget aktif — {form.periode}</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+              <div className={s.sectionLabel} style={{ marginBottom: 0 }}>Budget aktif — {form.periode}</div>
+              {Object.keys(activeBudgets).length > 0 && (
+                <button 
+                  className="btn-danger" 
+                  style={{ fontSize: '11.5px', padding: '4px 10px' }}
+                  onClick={handleDeletePeriode}
+                  disabled={loading}
+                >
+                  <Trash2 size={13} />
+                  <span>Hapus Semua ({form.periode})</span>
+                </button>
+              )}
+            </div>
+
             {loading ? (
               <div style={{ color: '#73726c', fontSize: 13, padding: 16 }}>Memuat...</div>
             ) : Object.keys(activeBudgets).length === 0 ? (
               <div style={{ color: '#73726c', fontSize: 13, padding: 16 }}>Belum ada budget untuk periode ini</div>
             ) : (
-              <>
-                <div className={s.metricGrid}>
-                  {Object.entries(activeBudgets).map(([code, val]) => (
-                    <div key={code} className={s.metric}>
-                      <div className={s.metricLabel}>{code}</div>
-                      <div className={s.metricValue}>{val}</div>
+              <div className={s.metricGrid}>
+                {Object.entries(activeBudgets).map(([code, val]) => (
+                  <div key={code} className={s.metric} title={`${code}: ${val}`}>
+                    <div className={s.metricHeader}>
+                      <span className={`${s.badge} ${code === 'E-1' ? s.badgeE1 : code === 'E-9' ? s.badgeE9 : s.badgeI1}`}>
+                        {code}
+                      </span>
+                      <span className={s.metricType}>
+                        {code === 'I-1' ? 'CAPEX' : 'OPEX'}
+                      </span>
                     </div>
-                  ))}
-                </div>
-                <div style={{ padding: '0 16px 16px', textAlign: 'right' }}>
-                  <button 
-                    className="btn-secondary" 
-                    style={{ color: '#dc2626', borderColor: '#fca5a5', fontSize: '0.8rem', padding: '6px 12px' }}
-                    onClick={handleDeletePeriode}
-                    disabled={loading}
-                  >
-                    🗑 Hapus Semua ({form.periode})
-                  </button>
-                </div>
-              </>
+                    <div className={s.metricValue}>{val}</div>
+                  </div>
+                ))}
+              </div>
             )}
 
-            <div className={s.divider} style={{ marginTop: 12 }}>
+            <div className={s.divider} style={{ marginTop: 14 }}>
               <div className={s.sectionLabel}>Riwayat perubahan</div>
               <div className={s.historyList}>
                 {budgets.length === 0 ? (
@@ -387,14 +439,25 @@ export default function Budget() {
         <div className={s.grid}>
           <div className={s.card}>
             <div className={s.sectionLabel}>Upload Excel budget</div>
-            <div className={s.uploadZone} onClick={() => fileRef.current.click()}>
-              <span className={s.uploadIcon}>📊</span>
-              <div className={s.uploadTitle}>{saving ? 'Memproses...' : 'Klik untuk upload'}</div>
-              <div className={s.uploadSub}>.xlsx atau .xls</div>
+            <div 
+              className={`${s.dropzone} ${isDragging ? s.dropzoneDragging : ''}`} 
+              onClick={() => fileRef.current.click()}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
               <input ref={fileRef} type="file" accept=".xlsx,.xls" style={{ display: 'none' }} onChange={handleFile} disabled={saving} />
+              <div className={s.dropzonePlaceholder}>
+                <UploadCloud size={32} className={s.uploadIcon} />
+                <div className={s.dropzoneTitle}>
+                  {saving ? 'Memproses file...' : isDragging ? 'Lepaskan file Excel di sini' : 'Drag & Drop atau Klik untuk upload file Excel'}
+                </div>
+                <div className={s.dropzoneSub}>Mendukung format .xlsx dan .xls</div>
+              </div>
             </div>
             <button className={`btn-secondary ${s.templateBtn}`} onClick={downloadTemplate}>
-              ⬇ Download template
+              <Download size={14} />
+              <span>Download Template Excel</span>
             </button>
           </div>
 

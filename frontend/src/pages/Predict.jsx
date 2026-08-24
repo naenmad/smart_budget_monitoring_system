@@ -5,6 +5,7 @@ import { classificationApi } from '../api/classificationApi'
 import { prPoDataApi } from '../api/prPoDataApi'
 import { uploadHistoryApi } from '../api/uploadHistoryApi'
 import { useAuth } from '../context/AuthContext'
+import { CheckCircle2, AlertCircle, FileSpreadsheet, Check, Zap, Save, Upload } from 'lucide-react'
 
 const PREVIEW_COLS = ['PR DocNum', 'Description', 'Unit Price', 'PR Qty', 'CommentText']
 
@@ -141,24 +142,64 @@ export default function Predict() {
   const ruleCount = results.filter(r => r.Method === 'RULE_BASE' || r.Method === 'REGEX').length
   const svmCount = results.filter(r => r.Method === 'SVM').length
 
+  const [isDragging, setIsDragging] = useState(false)
+
+  const handleDragOver = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!loading && !saving) setIsDragging(true)
+  }
+
+  const handleDragLeave = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+  }
+
+  const handleDrop = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+    if (loading || saving) return
+
+    const droppedFiles = e.dataTransfer.files
+    if (droppedFiles && droppedFiles.length > 0) {
+      const droppedFile = droppedFiles[0]
+      const ext = droppedFile.name.split('.').pop().toLowerCase()
+      if (ext === 'xlsx' || ext === 'xls') {
+        handleFile({ target: { files: [droppedFile] } })
+      } else {
+        setMessage({ type: 'error', text: 'Format file harus berupa Excel (.xlsx atau .xls)' })
+      }
+    }
+  }
+
   return (
     <div className={s.page}>
       <div className={s.header}>
-        <h1>Predict budget code</h1>
-        <p>Upload file PR/PO untuk prediksi otomatis</p>
+        <h1>Prediksi AI & Klasifikasi Form</h1>
+        <p>Klasifikasikan dokumen PR/PO ke kategori form budget secara otomatis menggunakan SVM</p>
       </div>
 
       {message.text && (
         <div style={{
-          padding: '10px 16px',
+          padding: '10px 14px',
           borderRadius: 8,
           marginBottom: 16,
           fontSize: 13,
           background: message.type === 'success' ? '#ecfdf5' : '#fef2f2',
           color: message.type === 'success' ? '#065f46' : '#991b1b',
           border: `1px solid ${message.type === 'success' ? '#a7f3d0' : '#fecaca'}`,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6
         }}>
-          {message.type === 'success' ? '✓' : '⚠'} {message.text}
+          {message.type === 'success' ? (
+            <CheckCircle2 size={16} color="#10b981" />
+          ) : (
+            <AlertTriangle size={16} color="#ef4444" />
+          )}
+          <span>{message.text}</span>
         </div>
       )}
 
@@ -171,7 +212,7 @@ export default function Predict() {
                 <div key={i}>
                   <div className={`${s.stepItem} ${step > i ? s.active : ''}`}>
                     <div className={`${s.stepNum} ${step > i + 1 ? s.done : step === i + 1 ? s.active : ''}`}>
-                      {step > i + 1 ? '✓' : i + 1}
+                      {step > i + 1 ? <Check size={12} /> : i + 1}
                     </div>
                     {label}
                   </div>
@@ -184,22 +225,30 @@ export default function Predict() {
           {fileName && (
             <div className={s.fileCard}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 8 }}>
-                <span style={{ fontSize: 20, color: '#73726c' }}>📊</span>
+                <FileSpreadsheet size={20} color="#2563eb" />
                 <div>
                   <div className={s.fileName}>{fileName}</div>
                   <div className={s.fileMeta}>{rows.length} baris</div>
                 </div>
               </div>
               <div className={s.fileTags}>
-                <span className={s.fileTag}>✓ Description</span>
-                <span className={s.fileTag}>✓ CommentText</span>
+                <span className={s.fileTag}>Description</span>
+                <span className={s.fileTag}>CommentText</span>
               </div>
             </div>
           )}
 
-          <div className={s.uploadZone} onClick={() => fileRef.current.click()}>
-            <span className={s.uploadIcon}>⬆</span>
-            <div className={s.uploadTitle}>{fileName ? 'Ganti file' : 'Upload file'}</div>
+          <div 
+            className={`${s.uploadZone} ${isDragging ? s.uploadZoneDragging : ''}`} 
+            onClick={() => fileRef.current.click()}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            <span className={s.uploadIcon}>
+              <Upload size={24} color="#2563eb" />
+            </span>
+            <div className={s.uploadTitle}>{fileName ? 'Ganti file' : isDragging ? 'Lepaskan file di sini' : 'Drag & Drop atau Klik'}</div>
             <div className={s.uploadSub}>.xlsx atau .xls</div>
             <input ref={fileRef} type="file" accept=".xlsx,.xls" style={{ display: 'none' }} onChange={handleFile} />
           </div>
@@ -213,7 +262,8 @@ export default function Predict() {
                 <div className={s.previewActions}>
                   <button className="btn-secondary">Filter kolom</button>
                   <button className="btn-primary" onClick={handlePredict} disabled={loading}>
-                    {loading ? 'Memproses...' : '⚡ Jalankan prediksi'}
+                    <Zap size={13} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+                    {loading ? 'Memproses...' : 'Jalankan prediksi'}
                   </button>
                 </div>
               </div>
@@ -255,7 +305,8 @@ export default function Predict() {
                   </div>
                 </div>
                 <button className="btn-primary" onClick={handleSave} disabled={saving}>
-                  {saving ? 'Menyimpan...' : '💾 Simpan ke dashboard'}
+                  <Save size={13} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+                  {saving ? 'Menyimpan...' : 'Simpan ke dashboard'}
                 </button>
               </div>
               <div className={s.tableWrap}>

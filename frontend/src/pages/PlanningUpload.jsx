@@ -3,6 +3,7 @@ import { planningApi } from '../api/planningApi'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 import * as XLSX from 'xlsx'
+import { UploadCloud, CheckCircle2, Loader2, FileSpreadsheet, Info, Check } from 'lucide-react'
 import styles from './PlanningUpload.module.css'
 
 export default function PlanningUpload() {
@@ -11,6 +12,7 @@ export default function PlanningUpload() {
   const [periode, setPeriode] = useState('')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
+  const fileInputRef = useRef(null)
 
   const pollingRef = useRef(null)
 
@@ -57,7 +59,7 @@ export default function PlanningUpload() {
           setLoading(false)
           setResult({
             success: true,
-            message: "File berhasil diupload",
+            message: "File berhasil diupload dan diproses",
             data: {
               planning_header_id: planningHeaderId,
             }
@@ -116,48 +118,162 @@ export default function PlanningUpload() {
     }
   }
 
+  const [isDragging, setIsDragging] = useState(false)
+
+  const handleDragOver = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!loading) setIsDragging(true)
+  }
+
+  const handleDragLeave = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+  }
+
+  const handleDrop = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+    if (loading) return
+
+    const droppedFiles = e.dataTransfer.files
+    if (droppedFiles && droppedFiles.length > 0) {
+      const droppedFile = droppedFiles[0]
+      const ext = droppedFile.name.split('.').pop().toLowerCase()
+      if (ext === 'xlsx' || ext === 'xls') {
+        setFile(droppedFile)
+      } else {
+        toast.error('Format file harus berupa file Excel (.xlsx atau .xls)')
+      }
+    }
+  }
+
   return (
     <div className={styles.page}>
-      <h2 className={styles.title}>Upload Planning</h2>
-
-      <div className={styles.card}>
-        <form onSubmit={handleSubmit}>
-          <label className={styles.label}>Periode *</label>
-          <input
-            className={styles.input}
-            placeholder="cth: 2025"
-            value={periode}
-            onChange={e => setPeriode(e.target.value)}
-            required
-            disabled={loading}
-          />
-
-          <label className={styles.label}>File Excel *</label>
-          <input
-            type="file"
-            accept=".xls,.xlsx"
-            className={styles.fileInput}
-            onChange={e => setFile(e.target.files[0])}
-            disabled={loading}
-          />
-
-          <div className={styles.infoBox}>
-            <strong>Format kolom yang dibutuhkan:</strong>
-            <br />month, form, item, planning_amount, remarks
-          </div>
-
-          <button type="submit" disabled={loading} className={styles.btnPrimary}>
-            {loading ? '⏳ Mengupload di Background...' : '📤 Upload Planning'}
-          </button>
-        </form>
+      <div className={styles.header}>
+        <h1 className={styles.title}>Upload Planning Anggaran</h1>
+        <p className={styles.subtitle}>Unggah data planning budget tahunan untuk monitoring realisasi</p>
       </div>
 
-      {result?.success && !loading && (
-        <div className={styles.successBox}>
-          ✅ <strong>Berhasil!</strong> {result.message}
-          <br />Planning Header ID: <strong>{result.data?.planning_header_id}</strong>
+      <div className={styles.grid}>
+        {/* Kolom Kiri: Form Upload */}
+        <div className={styles.card}>
+          <form onSubmit={handleSubmit} className={styles.form}>
+            <div>
+              <label className={styles.label}>Tahun Periode *</label>
+              <input
+                className={styles.input}
+                placeholder="Contoh: 2025"
+                value={periode}
+                onChange={e => setPeriode(e.target.value)}
+                required
+                disabled={loading}
+              />
+            </div>
+
+            <div>
+              <label className={styles.label}>File Excel Planning *</label>
+              <div 
+                className={`${styles.dropzone} ${file ? styles.dropzoneActive : ''} ${isDragging ? styles.dropzoneDragging : ''}`}
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".xls,.xlsx"
+                  style={{ display: 'none' }}
+                  onChange={e => setFile(e.target.files?.[0] || null)}
+                  disabled={loading}
+                />
+                
+                {file ? (
+                  <div className={styles.filePreview}>
+                    <FileSpreadsheet size={32} color="#16a34a" />
+                    <div>
+                      <div className={styles.fileName}>{file.name}</div>
+                      <div className={styles.fileSize}>{(file.size / 1024).toFixed(1)} KB • Klik atau drag file lain untuk mengganti</div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className={styles.dropzonePlaceholder}>
+                    <UploadCloud size={32} className={styles.uploadIcon} />
+                    <div className={styles.dropzoneTitle}>
+                      {isDragging ? 'Lepaskan file di sini' : 'Drag & Drop atau Klik untuk memilih file Excel'}
+                    </div>
+                    <div className={styles.dropzoneSub}>Mendukung format .xlsx dan .xls</div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <button type="submit" disabled={loading} className={styles.btnPrimary}>
+              {loading ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  <span>Mengupload di Background...</span>
+                </>
+              ) : (
+                <>
+                  <UploadCloud size={16} />
+                  <span>Upload Planning</span>
+                </>
+              )}
+            </button>
+          </form>
+
+          {result?.success && !loading && (
+            <div className={styles.successBox}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <CheckCircle2 size={18} color="#16a34a" />
+                <strong>{result.message}</strong>
+              </div>
+              <div style={{ fontSize: '12px', color: '#166534' }}>
+                Planning Header ID: <strong>#{result.data?.planning_header_id}</strong>
+              </div>
+            </div>
+          )}
         </div>
-      )}
+
+        {/* Kolom Kanan: Panduan Format */}
+        <div className={styles.guideCard}>
+          <div className={styles.guideHeader}>
+            <Info size={16} color="#0284c7" />
+            <span>Ketentuan Format Excel</span>
+          </div>
+
+          <p className={styles.guideDesc}>
+            Pastikan file Excel yang diunggah memiliki sheet pertama dengan kolom-kolom berikut:
+          </p>
+
+          <ul className={styles.guideList}>
+            <li>
+              <Check size={14} className={styles.checkIcon} />
+              <span><code>month</code> : Bulan (Jan, Feb, Mar, dll.)</span>
+            </li>
+            <li>
+              <Check size={14} className={styles.checkIcon} />
+              <span><code>form</code> : Kode Form (E-1, E-9, I-1)</span>
+            </li>
+            <li>
+              <Check size={14} className={styles.checkIcon} />
+              <span><code>item</code> : Nama atau deskripsi item planning</span>
+            </li>
+            <li>
+              <Check size={14} className={styles.checkIcon} />
+              <span><code>planning_amount</code> : Nilai nominal anggaran (angka)</span>
+            </li>
+            <li>
+              <Check size={14} className={styles.checkIcon} />
+              <span><code>remarks</code> : Keterangan atau catatan tambahan</span>
+            </li>
+          </ul>
+        </div>
+      </div>
     </div>
   )
 }

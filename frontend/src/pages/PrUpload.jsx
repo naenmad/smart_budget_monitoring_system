@@ -4,6 +4,7 @@ import { uploadHistoryApi } from '../api/uploadHistoryApi'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 import * as XLSX from 'xlsx'
+import { UploadCloud, CheckCircle2, ArrowRight, Loader2, FileSpreadsheet, Info, Check } from 'lucide-react'
 import styles from './PrUpload.module.css'
 
 export default function PrUpload() {
@@ -12,6 +13,7 @@ export default function PrUpload() {
   const [periode, setPeriode] = useState('')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
+  const fileInputRef = useRef(null)
   
   const pollingRef = useRef(null)
 
@@ -30,7 +32,7 @@ export default function PrUpload() {
           
           const normalizedHeaders = headers.map(h => String(h).trim().toLowerCase().replace(/ /g, '_').replace(/-/g, '_'))
           const required = ['pr_doc_num', 'description', 'request_date']
-          const missing = required.filter(r => !normalizedHeaders.includes(r) && !normalizedHeaders.includes('pr_docnum')) // pr_docnum is mapped to pr_doc_num
+          const missing = required.filter(r => !normalizedHeaders.includes(r) && !normalizedHeaders.includes('pr_docnum'))
           
           if (missing.length > 0) {
             resolve({ valid: false, message: `Kolom wajib tidak ditemukan: ${missing.join(', ')}` })
@@ -118,53 +120,170 @@ export default function PrUpload() {
     }
   }
 
+  const [isDragging, setIsDragging] = useState(false)
+
+  const handleDragOver = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!loading) setIsDragging(true)
+  }
+
+  const handleDragLeave = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+  }
+
+  const handleDrop = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+    if (loading) return
+
+    const droppedFiles = e.dataTransfer.files
+    if (droppedFiles && droppedFiles.length > 0) {
+      const droppedFile = droppedFiles[0]
+      const ext = droppedFile.name.split('.').pop().toLowerCase()
+      if (ext === 'xlsx' || ext === 'xls') {
+        setFile(droppedFile)
+      } else {
+        toast.error('Format file harus berupa file Excel (.xlsx atau .xls)')
+      }
+    }
+  }
+
   return (
     <div className={styles.page}>
-      <h2 className={styles.title}>Upload PR</h2>
-
-      <div className={styles.card}>
-        <form onSubmit={handleSubmit}>
-          <label className={styles.label}>Periode *</label>
-          <input
-            className={styles.input}
-            placeholder="cth: 2025"
-            value={periode}
-            onChange={e => setPeriode(e.target.value)}
-            required
-            disabled={loading}
-          />
-
-          <label className={styles.label}>File Excel *</label>
-          <input
-            type="file"
-            accept=".xls,.xlsx"
-            className={styles.fileInput}
-            onChange={e => setFile(e.target.files[0])}
-            disabled={loading}
-          />
-
-          <div className={styles.infoBox}>
-            <strong>Format kolom yang dibutuhkan:</strong>
-            <br />pr_doc_num, description, total_price, request_date
-            <br /><em>Opsional: po_doc_num, supplier_name, qty, uom, unit_price, dll</em>
-          </div>
-
-          <button type="submit" disabled={loading} className={styles.btnPrimary}>
-            {loading ? '⏳ Memproses di Background...' : '📤 Upload PR'}
-          </button>
-        </form>
+      <div className={styles.header}>
+        <h1 className={styles.title}>Upload Purchase Requisition (PR)</h1>
+        <p className={styles.subtitle}>Unggah file PR untuk pencocokan otomatis dengan item budget planning</p>
       </div>
 
-      {result?.success && !loading && (
-        <div className={styles.successBox}>
-          ✅ <strong>Berhasil!</strong>
-          <br />Total PR diproses: <strong>{result.data?.total_data}</strong>
-          <br />Upload ID: <strong>{result.data?.upload_id}</strong>
-          <br />Periode: <strong>{result.data?.periode}</strong>
-          <br /><br />
-          <a href="/pr/result" style={{ color: '#166534', fontWeight: 700 }}>→ Lihat Result Matching</a>
+      <div className={styles.grid}>
+        {/* Kolom Kiri: Form Upload */}
+        <div className={styles.card}>
+          <form onSubmit={handleSubmit} className={styles.form}>
+            <div>
+              <label className={styles.label}>Tahun Periode *</label>
+              <input
+                className={styles.input}
+                placeholder="Contoh: 2025"
+                value={periode}
+                onChange={e => setPeriode(e.target.value)}
+                required
+                disabled={loading}
+              />
+            </div>
+
+            <div>
+              <label className={styles.label}>File Excel PR *</label>
+              <div 
+                className={`${styles.dropzone} ${file ? styles.dropzoneActive : ''} ${isDragging ? styles.dropzoneDragging : ''}`}
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".xls,.xlsx"
+                  style={{ display: 'none' }}
+                  onChange={e => setFile(e.target.files?.[0] || null)}
+                  disabled={loading}
+                />
+                
+                {file ? (
+                  <div className={styles.filePreview}>
+                    <FileSpreadsheet size={32} color="#16a34a" />
+                    <div>
+                      <div className={styles.fileName}>{file.name}</div>
+                      <div className={styles.fileSize}>{(file.size / 1024).toFixed(1)} KB • Klik atau drag file lain untuk mengganti</div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className={styles.dropzonePlaceholder}>
+                    <UploadCloud size={32} className={styles.uploadIcon} />
+                    <div className={styles.dropzoneTitle}>
+                      {isDragging ? 'Lepaskan file PR di sini' : 'Drag & Drop atau Klik untuk memilih file Excel PR'}
+                    </div>
+                    <div className={styles.dropzoneSub}>Mendukung format .xlsx dan .xls</div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <button type="submit" disabled={loading} className={styles.btnPrimary}>
+              {loading ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  <span>Memproses di Background...</span>
+                </>
+              ) : (
+                <>
+                  <UploadCloud size={16} />
+                  <span>Upload PR</span>
+                </>
+              )}
+            </button>
+          </form>
+
+          {result?.success && !loading && (
+            <div className={styles.successBox}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <CheckCircle2 size={18} color="#16a34a" />
+                <strong>Berhasil Diproses!</strong>
+              </div>
+              <div style={{ fontSize: '12.5px', color: '#166534', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <div>Total PR diproses: <strong>{result.data?.total_data}</strong> baris</div>
+                <div>Upload ID: <strong>#{result.data?.upload_id}</strong></div>
+                <div>Periode: <strong>{result.data?.periode}</strong></div>
+              </div>
+              <div style={{ marginTop: 12 }}>
+                <a href="/pr/result" className={styles.resultLink}>
+                  <span>Lihat Result Matching</span>
+                  <ArrowRight size={14} />
+                </a>
+              </div>
+            </div>
+          )}
         </div>
-      )}
+
+        {/* Kolom Kanan: Panduan Format */}
+        <div className={styles.guideCard}>
+          <div className={styles.guideHeader}>
+            <Info size={16} color="#0284c7" />
+            <span>Ketentuan Format Excel PR</span>
+          </div>
+
+          <p className={styles.guideDesc}>
+            Format Excel PR harus mencantumkan kolom-kolom utama berikut:
+          </p>
+
+          <ul className={styles.guideList}>
+            <li>
+              <Check size={14} className={styles.checkIcon} />
+              <span><code>pr_doc_num</code> : Nomor Dokumen PR</span>
+            </li>
+            <li>
+              <Check size={14} className={styles.checkIcon} />
+              <span><code>description</code> : Deskripsi nama barang/jasa</span>
+            </li>
+            <li>
+              <Check size={14} className={styles.checkIcon} />
+              <span><code>request_date</code> : Tanggal pengajuan PR</span>
+            </li>
+            <li>
+              <Check size={14} className={styles.checkIcon} />
+              <span><code>total_price</code> : Total nominal harga PR</span>
+            </li>
+          </ul>
+
+          <div className={styles.optionalNote}>
+            <strong>Kolom Opsional:</strong> <code>po_doc_num</code>, <code>supplier_name</code>, <code>qty</code>, <code>uom</code>, <code>unit_price</code>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { AlertTriangle, X } from 'lucide-react'
 import s from './AlertBanner.module.css'
 
 export default function AlertBanner({ alerts = [] }) {
@@ -13,7 +14,9 @@ export default function AlertBanner({ alerts = [] }) {
         if (dismissed.includes(i)) return null
         return (
           <div key={i} className={s.banner}>
-            <span className={s.icon}>⚠</span>
+            <span className={s.icon}>
+              <AlertTriangle size={16} />
+            </span>
             <div className={s.content}>
               <span className={s.title}>{alert.title} — </span>
               <span className={s.desc}>{alert.desc}</span>
@@ -23,7 +26,7 @@ export default function AlertBanner({ alerts = [] }) {
               onClick={() => setDismissed(prev => [...prev, i])}
               aria-label="Tutup"
             >
-              ✕
+              <X size={14} />
             </button>
           </div>
         )

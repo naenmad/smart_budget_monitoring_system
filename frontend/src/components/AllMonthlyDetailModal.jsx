@@ -3,6 +3,7 @@ import s from './DetailModal.module.css' // We can reuse styles from DetailModal
 import tableStyles from './AllMonthlyDetailModal.module.css'
 import { prPoDataApi } from '../api/prPoDataApi'
 import { formatRp } from '../utils/format'
+import { X, Loader2 } from 'lucide-react'
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des']
 
@@ -64,12 +65,15 @@ export default function AllMonthlyDetailModal({ periode, onClose }) {
                         <h2>Detail Budget Semua Form (Per Bulan)</h2>
                         <p>Periode {periode}</p>
                     </div>
-                    <button className={s.closeBtn} onClick={onClose}>✕</button>
+                    <button className={s.closeBtn} onClick={onClose} aria-label="Tutup">
+                        <X size={18} />
+                    </button>
                 </div>
 
                 {loading ? (
                     <div className={s.loadingState}>
-                        ⏳ Memuat grafik...
+                        <Loader2 size={16} className="animate-spin" style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+                        Memuat data...
                     </div>
                 ) : (
                     <div className={tableStyles.tableWrap}>

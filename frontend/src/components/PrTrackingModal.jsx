@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { prApi } from '../api/prApi'
 import { formatRp } from '../utils/format'
+import { X } from 'lucide-react'
 
 export default function PrTrackingModal({ stage, onClose }) {
   const [page, setPage] = useState(1)
@@ -25,7 +26,9 @@ export default function PrTrackingModal({ stage, onClose }) {
           <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>
             Detail Tahapan: {stage} ({total} Data)
           </h2>
-          <button onClick={onClose} style={closeBtnStyle}>✕</button>
+          <button onClick={onClose} style={closeBtnStyle} aria-label="Tutup">
+            <X size={18} />
+          </button>
         </div>
 
         <div style={bodyStyle}>

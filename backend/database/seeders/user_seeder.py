@@ -7,7 +7,7 @@ from utils.db import db
 def seed_user():
 
     if User.query.filter_by(username="admin").first():
-        print("✓ Admin sudah ada")
+        print("[SKIP] Admin sudah ada")
         return
 
     admin = User(
@@ -19,4 +19,4 @@ def seed_user():
 
     db.session.add(admin)
 
-    print("✓ Admin berhasil dibuat")
+    print("[OK] Admin berhasil dibuat")

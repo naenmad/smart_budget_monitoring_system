@@ -1,5 +1,6 @@
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { ShieldAlert } from 'lucide-react'
 
 /**
  * ProtectedRoute — guards routes behind authentication and optional role check.
@@ -22,9 +23,9 @@ export default function ProtectedRoute({ children, roles }) {
         <div style={{
           width: 56, height: 56, borderRadius: '50%',
           background: '#FEF2F2', display: 'flex', alignItems: 'center',
-          justifyContent: 'center', fontSize: 24,
+          justifyContent: 'center',
         }}>
-          🚫
+          <ShieldAlert size={28} color="#ef4444" />
         </div>
         <h2 style={{ fontSize: 18, fontWeight: 600, color: '#1a1a1a', margin: 0 }}>
           Akses Ditolak

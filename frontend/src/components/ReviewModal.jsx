@@ -2,6 +2,7 @@ import { useState } from 'react'
 import s from './ReviewModal.module.css'
 import { prPoDataApi } from '../api/prPoDataApi'
 import { useAuth } from '../context/AuthContext'
+import { X, AlertCircle, Check, Loader2 } from 'lucide-react'
 
 export default function ReviewModal({ record, categories, onClose, onSuccess }) {
   const { user } = useAuth()
@@ -59,11 +60,18 @@ export default function ReviewModal({ record, categories, onClose, onSuccess }) 
       <div className={s.modal} onClick={e => e.stopPropagation()}>
         <div className={s.header}>
           <h2>Review Manual & Koreksi Code</h2>
-          <button className={s.closeBtn} onClick={onClose}>✕</button>
+          <button className={s.closeBtn} onClick={onClose} aria-label="Tutup">
+            <X size={18} />
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className={s.form}>
-          {error && <div className={s.error}>⚠ {error}</div>}
+          {error && (
+            <div className={s.error}>
+              <AlertCircle size={15} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+              {error}
+            </div>
+          )}
 
           <div className={s.infoBox}>
             <div className={s.infoRow}>
@@ -112,7 +120,7 @@ export default function ReviewModal({ record, categories, onClose, onSuccess }) 
                 padding: '8px 16px',
                 borderRadius: 8,
                 border: 'none',
-                background: 'linear-gradient(135deg, #16a34a, #15803d)',
+                background: '#16a34a',
                 color: '#fff',
                 fontWeight: 600,
                 fontSize: '0.85rem',
@@ -123,7 +131,17 @@ export default function ReviewModal({ record, categories, onClose, onSuccess }) 
                 opacity: (loading || approving) ? 0.6 : 1,
               }}
             >
-              {approving ? '⏳ Menyetujui...' : '✓ ACC '}
+              {approving ? (
+                <>
+                  <Loader2 size={14} className="animate-spin" />
+                  <span>Menyetujui...</span>
+                </>
+              ) : (
+                <>
+                  <Check size={14} />
+                  <span>ACC</span>
+                </>
+              )}
             </button>
             <button type="submit" className="btn-primary" disabled={loading || approving}>
               {loading ? 'Menyimpan...' : 'Simpan Perubahan'}

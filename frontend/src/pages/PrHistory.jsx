@@ -5,6 +5,7 @@ import { prApi } from '../api/prApi'
 import { prPoDataApi } from '../api/prPoDataApi'
 import { uploadHistoryApi } from '../api/uploadHistoryApi'
 import { useAuth } from '../context/AuthContext'
+import { RefreshCw, Play, Trash2, Loader2 } from 'lucide-react'
 import styles from './PrHistory.module.css'
 
 export default function PrHistory() {
@@ -138,14 +139,34 @@ export default function PrHistory() {
             disabled={isProcessing}
             className={styles.btnRetry}
           >
-            {isProcessing ? '⏳ Retrying...' : '🔄 Retry Mapping'}
+            {isProcessing ? (
+              <>
+                <Loader2 size={13} className="animate-spin" style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+                Retrying...
+              </>
+            ) : (
+              <>
+                <RefreshCw size={13} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+                Retry Mapping
+              </>
+            )}
           </button>
           <button 
             onClick={handleProcessPipeline} 
             disabled={isProcessing}
             className={styles.btnPipeline}
           >
-            {isProcessing ? '⏳ Memproses...' : '▶ Jalankan Pipeline'}
+            {isProcessing ? (
+              <>
+                <Loader2 size={13} className="animate-spin" style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+                Memproses...
+              </>
+            ) : (
+              <>
+                <Play size={13} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+                Jalankan Pipeline
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -184,7 +205,8 @@ export default function PrHistory() {
             disabled={isProcessing}
             className={styles.btnDeleteUpload}
           >
-            🗑️ Hapus Upload Ini
+            <Trash2 size={13} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+            Hapus Upload Ini
           </button>
         )}
         <span className={styles.totalLabel}>Total: <strong>{total}</strong></span>
@@ -236,7 +258,7 @@ export default function PrHistory() {
                           className={styles.btnDeletePr}
                           title="Hapus PR"
                         >
-                          🗑️
+                          <Trash2 size={13} />
                         </button>
                       )}
                     </td>

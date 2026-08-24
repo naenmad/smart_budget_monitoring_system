@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { planningApi } from '../api/planningApi'
 import s from './PlanningList.module.css'
 import { formatRp } from '../utils/format'
+import { Calendar, X, ChevronUp, ChevronDown } from 'lucide-react'
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
@@ -21,11 +22,11 @@ function StatusHeaderBadge({ status }) {
 // Badge status_realisasi per baris planning_detail
 function RealisasiBadge({ status }) {
   const cfg = {
-    OPEN: { cls: s.badgeOpen, label: '⬜ OPEN' },
-    PROSES: { cls: s.badgeProses, label: '🟡 PROSES' },
-    CLOSED: { cls: s.badgeClosed, label: '✅ CLOSED' },
-    CANCELLED: { cls: s.badgeCancelled, label: '🚫 CANCELLED' },
-  }[status] || { cls: s.badgeOpen, label: '⬜ OPEN' }
+    OPEN: { cls: s.badgeOpen, label: 'OPEN' },
+    PROSES: { cls: s.badgeProses, label: 'PROSES' },
+    CLOSED: { cls: s.badgeClosed, label: 'CLOSED' },
+    CANCELLED: { cls: s.badgeCancelled, label: 'CANCELLED' },
+  }[status] || { cls: s.badgeOpen, label: 'OPEN' }
   return <span className={cfg.cls}>{cfg.label}</span>
 }
 
@@ -140,8 +141,13 @@ export default function PlanningList() {
         {/* ── Filter chip ── */}
         {filterMonth && (
           <div className={s.filterChip}>
-            <span>🗓️ Filter aktif: bulan <strong>{filterMonth}</strong></span>
-            <button onClick={() => setFilterMonth('')} className={s.filterChipClear}>✕</button>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Calendar size={14} />
+              <span>Filter aktif: bulan <strong>{filterMonth}</strong></span>
+            </span>
+            <button onClick={() => setFilterMonth('')} className={s.filterChipClear} aria-label="Hapus filter">
+              <X size={14} />
+            </button>
           </div>
         )}
 
@@ -173,7 +179,9 @@ export default function PlanningList() {
                     >
                       Hapus
                     </button>
-                    <span className={s.chevron}>{expanded === h.id ? '▲' : '▼'}</span>
+                    <span className={s.chevron}>
+                      {expanded === h.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    </span>
                   </div>
                 </div>
 
@@ -187,36 +195,17 @@ export default function PlanningList() {
                             Menampilkan detail bulan <strong>{filterMonth}</strong> — {(details[h.id] || []).length} item ditemukan
                           </p>
                         )}
-
-                        <table className={s.table}>
-                          <thead>
-                            <tr>
-                              {['Bulan', 'Kategori', 'Item', 'Planning Amount', 'Remarks', 'Status Realisasi', 'Aksi'].map(c => (
-                                <th key={c}>{c}</th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {(details[h.id] || [])
-                              .filter(d => {
-                                if (!search) return true;
-                                const q = search.toLowerCase();
-                                return (
-                                  (d.item || '').toLowerCase().includes(q) ||
-                                  (d.kategori_kode || '').toLowerCase().includes(q) ||
-                                  (d.kategori_nama || '').toLowerCase().includes(q) ||
-                                  (d.kategori_tipe_formulir || '').toLowerCase().includes(q)
-                                );
-                              })
-                              .length === 0
-                              ? (
-                                <tr className={s.emptyRow}>
-                                  <td colSpan={6}>
-                                    Tidak ada detail{filterMonth ? ` untuk bulan ${filterMonth}` : ''}{search ? ' yang cocok dengan pencarian' : ''}
-                                  </td>
-                                </tr>
-                              )
-                              : (details[h.id] || [])
+                        <div className={s.tableWrapper}>
+                          <table className={s.table}>
+                            <thead>
+                              <tr>
+                                {['Bulan', 'Kategori', 'Item', 'Planning Amount', 'Remarks', 'Status Realisasi', 'Aksi'].map(c => (
+                                  <th key={c}>{c}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {(details[h.id] || [])
                                 .filter(d => {
                                   if (!search) return true;
                                   const q = search.toLowerCase();
@@ -227,38 +216,58 @@ export default function PlanningList() {
                                     (d.kategori_tipe_formulir || '').toLowerCase().includes(q)
                                   );
                                 })
-                                .map(d => (
-                                  <tr key={d.id}>
-                                    <td>{d.month}</td>
-                                    <td className={s.muted}>
-                                      <strong>{d.kategori_kode || d.kategori_id || '-'}</strong>
-                                      {d.kategori_nama && <div>{d.kategori_nama}</div>}
-                                      {d.kategori_tipe_formulir && <div style={{ fontSize: '0.8em', color: '#888' }}>({d.kategori_tipe_formulir})</div>}
-                                    </td>
-                                    <td>{d.item}</td>
-                                    <td className={s.right}>
-                                      {formatRp(d.planning_amount)}
-                                    </td>
-                                    <td className={s.muted}>{d.remarks || '-'}</td>
-                                    <td>
-                                      <RealisasiBadge status={d.status_realisasi} />
-                                    </td>
-                                    <td>
-                                      {d.status_realisasi === 'OPEN' && (
-                                        <button
-                                          onClick={() => handleCancelDetail(h.id, d.id)}
-                                          className={s.deleteBtn}
-                                          title="Batalkan item Planning"
-                                        >
-                                          Batalkan
-                                        </button>
-                                      )}
+                                .length === 0
+                                ? (
+                                  <tr className={s.emptyRow}>
+                                    <td colSpan={7}>
+                                      Tidak ada detail{filterMonth ? ` untuk bulan ${filterMonth}` : ''}{search ? ' yang cocok dengan pencarian' : ''}
                                     </td>
                                   </tr>
-                                ))
-                            }
-                          </tbody>
-                        </table>
+                                )
+                                : (details[h.id] || [])
+                                  .filter(d => {
+                                    if (!search) return true;
+                                    const q = search.toLowerCase();
+                                    return (
+                                      (d.item || '').toLowerCase().includes(q) ||
+                                      (d.kategori_kode || '').toLowerCase().includes(q) ||
+                                      (d.kategori_nama || '').toLowerCase().includes(q) ||
+                                      (d.kategori_tipe_formulir || '').toLowerCase().includes(q)
+                                    );
+                                  })
+                                  .map(d => (
+                                    <tr key={d.id}>
+                                      <td>{d.month}</td>
+                                      <td className={s.muted}>
+                                        <strong>{d.kategori_kode || d.kategori_id || '-'}</strong>
+                                        {d.kategori_nama && <div>{d.kategori_nama}</div>}
+                                        {d.kategori_tipe_formulir && <div style={{ fontSize: '0.8em', color: '#888' }}>({d.kategori_tipe_formulir})</div>}
+                                      </td>
+                                      <td>{d.item}</td>
+                                      <td className={s.right}>
+                                        {formatRp(d.planning_amount)}
+                                      </td>
+                                      <td className={s.muted}>{d.remarks || '-'}</td>
+                                      <td>
+                                        <RealisasiBadge status={d.status_realisasi} />
+                                      </td>
+                                      <td>
+                                        {d.status_realisasi === 'OPEN' && (
+                                          <button
+                                            onClick={() => handleCancelDetail(h.id, d.id)}
+                                            className={s.deleteBtn}
+                                            title="Batalkan item Planning"
+                                          >
+                                            Batalkan
+                                          </button>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  ))
+                              }
+                            </tbody>
+                          </table>
+                        </div>
                       </>
                     )}
                   </div>

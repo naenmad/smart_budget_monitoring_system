@@ -2,6 +2,7 @@ import toast from 'react-hot-toast'
 
 import { useState, useEffect } from 'react'
 import { mappingApi } from '../api/mappingApi'
+import { Search, CheckCheck, AlertTriangle, X, Check } from 'lucide-react'
 import styles from './MappingReview.module.css'
 
 export default function MappingReview() {
@@ -153,7 +154,8 @@ export default function MappingReview() {
         <div className={styles.list}>
           {items.length === 0 && (
             <div className={`card ${styles.emptyState}`}>
-              🎉 Semua item sudah di-mapping! Tidak ada antrian review.
+              <CheckCheck size={20} style={{ display: 'inline', marginRight: 8, verticalAlign: 'middle', color: '#16a34a' }} />
+              Semua item sudah di-mapping! Tidak ada antrian review.
             </div>
           )}
 
@@ -196,7 +198,8 @@ export default function MappingReview() {
                         className={`btn-secondary ${styles.btnSearchManual}`}
                         onClick={() => openSearchModal(pr)}
                       >
-                        🔍 Cari Manual
+                        <Search size={13} style={{ display: 'inline', marginRight: 5, verticalAlign: 'middle' }} />
+                        Cari Manual
                       </button>
                       {!hasPerfectCandidate && (
                         <button
@@ -212,7 +215,8 @@ export default function MappingReview() {
 
                   {isNoCandidate ? (
                     <p className={styles.noCandidateText}>
-                      ⚠️ Tidak ditemukan kandidat planning di periode ini.
+                      <AlertTriangle size={15} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle', color: '#e85d3a' }} />
+                      Tidak ditemukan kandidat planning di periode ini.
                     </p>
                   ) : (
                     <div className={styles.candidateList}>
@@ -228,7 +232,10 @@ export default function MappingReview() {
                           <div className={styles.candidateRight}>
                             {c.code_mismatch && (
                               <div className={styles.mismatchBadge}>
-                                <div className={styles.mismatchLabel}>⚠ BEDA KODE</div>
+                                <div className={styles.mismatchLabel}>
+                                  <AlertTriangle size={12} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+                                  BEDA KODE
+                                </div>
                                 <div className={styles.mismatchDetail}>
                                   PR: <strong>{c.pr_code}</strong> → Kandidat: <strong>{c.candidate_code}</strong>
                                 </div>
@@ -262,11 +269,11 @@ export default function MappingReview() {
       {!loading && totalPages > 1 && (
         <div className={styles.pagination}>
           <button className="btn-secondary" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
-            ‹ Prev
+            Prev
           </button>
           <span className={styles.pageInfo}>Hal {page} / {totalPages}</span>
           <button className="btn-secondary" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}>
-            Next ›
+            Next
           </button>
         </div>
       )}
@@ -276,7 +283,9 @@ export default function MappingReview() {
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <h3 className={styles.modalTitle}>Cari Item Planning Manual</h3>
-              <button className={styles.modalClose} onClick={closeSearchModal}>✕</button>
+              <button className={styles.modalClose} onClick={closeSearchModal} aria-label="Tutup">
+                <X size={18} />
+              </button>
             </div>
 
             <p className={styles.modalContext}>

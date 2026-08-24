@@ -1,20 +1,21 @@
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid,
-    Tooltip, ResponsiveContainer
+    Tooltip, ResponsiveContainer, Legend
 } from 'recharts'
 import s from './BudgetChart.module.css'
-
 import { formatRp } from '../utils/format'
 
 const COLORS = {
-    actual: '#3B82F6',
-    saldo: '#10B981',
-    budget: '#CBD5E1',
+    budget: '#94a3b8',
+    actual: '#2563eb',
+    saldo: '#16a34a',
 }
 
 const fmtYAxis = (v) => {
-    if (v >= 1000) return `Rp ${(v / 1000).toFixed(0)}K`
-    return `Rp ${v}`
+    if (v >= 1000000000) return `${(v / 1000000000).toFixed(1)}M`
+    if (v >= 1000000) return `${(v / 1000000).toFixed(0)}jt`
+    if (v >= 1000) return `${(v / 1000).toFixed(0)}rb`
+    return `${v}`
 }
 
 const CustomTooltip = ({ active, payload, label }) => {
@@ -23,8 +24,8 @@ const CustomTooltip = ({ active, payload, label }) => {
             <div className={s.tooltip}>
                 <div className={s.tooltipLabel}>{label}</div>
                 {payload.map(p => (
-                    <div key={p.name} style={{ color: p.dataKey === 'budget' ? '#64748B' : p.fill }}>
-                        {p.name}: {formatRp(p.value)}
+                    <div key={p.name} style={{ color: p.fill, fontSize: '12px', marginTop: 2 }}>
+                        <span style={{ fontWeight: 600 }}>{p.name}:</span> {formatRp(p.value)}
                     </div>
                 ))}
             </div>
@@ -35,9 +36,9 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 export default function BudgetChart({ title, data = [] }) {
     const legends = [
+        { label: 'Budget', color: COLORS.budget },
         { label: 'Actual', color: COLORS.actual },
         { label: 'Saldo', color: COLORS.saldo },
-        { label: 'Budget', color: COLORS.budget },
     ]
 
     return (
@@ -58,28 +59,34 @@ export default function BudgetChart({ title, data = [] }) {
             </div>
 
             <div className={s.chartArea}>
-                <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={data} barCategoryGap="30%" barGap={3}>
-                        <CartesianGrid vertical={false} stroke="rgba(0,0,0,0.06)" />
-                        <XAxis
-                            dataKey="name"
-                            axisLine={false}
-                            tickLine={false}
-                            tick={{ fontSize: 12, fill: '#73726c' }}
-                        />
-                        <YAxis
-                            axisLine={false}
-                            tickLine={false}
-                            tick={{ fontSize: 11, fill: '#73726c' }}
-                            tickFormatter={fmtYAxis}
-                            width={80}
-                        />
-                        <Tooltip content={<CustomTooltip />} />
-                        <Bar dataKey="actual" fill={COLORS.actual} radius={[4, 4, 0, 0]} maxBarSize={40} />
-                        <Bar dataKey="saldo" fill={COLORS.saldo} radius={[4, 4, 0, 0]} maxBarSize={40} />
-                        <Bar dataKey="budget" fill={COLORS.budget} radius={[4, 4, 0, 0]} maxBarSize={40} />
-                    </BarChart>
-                </ResponsiveContainer>
+                {data.length === 0 ? (
+                    <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '13px' }}>
+                        Tidak ada data budget untuk ditampilkan
+                    </div>
+                ) : (
+                    <ResponsiveContainer width="100%" height={240}>
+                        <BarChart data={data} barCategoryGap="25%" barGap={4}>
+                            <CartesianGrid vertical={false} stroke="#e2e8f0" strokeDasharray="3 3" />
+                            <XAxis
+                                dataKey="name"
+                                axisLine={{ stroke: '#cbd5e1' }}
+                                tickLine={false}
+                                tick={{ fontSize: 12, fill: '#64748b', fontWeight: 600 }}
+                            />
+                            <YAxis
+                                axisLine={false}
+                                tickLine={false}
+                                tick={{ fontSize: 11, fill: '#64748b' }}
+                                tickFormatter={fmtYAxis}
+                                width={65}
+                            />
+                            <Tooltip content={<CustomTooltip />} />
+                            <Bar dataKey="budget" name="Budget" fill={COLORS.budget} radius={[4, 4, 0, 0]} maxBarSize={36} />
+                            <Bar dataKey="actual" name="Actual" fill={COLORS.actual} radius={[4, 4, 0, 0]} maxBarSize={36} />
+                            <Bar dataKey="saldo" name="Saldo" fill={COLORS.saldo} radius={[4, 4, 0, 0]} maxBarSize={36} />
+                        </BarChart>
+                    </ResponsiveContainer>
+                )}
             </div>
         </div>
     )
