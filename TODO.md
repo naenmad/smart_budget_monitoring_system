@@ -4,6 +4,19 @@
 
 ---
 
+## ✅ Selesai Dikerjakan (Recently Completed)
+- [x] **Dokumentasi REST API Interaktif (Swagger UI / Flasgger)**: Integrasi OpenAPI 3.0 via `/apidocs/` dan `/docs`, JWT Bearer authorization, 8 domain tags, dan direct menu link di Sidebar frontend.
+- [x] **Pencegahan iOS Safari Auto-Zoom & Network Redirect Bug**: Perbaikan viewport, 16px input font size di mobile, serta penghilangan Werkzeug 308 redirect pada akses IP lokal.
+- [x] **Form Validation & Standardisasi Akun Pengguna**: Format username tanpa spasi `^[a-z0-9_.-]{3,30}$` dan password min 6 karakter pada backend & frontend.
+- [x] **Redesign Laman Login**: Tema enterprise modern selaras dengan sistem, branding PT SAI, Lucide icons, dan modal bantuan lupa password ke Admin.
+- [x] **Styling Card Item PR (Mapping Review)**: Memperbaiki class layout CSS PR item card dan daftar kandidat AI agar berjarak proporsional dan tidak menumpuk.
+- [x] **Sinkronisasi PR Tracking Stages Dashboard**: Key alignment backend response (`stage_pr`, `stage_po`, `stage_gr`) dan safe fallback di Dashboard.
+- [x] **Pilihan Jumlah Item per Halaman (Pagination)**: Opsi 10, 25, 50, 100 baris per halaman pada Model Klasifikasi AI, Riwayat PR/PO, dan Result Matching.
+- [x] **Responsivitas Mobile Card Otomatisasi & Threshold AI**: Layout 1-kolom fleksibel pada viewport mobile tanpa horizontal overflow.
+- [x] **Admin Reset/Ubah Password Pengguna Lain**: Tombol dan modal interaktif reset password akun pengguna lain di halaman Manajemen Akun.
+
+---
+
 ## 🚀 Prioritas Tinggi (High Priority)
 
 ### 🧹 1. Codebase Cleanup & Arsitektur Dasar

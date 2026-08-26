@@ -157,7 +157,16 @@ CREATE TABLE IF NOT EXISTS mapping_log (
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
--- 12. CREATE INDEXES FOR PERFORMANCE
+-- 12. TABLE: system_setting
+CREATE TABLE IF NOT EXISTS system_setting (
+    id BIGSERIAL PRIMARY KEY,
+    key VARCHAR(100) UNIQUE NOT NULL,
+    value TEXT NOT NULL,
+    description VARCHAR(255),
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 13. CREATE INDEXES FOR PERFORMANCE
 CREATE INDEX IF NOT EXISTS idx_pr_po_doc_num ON pr_po_data(pr_doc_num);
 CREATE INDEX IF NOT EXISTS idx_pr_po_status_ai ON pr_po_data(status_ai);
 CREATE INDEX IF NOT EXISTS idx_pr_po_budget_status ON pr_po_data(budget_status);
@@ -165,8 +174,9 @@ CREATE INDEX IF NOT EXISTS idx_pr_po_planning_detail_id ON pr_po_data(planning_d
 CREATE INDEX IF NOT EXISTS idx_planning_detail_header ON planning_detail(planning_header_id);
 CREATE INDEX IF NOT EXISTS idx_planning_detail_item ON planning_detail(item);
 CREATE INDEX IF NOT EXISTS idx_budget_periode ON budget(periode);
+CREATE INDEX IF NOT EXISTS idx_system_setting_key ON system_setting(key);
 
--- 13. SEED DEFAULT DATA
+-- 14. SEED DEFAULT DATA
 -- Default Categories (E-1, E-9, I-1)
 INSERT INTO kategori (kode, nama, tipe_formulir) 
 VALUES 
@@ -175,11 +185,18 @@ VALUES
     ('I-1', 'Investment / Fixed Assets', 'CAPEX')
 ON CONFLICT (kode) DO NOTHING;
 
--- Default Users (Password: admin123 -> SHA256 hashed or bcrypt used in system)
--- User Seeder default SHA256 / hashed
+-- Default Users
 INSERT INTO users (name, username, password, role)
 VALUES
     ('Administrator QC', 'admin', 'scrypt:32768:8:1$7fR3jOqvC0tJg9QZ$c63ca0495f4c4da17ee5eb20d437021eb3b51d8bdf9b94025b42db60802c63ae245df6f157ecdb35aa6d06d4eefd45eb2aa94a11f2a33f4a3aa822bb2b45eb9d', 'admin'),
     ('Staff QC Auditor', 'qc_user', 'scrypt:32768:8:1$7fR3jOqvC0tJg9QZ$c63ca0495f4c4da17ee5eb20d437021eb3b51d8bdf9b94025b42db60802c63ae245df6f157ecdb35aa6d06d4eefd45eb2aa94a11f2a33f4a3aa822bb2b45eb9d', 'user'),
     ('Manager Finance & QC', 'manager', 'scrypt:32768:8:1$7fR3jOqvC0tJg9QZ$c63ca0495f4c4da17ee5eb20d437021eb3b51d8bdf9b94025b42db60802c63ae245df6f157ecdb35aa6d06d4eefd45eb2aa94a11f2a33f4a3aa822bb2b45eb9d', 'manager')
 ON CONFLICT (username) DO NOTHING;
+
+-- Default System Settings
+INSERT INTO system_setting (key, value, description)
+VALUES
+    ('auto_mapping_threshold', '85', 'Ambang batas confidence score minimum (%) untuk persetujuan otomatis AI'),
+    ('auto_learning', 'true', 'Otomatis simpan konfirmasi manual menjadi rule baru di item_mapping')
+ON CONFLICT (key) DO NOTHING;
+

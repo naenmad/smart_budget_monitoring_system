@@ -1,5 +1,6 @@
 import pytest
-from ai.regex_engine import regex_predict, detect_budget_type
+from ai.regex_engine import regex_predict
+from ai.rule_base import detect_budget_type
 
 class TestRegexEngine:
     def test_regex_predict_i1(self):

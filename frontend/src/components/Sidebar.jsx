@@ -16,6 +16,7 @@ import {
   Layers,
   CheckSquare,
   UserCog,
+  FileCode2,
   ChevronDown,
   LogOut,
   KeyRound,
@@ -64,7 +65,8 @@ const MENU_CONFIG = [
   { 
     group: 'Pengaturan', 
     items: [
-      { to: '/users', label: 'Kelola Pengguna', roles: ['admin'], icon: UserCog }
+      { to: '/users', label: 'Kelola Pengguna', roles: ['admin'], icon: UserCog },
+      { href: '/apidocs/', label: 'API Docs (Swagger)', roles: ['admin', 'manager'], icon: FileCode2, isExternal: true }
     ]
   }
 ]
@@ -282,6 +284,33 @@ export default function Sidebar({ mode = 'open', setMode, isMobileOpen, onMobile
                   <div className={s.groupItems}>
                     {visibleItems.map(item => {
                       const Icon = item.icon
+
+                      if (item.isExternal) {
+                        return (
+                          <a
+                            key={item.href}
+                            href={item.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={() => {
+                              if (isMobile) {
+                                onMobileClose?.()
+                              }
+                            }}
+                            className={s.navLink}
+                            title={item.label}
+                          >
+                            <Icon size={18} className={s.navIcon} />
+                            {(!isCollapsed || isMobile) && <span className={s.navText}>{item.label}</span>}
+                            {isCollapsed && !isMobile && (
+                              <span className={s.navTooltip}>
+                                {item.label}
+                              </span>
+                            )}
+                          </a>
+                        )
+                      }
+
                       return (
                         <NavLink
                           key={item.to}

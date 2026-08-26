@@ -209,24 +209,71 @@ class AdvancedMappingService:
             return {"success": False, "message": "Tidak ada kandidat di kategori ini", "status": "OUT_OF_PLAN"}
 
         proc_time = time.time() - start_time
+        
+        # Evaluasi ambang batas otomatisasi dari SystemSetting
+        from models.system_setting import SystemSetting
+        from services.budget_monitoring_service import BudgetMonitoringService
+
+        raw_thresh = SystemSetting.get_value("auto_mapping_threshold", "85")
+        try:
+            threshold = float(raw_thresh)
+        except (ValueError, TypeError):
+            threshold = 85.0
+
+        top_candidate = final_results[0]
+        top_name, top_score, top_detail_id = top_candidate
+
+        # Verifikasi apakah ada perbedaan kode part
+        cand_detail = db.session.get(PlanningDetail, top_detail_id) if top_detail_id else None
+        top_cand_reg = AdvancedMappingService.extract_code(cand_detail.item) if cand_detail else None
+        code_mismatch = (pr_reg_num is not None and top_cand_reg is not None and pr_reg_num != top_cand_reg)
+
+        is_auto_approved = (top_score >= threshold and not code_mismatch and cand_detail is not None)
+
         rank = 1
         for res in final_results:
             item_name, score, detail_id = res
             conf = score / 100.0
+            is_this_selected = (is_auto_approved and rank == 1)
             log = MappingLog(
                 pr_po_data_id=pr.id,
                 method="FUZZY_MATCH",
                 planning_detail_hasil_id=detail_id,
                 confidence_score=conf,
                 rank_no=rank,
-                is_selected=False,
+                is_selected=is_this_selected,
                 processing_time=proc_time
             )
             db.session.add(log)
             rank += 1
 
-        pr.status_ai = "NEED_MAPPING"
-        db.session.commit()
-        return {"success": True, "message": "Mapped via Fuzzy (Needs Review)", "status": "NEED_MAPPING"}
+        if is_auto_approved:
+            pr.planning_detail_id = top_detail_id
+            pr.status_ai = "DONE"
+            if cand_detail and pr.kategori_id != cand_detail.kategori_id:
+                pr.kategori_id = cand_detail.kategori_id
+            
+            # Recalculate status realisasi anggaran
+            BudgetMonitoringService.recalculate_planning_status(top_detail_id)
+            db.session.commit()
+            print(f"[Auto-Approval] PR#{pr.id} ({description[:40]}) auto-mapped to #{top_detail_id} ({top_score:.1f}% >= {threshold:.0f}%)")
+            return {
+                "success": True, 
+                "message": f"Auto-Approved via Fuzzy ({top_score:.1f}% >= {threshold:.0f}%)", 
+                "status": "DONE",
+                "auto_approved": True,
+                "confidence_score": top_score / 100.0
+            }
+        else:
+            pr.status_ai = "NEED_MAPPING"
+            db.session.commit()
+            return {
+                "success": True, 
+                "message": f"Mapped via Fuzzy (Top score {top_score:.1f}% < {threshold:.0f}%, Needs Review)", 
+                "status": "NEED_MAPPING",
+                "auto_approved": False,
+                "confidence_score": top_score / 100.0
+            }
+
 
 

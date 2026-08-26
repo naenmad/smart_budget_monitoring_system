@@ -8,18 +8,35 @@ upload_bp = Blueprint(
 
 @upload_bp.route("/", methods=["POST"])
 def upload_excel():
-    # 1. Ambil file dari request.files
+    """Unggah File Excel PR / PO ke Antrean Parsing
+    ---
+    tags:
+      - Upload & Batch History
+    security:
+      - Bearer: []
+    consumes:
+      - multipart/form-data
+    parameters:
+      - in: formData
+        name: file
+        type: file
+        required: true
+        description: File Excel PR/PO (.xlsx / .xls)
+      - in: formData
+        name: user_id
+        type: integer
+        default: 1
+    responses:
+      200:
+        description: File berhasil diunggah dan batch upload dibuat
+      400:
+        description: File tidak valid
+    """
     file = request.files.get("file")
-    print(file )
-    
-    # Optional: ambil user_id dari request form atau token (dummy user=1 sementara jika tidak ada)
     user_id = request.form.get("user_id", 1)
     
     if not user_id:
-        user_id = 1 # Fallback untuk testing jika auth tidak aktif
+        user_id = 1
 
-    # 3. Kirim file ke UploadService (Validasi 1 dan 2 sudah ditangani di service)
     result, status_code = UploadService.upload_excel(file, user_id=user_id)
-
-    # 4. Return response
     return jsonify(result), status_code

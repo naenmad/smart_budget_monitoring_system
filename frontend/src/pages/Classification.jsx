@@ -37,8 +37,6 @@ const STATUS_LABEL = {
   rejected: 'Rejected',
 }
 
-const ROWS_PER_PAGE = 10
-
 const fmt = (n) =>
   n >= 1_000_000_000 ? `Rp ${(n / 1_000_000_000).toFixed(1)} M`
     : n >= 1_000_000 ? `Rp ${(n / 1_000_000).toFixed(1)} Jt`
@@ -74,6 +72,7 @@ export default function Classification() {
   const [codeFilter, setCodeFilter] = useState('ALL')
   const [methodFilter, setMethodFilter] = useState('ALL')
   const [page, setPage] = useState(1)
+  const [perPage, setPerPage] = useState(10)
 
   const { user } = useAuth()
   const [categories, setCategories] = useState([])
@@ -99,10 +98,10 @@ export default function Classification() {
     fetchSummaryMetrics()
   }, [])
 
-  // Re-fetch when any filter or page changes
+  // Re-fetch when any filter, page, or perPage changes
   useEffect(() => {
     fetchData()
-  }, [codeFilter, methodFilter, page])
+  }, [codeFilter, methodFilter, page, perPage])
 
   // Debounce search input
   useEffect(() => {
@@ -139,7 +138,7 @@ export default function Classification() {
     try {
       const params = {
         status_ai: 'DONE',
-        per_page: ROWS_PER_PAGE,
+        per_page: perPage,
         page,
       }
       if (search.trim()) params.search = search.trim()
@@ -290,7 +289,7 @@ export default function Classification() {
 
                 return (
                   <tr key={r.id || i}>
-                    <td style={{ color: '#73726c' }}>{(page - 1) * ROWS_PER_PAGE + i + 1}</td>
+                    <td style={{ color: '#73726c' }}>{(page - 1) * perPage + i + 1}</td>
                     <td className={s.cellMono}>{r.pr_doc_num || '—'}</td>
                     <td className={s.cellTruncate} title={r.description}>{r.description || '—'}</td>
                     <td className={s.cellTruncate} title={r.comment_text}>{r.comment_text || '—'}</td>
@@ -342,6 +341,24 @@ export default function Classification() {
         </div>
 
         <div className={s.pagination}>
+          <div className={s.perPageWrap}>
+            <span className={s.perPageLabel}>Tampilkan:</span>
+            <select
+              className={s.perPageSelect}
+              value={perPage}
+              onChange={(e) => {
+                setPerPage(Number(e.target.value))
+                setPage(1)
+              }}
+            >
+              <option value={10}>10 item</option>
+              <option value={25}>25 item</option>
+              <option value={50}>50 item</option>
+              <option value={100}>100 item</option>
+            </select>
+            <span className={s.totalInfo}>dari {serverTotal} data</span>
+          </div>
+
           <div className={s.paginationRow}>
             <button
               className={s.pageBtn}
@@ -361,7 +378,7 @@ export default function Classification() {
                 {i + 1}
               </button>
             ))}
-            {serverTotalPages > 7 && <span style={{ padding: '0 8px', color: '#73726c' }}>... {serverTotalPages}</span>}
+            {serverTotalPages > 7 && <span style={{ padding: '0 8px', color: 'var(--text-muted)' }}>... {serverTotalPages}</span>}
             <button
               className={s.pageBtn}
               disabled={page >= serverTotalPages || loading}

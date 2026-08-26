@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { 
   Search, 
-  Command, 
   ArrowRight, 
   LayoutDashboard, 
   Database, 
@@ -23,10 +22,10 @@ import {
   PieChart,
   BarChart3,
   TrendingUp,
-  AlertTriangle,
   Loader2,
   FileCode2,
-  Tag
+  Tag,
+  X
 } from 'lucide-react'
 import { useTheme } from '../context/ThemeContext'
 import { prApi } from '../api/prApi'
@@ -35,44 +34,44 @@ import { exportBudgetSummaryToExcel } from '../utils/exportReport'
 import toast from 'react-hot-toast'
 import s from './CommandPalette.module.css'
 
-// 1. Static Search Index for Pages, Cards, Tables, and Quick Actions
+// 1. Master Search Index
 const STATIC_ITEMS = [
-  // ── Pages ──
-  { path: '/dashboard', label: 'Dashboard Monitoring', type: 'page', category: 'Halaman', icon: LayoutDashboard, keywords: 'overview ringkasan beranda home summary statistik' },
-  { path: '/master/item-mapping', label: 'Item Mapping Rules', type: 'page', category: 'Halaman', icon: Database, keywords: 'master data keyword aturan kata kunci mapping kamus sinonim' },
-  { path: '/classification', label: 'Model Klasifikasi AI (SVM & TF-IDF)', type: 'page', category: 'Halaman', icon: Cpu, keywords: 'machine learning ai klasifikasi kategori svm support vector matrix akurasi confidence' },
-  { path: '/planning/upload', label: 'Upload Planning Anggaran', type: 'page', category: 'Halaman', icon: UploadCloud, keywords: 'import excel upload planning anggaran master pagu tahunan template' },
-  { path: '/planning/list', label: 'Daftar Planning Anggaran', type: 'page', category: 'Halaman', icon: ListFilter, keywords: 'list planning daftar rencana anggaran e-1 e-9 i-1 bulanan pagu' },
+  // ── Halaman / Menu ──
+  { path: '/dashboard', label: 'Dashboard Monitoring', type: 'page', category: 'Halaman', icon: LayoutDashboard, keywords: 'overview ringkasan beranda home summary statistik realisasi budget' },
+  { path: '/master/item-mapping', label: 'Item Mapping Rules', type: 'page', category: 'Halaman', icon: Database, keywords: 'master data keyword aturan kata kunci mapping kamus sinonim pencocokan' },
+  { path: '/classification', label: 'Model Klasifikasi AI (SVM & TF-IDF)', type: 'page', category: 'Halaman', icon: Cpu, keywords: 'machine learning ai klasifikasi kategori svm support vector machine akurasi confidence matrix' },
+  { path: '/planning/upload', label: 'Upload Planning Anggaran', type: 'page', category: 'Halaman', icon: UploadCloud, keywords: 'import excel upload planning anggaran master pagu tahunan template rencana' },
+  { path: '/planning/list', label: 'Daftar Planning Anggaran', type: 'page', category: 'Halaman', icon: ListFilter, keywords: 'list planning daftar rencana anggaran e-1 e-9 i-1 bulanan pagu detail' },
   { path: '/budget', label: 'Budget Monitoring & Setup', type: 'page', category: 'Halaman', icon: DollarSign, keywords: 'budget setting setup anggaran tahunan pagu capex opex saldo sisa' },
   { path: '/pr/upload', label: 'Upload Purchase Requisition', type: 'page', category: 'Halaman', icon: FileText, keywords: 'upload import pr purchase requisition po purchase order data excel' },
-  { path: '/pr/history', label: 'Riwayat PR / PO Upload', type: 'page', category: 'Halaman', icon: History, keywords: 'history riwayat log unggahan pr po tanggal pengupload batch' },
+  { path: '/pr/history', label: 'Riwayat PR / PO Upload', type: 'page', category: 'Halaman', icon: History, keywords: 'history riwayat log unggahan pr po tanggal pengupload batch data' },
   { path: '/pr/result', label: 'Result Matching & Validasi', type: 'page', category: 'Halaman', icon: FileCheck, keywords: 'result matching hasil validasi status pr planning oop overplan underplan' },
   { path: '/pr/mapping-review', label: 'Mapping Review & Bulk Action', type: 'page', category: 'Halaman', icon: CheckSquare, keywords: 'review validasi bulk action konfirmasi manual need mapping persetujuan massal batch' },
-  { path: '/users', label: 'Kelola Pengguna Sistem', type: 'page', category: 'Halaman', icon: Users, keywords: 'user manajemen role admin viewer manager user pengaturan hak akses' },
+  { path: '/users', label: 'Kelola Pengguna Sistem', type: 'page', category: 'Halaman', icon: Users, keywords: 'user manajemen role admin viewer manager user pengaturan hak akses akun' },
 
-  // ── Cards & Widgets ──
-  { path: '/dashboard', label: 'Card: Budget Overview (Total, Terpakai, Saldo)', type: 'card', category: 'Card & Widget', icon: Layers, keywords: 'card total budget terpakai saldo overview ringkasan metrik dashboard' },
-  { path: '/dashboard', label: 'Card: Analisis CAPEX & OPEX', type: 'card', category: 'Card & Widget', icon: PieChart, keywords: 'card capex opex capital operational perbandingan grafik budget' },
+  // ── Card & Widget ──
+  { path: '/dashboard', label: 'Card: Budget Overview (Total, Terpakai, Saldo)', type: 'card', category: 'Card & Widget', icon: Layers, keywords: 'card total budget terpakai saldo overview ringkasan metrik dashboard pagu' },
+  { path: '/dashboard', label: 'Card: Analisis CAPEX & OPEX', type: 'card', category: 'Card & Widget', icon: PieChart, keywords: 'card capex opex capital operational perbandingan grafik budget modal operasional' },
   { path: '/dashboard', label: 'Card: Status PR Pipeline (On Plan, Over, Under, OOP)', type: 'card', category: 'Card & Widget', icon: BarChart3, keywords: 'card status pipeline pr on plan over plan under plan out of plan need mapping cancelled' },
   { path: '/dashboard', label: 'Card: PR Tracking Stages (Stage PR, PO, GR)', type: 'card', category: 'Card & Widget', icon: TrendingUp, keywords: 'card tracking tahapan stage pr purchase requisition stage po order stage gr goods receipt' },
-  { path: '/classification', label: 'Card: Metrik Akurasi & Confusion Matrix SVM', type: 'card', category: 'Card & Widget', icon: Cpu, keywords: 'card akurasi model svm precision recall f1-score confusion matrix tf-idf' },
+  { path: '/classification', label: 'Card: Metrik Akurasi & Confusion Matrix SVM', type: 'card', category: 'Card & Widget', icon: Cpu, keywords: 'card akurasi model svm precision recall f1-score confusion matrix tf-idf ai' },
   { path: '/budget', label: 'Card: Status Pagu Anggaran Aktif per Kategori', type: 'card', category: 'Card & Widget', icon: DollarSign, keywords: 'card pagu aktif e-1 e-9 i-1 limit budget monitoring' },
 
-  // ── Tables & Lists ──
-  { path: '/dashboard', label: 'Tabel: Rincian Form Budget (E-1, E-9, I-1)', type: 'table', category: 'Tabel & Data', icon: Table, keywords: 'tabel rincian form budget data realisasi persen persentase warning over' },
-  { path: '/pr/result', label: 'Tabel: Hasil Matching AI & Realisasi PR', type: 'table', category: 'Tabel & Data', icon: Table, keywords: 'tabel hasil matching result realisasi pr status ai kode kategori' },
-  { path: '/planning/list', label: 'Tabel: Rincian Anggaran Tahunan per Bulan', type: 'table', category: 'Tabel & Data', icon: Table, keywords: 'tabel detail planning per bulan januari desember amount nominal' },
-  { path: '/master/item-mapping', label: 'Tabel: Rule Keyword Mapping Kata Kunci', type: 'table', category: 'Tabel & Data', icon: Table, keywords: 'tabel mapping sinonim kamus aturan pencocokan item nama barang' },
-  { path: '/pr/mapping-review', label: 'Tabel: Antrian PR Butuh Konfirmasi Manual', type: 'table', category: 'Tabel & Data', icon: Table, keywords: 'tabel review need mapping fuzzy match score skor rank kandidat' },
+  // ── Tabel & Data ──
+  { path: '/dashboard', label: 'Tabel: Rincian Form Budget (E-1, E-9, I-1)', type: 'table', category: 'Tabel & Data', icon: Table, keywords: 'tabel rincian form budget data realisasi persen persentase warning over saldo' },
+  { path: '/pr/result', label: 'Tabel: Hasil Matching AI & Realisasi PR', type: 'table', category: 'Tabel & Data', icon: Table, keywords: 'tabel hasil matching result realisasi pr status ai kode kategori verifikasi' },
+  { path: '/planning/list', label: 'Tabel: Rincian Anggaran Tahunan per Bulan', type: 'table', category: 'Tabel & Data', icon: Table, keywords: 'tabel detail planning per bulan januari desember amount nominal rencana' },
+  { path: '/master/item-mapping', label: 'Tabel: Rule Keyword Mapping Kata Kunci', type: 'table', category: 'Tabel & Data', icon: Table, keywords: 'tabel mapping sinonim kamus aturan pencocokan item nama barang kata kunci' },
+  { path: '/pr/mapping-review', label: 'Tabel: Antrian PR Butuh Konfirmasi Manual', type: 'table', category: 'Tabel & Data', icon: Table, keywords: 'tabel review need mapping fuzzy match score skor rank kandidat antrian' },
 
-  // ── Quick Actions ──
+  // ── Aksi Cepat ──
   {
     actionKey: 'export_excel',
     label: 'Aksi: Export Laporan Realisasi Anggaran Resmi (Excel)',
     type: 'action',
     category: 'Aksi Cepat',
     icon: FileSpreadsheet,
-    keywords: 'export download excel spreadsheet unduh xlsx laporan budget resmi realisasi'
+    keywords: 'export download excel spreadsheet unduh xlsx laporan budget resmi realisasi file cetak'
   },
   {
     actionKey: 'toggle_theme',
@@ -80,7 +79,7 @@ const STATIC_ITEMS = [
     type: 'action',
     category: 'Aksi Cepat',
     icon: Sun,
-    keywords: 'ganti tema dark mode light mode gelap terang tampilan warna toggle'
+    keywords: 'ganti tema dark mode light mode gelap terang tampilan warna toggle switch theme'
   },
   {
     path: '/pr/mapping-review',
@@ -88,7 +87,7 @@ const STATIC_ITEMS = [
     type: 'action',
     category: 'Aksi Cepat',
     icon: CheckSquare,
-    keywords: 'bulk action approve massal setujui bersamaan oop batch review'
+    keywords: 'bulk action approve massal setujui bersamaan oop batch review centang semua'
   },
   {
     path: '/planning/upload',
@@ -142,12 +141,13 @@ export default function CommandPalette() {
     }
   }, [])
 
-  // Auto focus input when opened
+  // Auto focus and reset when opened
   useEffect(() => {
     if (isOpen) {
       setQuery('')
       setSelectedIndex(0)
       setLivePrResults([])
+      setIsSearchingLive(false)
       setTimeout(() => inputRef.current?.focus(), 50)
     }
   }, [isOpen])
@@ -164,54 +164,73 @@ export default function CommandPalette() {
     setIsSearchingLive(true)
     const timeout = setTimeout(async () => {
       try {
-        const res = await prApi.getAll({ search: trimmed, per_page: 5 })
+        const res = await prApi.getAll({ search: trimmed, per_page: 6 })
         if (res.data?.data) {
           setLivePrResults(res.data.data)
+        } else {
+          setLivePrResults([])
         }
       } catch (err) {
-        console.error('Error in live search:', err)
+        setLivePrResults([])
       } finally {
         setIsSearchingLive(false)
       }
-    }, 280)
+    }, 250)
 
     return () => clearTimeout(timeout)
   }, [query])
 
-  // Filter static items
+  // Strict Multi-word Filtering for Static Items
   const filteredStaticItems = useMemo(() => {
     const q = query.toLowerCase().trim()
     if (!q) return STATIC_ITEMS
 
+    const words = q.split(/\s+/).filter(Boolean)
+
     return STATIC_ITEMS.filter(item => {
-      const matchLabel = item.label.toLowerCase().includes(q)
-      const matchCat = item.category.toLowerCase().includes(q)
-      const matchKey = item.keywords?.toLowerCase().includes(q)
-      return matchLabel || matchCat || matchKey
+      const fullText = `${item.label} ${item.category} ${item.keywords || ''} ${item.path || ''}`.toLowerCase()
+      // Every typed word must be present in the item
+      return words.every(word => fullText.includes(word))
     })
   }, [query])
 
-  // Combine static items with live search PR items
+  // Strict Multi-word Filtering for Live PR Database Items
+  const filteredLiveItems = useMemo(() => {
+    const q = query.toLowerCase().trim()
+    if (!q || q.length < 2) return []
+
+    const words = q.split(/\s+/).filter(Boolean)
+
+    return livePrResults
+      .filter(pr => {
+        const prText = `${pr.pr_doc_num || ''} ${pr.description || ''} ${pr.supplier_name || ''} ${pr.budget_status || ''} ${pr.status_ai || ''}`.toLowerCase()
+        return words.every(word => prText.includes(word))
+      })
+      .map(pr => ({
+        path: `/pr/result?search=${encodeURIComponent(pr.pr_doc_num || pr.description || '')}`,
+        label: `PR: ${pr.pr_doc_num || '-'} — ${pr.description || 'Tanpa Keterangan'}`,
+        subText: `Supplier: ${pr.supplier_name || '-'} | Status: ${pr.budget_status || pr.status_ai || '-'} | Rp ${Number(pr.total_price || 0).toLocaleString('id-ID')}`,
+        type: 'pr_doc',
+        category: 'Data Dokumen PR',
+        icon: FileCode2,
+        rawPr: pr
+      }))
+  }, [livePrResults, query])
+
+  // Combine results
   const combinedItems = useMemo(() => {
-    const liveItemsFormatted = livePrResults.map(pr => ({
-      path: `/pr/result?search=${encodeURIComponent(pr.pr_doc_num || pr.description || '')}`,
-      label: `PR: ${pr.pr_doc_num || '-'} — ${pr.description || 'Tanpa Keterangan'}`,
-      subText: `Supplier: ${pr.supplier_name || '-'} | Status: ${pr.budget_status || pr.status_ai}`,
-      type: 'pr_doc',
-      category: 'Data Dokumen PR',
-      icon: FileCode2,
-      rawPr: pr
-    }))
+    return [...filteredStaticItems, ...filteredLiveItems]
+  }, [filteredStaticItems, filteredLiveItems])
 
-    return [...filteredStaticItems, ...liveItemsFormatted]
-  }, [filteredStaticItems, livePrResults])
-
+  // Reset selected index when results change
   useEffect(() => {
     setSelectedIndex(0)
   }, [combinedItems.length])
 
   // Handle Action / Navigation
   const handleExecute = async (item) => {
+    if (!item) return
+
     if (item.actionKey === 'toggle_theme') {
       toggleTheme()
       toast.success(theme === 'dark' ? 'Beralih ke Mode Terang' : 'Beralih ke Mode Gelap')
@@ -271,6 +290,16 @@ export default function CommandPalette() {
             onChange={(e) => setQuery(e.target.value)}
             placeholder={`Cari halaman, card, tabel, nomor PR/PO... (${shortcutLabel})`}
           />
+          {query && (
+            <button
+              type="button"
+              className={s.clearBtn}
+              onClick={() => setQuery('')}
+              title="Hapus pencarian"
+            >
+              <X size={14} />
+            </button>
+          )}
           {isSearchingLive && (
             <Loader2 size={15} className={`animate-spin ${s.liveSearchSpinner}`} />
           )}
@@ -286,7 +315,7 @@ export default function CommandPalette() {
                 const IconComponent = item.icon || Tag
                 return (
                   <div
-                    key={item.path || item.label + i}
+                    key={(item.path || '') + (item.label || '') + i}
                     className={`${s.item} ${i === selectedIndex ? s.itemActive : ''}`}
                     onClick={() => handleExecute(item)}
                     onMouseEnter={() => setSelectedIndex(i)}
@@ -318,7 +347,9 @@ export default function CommandPalette() {
         </div>
         
         <div className={s.footerHint}>
-          <span className={s.footerSectionTag}>Pencarian Universal (Halaman, Card, Tabel, Dokumen PR)</span>
+          <span className={s.footerSectionTag}>
+            {query.trim() ? `${combinedItems.length} hasil ditemukan` : 'Pencarian Universal: Halaman, Card, Tabel, Dokumen PR'}
+          </span>
           <div className={s.footerKeys}>
             <span><kbd className={s.kbd}>↑</kbd> <kbd className={s.kbd}>↓</kbd> Navigasi</span>
             <span><kbd className={s.kbd}>↵</kbd> Buka</span>

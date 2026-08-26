@@ -384,4 +384,11 @@ tr:hover td {
     padding: 8px 10px;
     font-size: 12.5px;
   }
+
+  /* Cegah iOS Safari auto-zoom saat fokus ke input */
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
 }

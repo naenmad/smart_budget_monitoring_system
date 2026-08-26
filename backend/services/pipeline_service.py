@@ -226,12 +226,17 @@ class PipelineService:
                 "over_plan": over_plan,
                 "under_plan": under_plan,
                 "oop": oop,
+                "out_of_plan": oop,
                 "remaining_budget": float(remaining_budget),
+                "stage_pr": pr_stage,
+                "stage_po": po_stage,
+                "stage_gr": gr_stage,
                 "pr_stage": pr_stage,
                 "po_stage": po_stage,
                 "gr_stage": gr_stage,
                 "cancelled_count": cancelled_count,
                 "cancelled_amount": cancelled_amount,
+                "cancelled_pr": cancelled_pr_count,
                 "cancelled_pr_count": cancelled_pr_count
             }
         }

@@ -1,8 +1,24 @@
 import toast from 'react-hot-toast'
-
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { mappingApi } from '../api/mappingApi'
-import { Search, CheckCheck, AlertTriangle, X, Check, Loader2, Database, Calendar } from 'lucide-react'
+import { 
+  Search, 
+  CheckCheck, 
+  AlertTriangle, 
+  X, 
+  Check, 
+  Loader2, 
+  Database, 
+  Calendar,
+  Sparkles,
+  Sliders,
+  Bot,
+  Zap,
+  ChevronDown,
+  ChevronUp,
+  BrainCircuit,
+  Info
+} from 'lucide-react'
 import styles from './MappingReview.module.css'
 
 export default function MappingReview() {
@@ -21,16 +37,76 @@ export default function MappingReview() {
   const [searchResults, setSearchResults] = useState([])
   const [searchLoading, setSearchLoading] = useState(false)
 
+  // --- state auto-mapping & threshold settings ---
+  const [threshold, setThreshold] = useState(85)
+  const [autoLearning, setAutoLearning] = useState(true)
+  const [isSavingSettings, setIsSavingSettings] = useState(false)
+  const [isAutoApproving, setIsAutoApproving] = useState(false)
+  const [isPanelOpen, setIsPanelOpen] = useState(true)
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setPage(1)  // reset ke halaman 1 tiap kali keyword berubah
       setSelectedIds([]) // reset selection
       fetchData()
-    }, 400)  // debounce 400ms, biar nggak request tiap ketikan huruf
+    }, 400)  // debounce 400ms
     return () => clearTimeout(timer)
   }, [keyword])
 
-  useEffect(() => { fetchData() }, [page])
+  useEffect(() => { 
+    fetchData() 
+  }, [page])
+
+  useEffect(() => {
+    loadSettings()
+  }, [])
+
+  async function loadSettings() {
+    try {
+      const res = await mappingApi.getSettings()
+      if (res.data?.success && res.data.data) {
+        setThreshold(Math.round(res.data.data.auto_mapping_threshold || 85))
+        setAutoLearning(res.data.data.auto_learning ?? true)
+      }
+    } catch (err) {
+      console.error('Gagal memuat setting mapping:', err)
+    }
+  }
+
+  async function handleUpdateSettings(newThreshold, newAutoLearning) {
+    const threshToSave = newThreshold !== undefined ? newThreshold : threshold
+    const learnToSave = newAutoLearning !== undefined ? newAutoLearning : autoLearning
+
+    setIsSavingSettings(true)
+    try {
+      await mappingApi.updateSettings({
+        auto_mapping_threshold: threshToSave,
+        auto_learning: learnToSave
+      })
+      toast.success('Pengaturan otomatisasi disimpan', { id: 'save_settings' })
+    } catch (err) {
+      toast.error('Gagal menyimpan pengaturan', { id: 'save_settings' })
+    } finally {
+      setIsSavingSettings(false)
+    }
+  }
+
+  async function handleRunAutoApproval() {
+    if (!confirm(`Terapkan persetujuan otomatis sekarang untuk seluruh PR yang skor AI-nya ≥ ${threshold}%?`)) return
+
+    setIsAutoApproving(true)
+    try {
+      const res = await mappingApi.autoConfirmByThreshold()
+      if (res.data?.success) {
+        toast.success(res.data.message || 'Auto-approval selesai dijalankan!')
+        fetchData()
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Gagal menjalankan auto-approval')
+    } finally {
+      setIsAutoApproving(false)
+    }
+  }
 
   async function fetchData() {
     setLoading(true)
@@ -46,8 +122,6 @@ export default function MappingReview() {
     }
   }
 
-
-
   async function handleConfirm(prId, candidate) {
     if (!confirm(`Konfirmasi pilihan: ${candidate.planning_item}?`)) return
 
@@ -60,6 +134,7 @@ export default function MappingReview() {
       const res = await mappingApi.confirmMapping(prId, payload)
       if (res.data?.success) {
         setItems(prev => prev.filter(p => p.id !== prId))
+        toast.success('Mapping berhasil dikonfirmasi')
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Gagal menyimpan konfirmasi')
@@ -77,6 +152,7 @@ export default function MappingReview() {
       const res = await mappingApi.confirmMapping(prId, payload)
       if (res.data?.success) {
         setItems(prev => prev.filter(p => p.id !== prId))
+        toast.success('Item ditandai sebagai OOP')
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Gagal menyimpan konfirmasi OOP')
@@ -99,46 +175,55 @@ export default function MappingReview() {
     )
   }
 
-  async function handleBulkAction(actionType) {
+  const handleBulkAction = async (actionType) => {
     if (selectedIds.length === 0) return
-    if (!confirm(`Konfirmasi batch ${actionType === 'approve' ? 'Persetujuan' : 'OOP'} untuk ${selectedIds.length} item?`)) return
+
+    const confirmMsg = actionType === 'approve'
+      ? `Setujui Top-1 kandidat AI untuk ${selectedIds.length} item terpilih?`
+      : `Tandai ${selectedIds.length} item terpilih sebagai OOP (Out of Plan)?`
+
+    if (!confirm(confirmMsg)) return
 
     setIsBulkProcessing(true)
     try {
-      const mappings = []
+      const mappingsPayload = []
       
       for (const prId of selectedIds) {
         const pr = items.find(i => i.id === prId)
         if (!pr) continue
 
         if (actionType === 'oop') {
-          mappings.push({ pr_id: prId, is_oop: true })
-        } else if (actionType === 'approve') {
+          mappingsPayload.push({
+            pr_po_data_id: prId,
+            is_oop: true
+          })
+        } else {
+          // Top-1 candidate
           const topCandidate = pr.fuzzy_candidates?.[0]
-          if (topCandidate) {
-            mappings.push({
-              pr_id: prId,
+          if (topCandidate && topCandidate.planning_detail_id) {
+            mappingsPayload.push({
+              pr_po_data_id: prId,
               planning_detail_id: topCandidate.planning_detail_id,
-              rank_no: topCandidate.rank_no
+              rank_no: topCandidate.rank_no,
+              is_oop: false
+            })
+          } else {
+            // Kalau tidak ada kandidat top-1, tandai sebagai OOP
+            mappingsPayload.push({
+              pr_po_data_id: prId,
+              is_oop: true
             })
           }
         }
       }
 
-      if (mappings.length === 0) {
-        toast.error('Tidak ada item valid untuk diproses')
-        setIsBulkProcessing(false)
-        return
-      }
-
-      const res = await mappingApi.bulkConfirm(mappings)
+      const res = await mappingApi.bulkConfirm(mappingsPayload)
       if (res.data?.success) {
-        toast.success(res.data.message)
-        setItems(prev => prev.filter(p => !selectedIds.includes(p.id)))
-        setSelectedIds([])
+        toast.success(res.data.message || 'Proses massal berhasil diselesaikan!')
+        fetchData()
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Gagal memproses bulk action')
+      toast.error(err.response?.data?.message || 'Gagal memproses aksi massal')
     } finally {
       setIsBulkProcessing(false)
     }
@@ -171,13 +256,12 @@ export default function MappingReview() {
   async function handlePickFromSearch(planningDetailId) {
     setProcessingId(searchModalPr.id)
     try {
-      // rank_no dikirim null karena dipilih di luar Top-5 rekomendasi sistem,
-      // bukan salah satu kandidat fuzzy yang disarankan
       const payload = { planning_detail_id: planningDetailId, rank_no: null }
       const res = await mappingApi.confirmMapping(searchModalPr.id, payload)
       if (res.data?.success) {
         setItems(prev => prev.filter(p => p.id !== searchModalPr.id))
         closeSearchModal()
+        toast.success('Mapping manual berhasil disimpan')
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Gagal menyimpan konfirmasi')
@@ -185,6 +269,16 @@ export default function MappingReview() {
       setProcessingId(null)
     }
   }
+
+  // Hitung berapa banyak item di antrian saat ini yang memenuhi threshold
+  const eligibleCount = useMemo(() => {
+    return items.filter(item => {
+      const topCand = item.fuzzy_candidates?.[0]
+      if (!topCand || !topCand.confidence_score) return false
+      const scorePct = topCand.confidence_score * 100
+      return scorePct >= threshold && !topCand.code_mismatch
+    }).length
+  }, [items, threshold])
 
   const fmt = (n) =>
     Number(n || 0).toLocaleString('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 })
@@ -226,6 +320,119 @@ export default function MappingReview() {
         </div>
       </div>
 
+      {/* ── Panel Konfigurasi Otomatisasi & Threshold ── */}
+      <div className={styles.autoPanel}>
+        <div className={styles.autoPanelHeader}>
+          <div className={styles.autoPanelHeaderLeft}>
+            <div className={styles.autoPanelIconWrap}>
+              <Bot size={20} />
+            </div>
+            <div>
+              <div className={styles.autoPanelTitle}>
+                Otomatisasi Mapping & Ambang Batas AI (Threshold)
+                <Sparkles size={14} color="#f59e0b" />
+              </div>
+              <p className={styles.autoPanelSubtitle}>
+                Atur batas toleransi AI agar sistem menyetujui mapping otomatis saat upload maupun pada antrian aktif.
+              </p>
+            </div>
+          </div>
+          <button 
+            type="button" 
+            className={styles.autoPanelToggleBtn}
+            onClick={() => setIsPanelOpen(!isPanelOpen)}
+          >
+            <Sliders size={13} />
+            {isPanelOpen ? 'Sembunyikan Pengaturan' : 'Buka Pengaturan'}
+            {isPanelOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+          </button>
+        </div>
+
+        {isPanelOpen && (
+          <div className={styles.autoPanelBody}>
+            {/* Slider Threshold */}
+            <div className={styles.sliderCard}>
+              <div className={styles.sliderHeader}>
+                <span className={styles.sliderLabel}>Ambang Batas Keyakinan AI</span>
+                <span className={styles.sliderValuePill}>{threshold}% Cocok</span>
+              </div>
+              <input
+                type="range"
+                min="50"
+                max="100"
+                step="1"
+                value={threshold}
+                onChange={(e) => {
+                  const val = Number(e.target.value)
+                  setThreshold(val)
+                }}
+                onMouseUp={() => handleUpdateSettings(threshold, autoLearning)}
+                onTouchEnd={() => handleUpdateSettings(threshold, autoLearning)}
+                className={styles.rangeInput}
+              />
+              <div className={styles.sliderMarks}>
+                <span>50% (Longgar)</span>
+                <span>85% (Rekomendasi)</span>
+                <span>100% (Ketat)</span>
+              </div>
+            </div>
+
+            {/* Toggle Auto-Learning */}
+            <div className={styles.learningCard}>
+              <div className={styles.learningText}>
+                <div className={styles.learningTitle}>
+                  <BrainCircuit size={15} color="#10b981" />
+                  Self-Learning AI
+                </div>
+                <div className={styles.learningSub}>
+                  Otomatis simpan review manual menjadi aturan cerdas masa depan.
+                </div>
+              </div>
+              <label className={styles.switchToggle}>
+                <input
+                  type="checkbox"
+                  checked={autoLearning}
+                  onChange={(e) => {
+                    const checked = e.target.checked
+                    setAutoLearning(checked)
+                    handleUpdateSettings(threshold, checked)
+                  }}
+                />
+                <span className={styles.switchSlider}></span>
+              </label>
+            </div>
+
+            {/* Tombol Eksekusi Cepat */}
+            <div className={styles.autoActionWrap}>
+              <button
+                type="button"
+                className={styles.btnRunAuto}
+                onClick={handleRunAutoApproval}
+                disabled={isAutoApproving || items.length === 0}
+              >
+                {isAutoApproving ? (
+                  <>
+                    <Loader2 size={15} className="animate-spin" />
+                    Memproses Auto-Approval...
+                  </>
+                ) : (
+                  <>
+                    <Zap size={15} />
+                    Terapkan Auto-Approval (≥ {threshold}%)
+                  </>
+                )}
+              </button>
+              <div className={`${styles.eligiblePill} ${eligibleCount > 0 ? styles.eligiblePillActive : ''}`}>
+                <Info size={12} />
+                {eligibleCount > 0 
+                  ? `${eligibleCount} dari ${items.length} item di halaman ini siap disetujui otomatis!`
+                  : `0 item memenuhi syarat ≥ ${threshold}%`}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
       {selectedIds.length > 0 && (
         <div className={styles.bulkActionBar}>
           <div className={styles.bulkActionCount}>
@@ -262,148 +469,147 @@ export default function MappingReview() {
           )}
 
           {items.length > 0 && (
-            <div className={styles.selectAllWrapper}>
-              <label className={styles.checkboxLabel}>
+            <div className={styles.tableHeaderToolbar}>
+              <label className={styles.selectAllLabel}>
                 <input 
                   type="checkbox" 
                   checked={selectedIds.length === items.length && items.length > 0}
                   onChange={handleSelectAll}
+                  className={styles.checkbox}
                 />
-                Pilih Semua di Halaman Ini
+                <span>Pilih Semua ({items.length} item)</span>
               </label>
             </div>
           )}
 
-          {items.map(pr => {
-            const isNoCandidate = pr.fuzzy_candidates?.length === 0
-            const hasPerfectCandidate = pr.fuzzy_candidates?.some(c => c.confidence_score >= 0.999)
-            return (
-              <div
-                key={pr.id}
-                className={`card ${styles.card} ${isNoCandidate ? styles.cardNoCandidate : ''} ${selectedIds.includes(pr.id) ? styles.cardSelected : ''}`}
-              >
-                <div className={styles.cardHeader}>
-                  <div className={styles.cardHeaderLeft}>
-                    <input 
-                      type="checkbox" 
-                      className={styles.rowCheckbox}
-                      checked={selectedIds.includes(pr.id)}
-                      onChange={() => handleSelectItem(pr.id)}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  </div>
-                  <div 
-                    className={styles.cardHeaderMain}
-                    onClick={() => openSearchModal(pr)}
-                    style={{ cursor: 'pointer', flex: 1 }}
-                    title="Klik untuk Cari Manual"
-                  >
-                    <div>
-                      <div className={styles.cardDescription}>{pr.description}</div>
-                    <div className={styles.cardMeta}>
-                      <span><strong className={styles.cardMetaLabel}>PR:</strong> {pr.pr_doc_num || '-'}</span>
-                      <span><strong className={styles.cardMetaLabel}>Harga:</strong> {fmt(pr.total_price)}</span>
-                      <span><strong className={styles.cardMetaLabel}>Kategori:</strong> {pr.kategori_kode || '-'}</span>
-                      {pr.fuzzy_candidates?.[0]?.pr_code && (
-                        <span>
-                          <strong className={styles.cardMetaLabel}>Kode PR:</strong>{' '}
-                          <code className={styles.cardMetaCode}>{pr.fuzzy_candidates[0].pr_code}</code>
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className={`badge ${styles.statusBadge}`}>{pr.status_ai}</div>
-                </div>
+          {items.map((pr) => (
+            <div 
+              key={pr.id} 
+              className={`card ${styles.itemCard} ${selectedIds.includes(pr.id) ? styles.itemCardSelected : ''}`}
+            >
+              {/* Kolom Checkbox */}
+              <div className={styles.checkboxCol}>
+                <input 
+                  type="checkbox" 
+                  checked={selectedIds.includes(pr.id)}
+                  onChange={() => handleSelectItem(pr.id)}
+                  className={styles.checkbox}
+                />
               </div>
 
-                <div className={styles.candidateBox}>
+              <div className={styles.itemMainCol}>
+                {/* Info PR */}
+                <div className={styles.prInfo}>
+                  <div className={styles.prHeader}>
+                    <span className={styles.prDocNum}>{pr.pr_doc_num || '-'}</span>
+                    <span className={styles.kategoriBadge}>
+                      {pr.kategori?.kode || 'Tanpa Kategori'}
+                    </span>
+                    <span className={styles.priceBadge}>{fmt(pr.total_price)}</span>
+                  </div>
+                  <div className={styles.prDesc}>{pr.description}</div>
+                  <div className={styles.prMeta}>
+                    <span>Kuantitas: {pr.qty} {pr.uom}</span>
+                    <span>Harga Satuan: {fmt(pr.unit_price)}</span>
+                    {pr.supplier_name && <span>Supplier: {pr.supplier_name}</span>}
+                    {pr.request_date && <span>Tgl Request: {pr.request_date}</span>}
+                  </div>
+                </div>
+
+                {/* Kandidat Fuzzy Match */}
+                <div className={styles.candidatesSection}>
                   <div className={styles.candidateBoxHeader}>
-                    <div className={`section-label ${styles.sectionLabel}`}>Top Kandidat (Fuzzy Match)</div>
+                    <span className={styles.candidateBoxTitle}>
+                      Rekomendasi AI (Top-5 Kecocokan):
+                    </span>
                     <div className={styles.actionGroup}>
                       <button
-                        className={`btn-secondary ${styles.btnSearchManual}`}
+                        className={styles.btnSearchManual}
                         onClick={() => openSearchModal(pr)}
+                        disabled={processingId === pr.id}
                       >
-                        <Search size={13} style={{ display: 'inline', marginRight: 5, verticalAlign: 'middle' }} />
-                        Cari Manual
+                        <Search size={13} /> Cari Item Planning Lain
                       </button>
-                      {!hasPerfectCandidate && (
-                        <button
-                          className={`btn-primary ${styles.btnOop}`}
-                          onClick={() => handleConfirmOop(pr.id)}
-                          disabled={processingId === pr.id}
-                        >
-                          {processingId === pr.id ? 'Memproses...' : 'Tandai OOP (Out of Plan)'}
-                        </button>
-                      )}
+                      <button
+                        className={styles.btnOop}
+                        onClick={() => handleConfirmOop(pr.id)}
+                        disabled={processingId === pr.id}
+                      >
+                        Tandai Out of Plan (OOP)
+                      </button>
                     </div>
                   </div>
 
-                  {isNoCandidate ? (
-                    <p className={styles.noCandidateText}>
-                      <AlertTriangle size={15} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle', color: '#e85d3a' }} />
-                      Tidak ditemukan kandidat planning di periode ini.
-                    </p>
-                  ) : (
-                    <div className={styles.candidateList}>
-                      {pr.fuzzy_candidates?.map((c) => (
-                        <div key={c.log_id} className={styles.candidateRow}>
-                          <div className={styles.candidateLeft}>
-                            <span className={styles.candidateRank}>#{c.rank_no}</span>
-                            <div>
-                              <div className={styles.candidateItemName}>{c.planning_item}</div>
-                              <div className={styles.candidateAmount}>Amount: {fmt(c.planning_amount)}</div>
-                            </div>
-                          </div>
-                          <div className={styles.candidateRight}>
-                            {c.code_mismatch && (
-                              <div className={styles.mismatchBadge}>
-                                <div className={styles.mismatchLabel}>
-                                  <AlertTriangle size={12} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
-                                  BEDA KODE
-                                </div>
-                                <div className={styles.mismatchDetail}>
-                                  PR: <strong>{c.pr_code}</strong> → Kandidat: <strong>{c.candidate_code}</strong>
-                                </div>
-                              </div>
-                            )}
-                            <div className={styles.scoreBox}>
-                              <div className={`${styles.scoreValue} ${scoreClass(c.confidence_score)}`}>
-                                {Math.round((c.confidence_score || 0) * 100)}%
-                              </div>
-                              <div className={styles.scoreLabel}>Score</div>
-                            </div>
-                            <button
-                              className={`btn-primary ${styles.btnConfirm}`}
-                              onClick={() => handleConfirm(pr.id, c)}
-                              disabled={processingId === pr.id}
-                            >
-                              {processingId === pr.id ? 'Memproses...' : 'Pilih Ini'}
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                  {(!pr.fuzzy_candidates || pr.fuzzy_candidates.length === 0) && (
+                    <div className={styles.noCandidates}>
+                      Tidak ada kandidat rekomendasi dari sistem.
                     </div>
                   )}
+
+                  <div className={styles.candidateList}>
+                    {pr.fuzzy_candidates?.map((cand) => (
+                      <div key={cand.log_id} className={styles.candidateRow}>
+                        <div className={styles.candidateLeft}>
+                          <span className={styles.rankBadge}>#{cand.rank_no}</span>
+                          <div className={styles.candidateInfo}>
+                            <span className={styles.candidateName}>
+                              {cand.planning_item}
+                            </span>
+                            <span className={styles.candidateMonth}>
+                              {cand.month} &middot; Anggaran: {fmt(cand.planning_amount)}
+                            </span>
+                            {cand.code_mismatch && (
+                              <span className={styles.codeMismatchWarn}>
+                                <AlertTriangle size={12} />
+                                Beda kode: PR ({cand.pr_code}) vs Planning ({cand.candidate_code})
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className={styles.candidateRight}>
+                          <span className={`${styles.scoreBadge} ${scoreClass(cand.confidence_score)}`}>
+                            {Math.round(cand.confidence_score * 100)}% Cocok
+                          </span>
+                          <button
+                            className={styles.btnConfirm}
+                            onClick={() => handleConfirm(pr.id, cand)}
+                            disabled={processingId === pr.id}
+                          >
+                            {processingId === pr.id ? 'Menyimpan...' : 'Pilih Ini'}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
-            )
-          })}
+            </div>
+          ))}
         </div>
       )}
 
-      {!loading && totalPages > 1 && (
+      {/* Pagination */}
+      {totalPages > 1 && (
         <div className={styles.pagination}>
-          <button className="btn-secondary" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
-            Prev
+          <button
+            className="btn-secondary"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+          >
+            &laquo; Sebelumnya
           </button>
-          <span className={styles.pageInfo}>Hal {page} / {totalPages}</span>
-          <button className="btn-secondary" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}>
-            Next
+          <span className={styles.pageInfo}>Halaman {page} dari {totalPages}</span>
+          <button
+            className="btn-secondary"
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+          >
+            Berikutnya &raquo;
           </button>
         </div>
       )}
 
+      {/* Modal Search Manual */}
       {searchModalPr && (
         <div className={styles.modalOverlay} onClick={closeSearchModal}>
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
@@ -414,32 +620,37 @@ export default function MappingReview() {
                 </div>
                 <div>
                   <h3 className={styles.modalTitle}>Cari Item Planning Manual</h3>
-                  <p className={styles.modalSubtitle}>Pilih item master planning tahunan yang sesuai dengan PR</p>
+                  <p className={styles.modalSubtitle}>
+                    Pilih item yang telah dianggarkan jika rekomendasi sistem tidak sesuai
+                  </p>
                 </div>
               </div>
-              <button className={styles.modalClose} onClick={closeSearchModal} aria-label="Tutup">
+              <button className={styles.modalClose} onClick={closeSearchModal} title="Tutup Modal">
                 <X size={18} />
               </button>
             </div>
 
+            {/* Target PR Context Card */}
             <div className={styles.targetPrCard}>
               <div className={styles.targetPrHeader}>
-                <span className={styles.targetPrLabel}>Target PR yang Di-review:</span>
+                <span className={styles.targetPrLabel}>Target Dokumen PR:</span>
                 <span className={styles.targetPrDoc}>{searchModalPr.pr_doc_num || '-'}</span>
               </div>
               <div className={styles.targetPrDesc}>{searchModalPr.description}</div>
               <div className={styles.targetPrMeta}>
-                <span><strong>Nominal:</strong> {fmt(searchModalPr.total_price)}</span>
-                <span><strong>Kategori:</strong> {searchModalPr.kategori_kode || '-'}</span>
+                <span>Kategori: <strong>{searchModalPr.kategori?.kode || 'Tanpa Kategori'}</strong></span>
+                <span>Total: <strong>{fmt(searchModalPr.total_price)}</strong></span>
+                {searchModalPr.qty && <span>Qty: <strong>{searchModalPr.qty} {searchModalPr.uom}</strong></span>}
               </div>
             </div>
 
+            {/* Search Input with Icon */}
             <div className={styles.modalSearchWrapper}>
-              <Search className={styles.modalSearchIcon} size={16} />
+              <Search size={16} className={styles.modalSearchIcon} />
               <input
                 type="text"
                 autoFocus
-                placeholder="Ketik kata kunci nama item planning (contoh: Cutting, Oli, Pipe)..."
+                placeholder="Ketik minimal 2 huruf nama barang anggaran..."
                 value={searchTerm}
                 onChange={(e) => handleSearch(e.target.value)}
                 className={styles.modalSearchInput}
@@ -448,7 +659,7 @@ export default function MappingReview() {
                 <button
                   type="button"
                   className={styles.modalSearchClear}
-                  onClick={() => handleSearch('')}
+                  onClick={() => { setSearchTerm(''); setSearchResults([]); }}
                   title="Hapus pencarian"
                 >
                   <X size={14} />
@@ -456,67 +667,77 @@ export default function MappingReview() {
               )}
             </div>
 
-            {searchLoading ? (
-              <div className={styles.modalLoadingState}>
-                <Loader2 size={20} className="animate-spin" />
-                <span>Mencari item planning...</span>
-              </div>
-            ) : (
-              <div className={styles.modalResultList}>
-                {searchResults.length > 0 ? (
-                  searchResults.map((item) => (
-                    <div key={item.id} className={styles.modalResultRow}>
-                      <div className={styles.modalResultInfo}>
-                        <div className={styles.modalResultItemName}>{item.item}</div>
-                        <div className={styles.modalResultMetaRow}>
-                          <span className={styles.modalBadgeMonth}>
-                            <Calendar size={12} style={{ display: 'inline', marginRight: 3, verticalAlign: 'middle' }} />
-                            {item.month || '-'}
-                          </span>
-                          {item.kategori_kode && (
-                            <span className={styles.modalBadgeCategory}>
-                              {item.kategori_kode}
-                            </span>
-                          )}
-                          <span className={styles.modalResultAmount}>
-                            Pagu: {fmt(item.planning_amount)}
-                          </span>
-                          {item.remarks && (
-                            <span className={styles.modalResultRemarks} title={item.remarks}>
-                              • {item.remarks}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <button
-                        className={`btn-primary ${styles.modalPickBtn}`}
-                        onClick={() => handlePickFromSearch(item.id)}
-                        disabled={processingId === searchModalPr.id}
-                      >
-                        <Check size={14} />
-                        {processingId === searchModalPr.id ? 'Memproses...' : 'Pilih Item Ini'}
-                      </button>
+            {/* Results Area */}
+            <div className={styles.modalResultList}>
+              {searchLoading && (
+                <div className={styles.modalLoadingState}>
+                  <Loader2 size={24} className="animate-spin" />
+                  <span>Mencari di database planning...</span>
+                </div>
+              )}
+
+              {!searchLoading && searchTerm.length >= 2 && searchResults.length === 0 && (
+                <div className={styles.modalNoResultState}>
+                  <AlertTriangle size={28} className={styles.modalNoResultIcon} />
+                  <p className={styles.modalNoResultTitle}>Tidak ditemukan item anggaran</p>
+                  <p className={styles.modalNoResultSub}>
+                    Tidak ada item planning yang cocok dengan kata kunci "<strong>{searchTerm}</strong>".
+                  </p>
+                </div>
+              )}
+
+              {!searchLoading && searchTerm.length < 2 && searchResults.length === 0 && (
+                <div className={styles.modalGuideState}>
+                  <Database size={32} className={styles.modalGuideIcon} />
+                  <p className={styles.modalGuideTitle}>Pencarian Database Planning</p>
+                  <p className={styles.modalGuideSub}>
+                    Ketik nama barang anggaran pada kolom di atas untuk mencari item realisasi.
+                  </p>
+                </div>
+              )}
+
+              {!searchLoading && searchResults.map((item) => (
+                <div key={item.id} className={styles.modalResultRow}>
+                  <div className={styles.modalResultInfo}>
+                    <span className={styles.modalResultItemName}>{item.item}</span>
+                    <div className={styles.modalResultMetaRow}>
+                      <span className={styles.modalBadgeMonth}>
+                        <Calendar size={11} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+                        {item.month || '-'}
+                      </span>
+                      <span className={styles.modalResultAmount}>
+                        Pagu: {fmt(item.planning_amount)}
+                      </span>
+                      {item.kategori_kode && (
+                        <span className={styles.modalBadgeCategory}>
+                          {item.kategori_kode}
+                        </span>
+                      )}
                     </div>
-                  ))
-                ) : searchTerm.length >= 2 ? (
-                  <div className={styles.modalNoResultState}>
-                    <AlertTriangle size={24} className={styles.modalNoResultIcon} />
-                    <p className={styles.modalNoResultTitle}>Item planning tidak ditemukan</p>
-                    <p className={styles.modalNoResultSub}>
-                      Tidak ada data planning yang cocok dengan kata kunci "{searchTerm}". Pastikan ejaan benar atau coba kata kunci lain.
-                    </p>
                   </div>
-                ) : (
-                  <div className={styles.modalGuideState}>
-                    <Search size={24} className={styles.modalGuideIcon} />
-                    <p className={styles.modalGuideTitle}>Mulai Pencarian Item Planning</p>
-                    <p className={styles.modalGuideSub}>
-                      Ketik minimal 2 karakter pada kotak pencarian di atas untuk melihat daftar rekomendasi item planning.
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
+                  <button
+                    className={`btn-primary ${styles.modalPickBtn}`}
+                    onClick={() => handlePickFromSearch(item.id)}
+                    disabled={processingId === searchModalPr.id}
+                  >
+                    {processingId === searchModalPr.id ? (
+                      <Loader2 size={13} className="animate-spin" />
+                    ) : (
+                      <>
+                        <Check size={13} />
+                        Pilih Item Ini
+                      </>
+                    )}
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div className={styles.modalFooter}>
+              <button className="btn-secondary" onClick={closeSearchModal}>
+                Tutup
+              </button>
+            </div>
           </div>
         </div>
       )}

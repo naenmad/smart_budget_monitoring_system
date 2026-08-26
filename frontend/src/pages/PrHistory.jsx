@@ -13,6 +13,7 @@ export default function PrHistory() {
   const queryClient = useQueryClient()
   
   const [page, setPage] = useState(1)
+  const [perPage, setPerPage] = useState(30)
   const [filterStatus, setFilterStatus] = useState('')
   const [trackingStage, setTrackingStage] = useState('')
   const [uploadId, setUploadId] = useState('')
@@ -22,9 +23,9 @@ export default function PrHistory() {
 
   // Fetch Data Query
   const { data: listData, isLoading: loading, refetch } = useQuery({
-    queryKey: ['prHistory', page, filterStatus, trackingStage, uploadId, search],
+    queryKey: ['prHistory', page, perPage, filterStatus, trackingStage, uploadId, search],
     queryFn: async () => {
-      const params = { page, per_page: 30 }
+      const params = { page, per_page: perPage }
       if (filterStatus) params.status_ai = filterStatus
       if (trackingStage) params.tracking_stage = trackingStage
       if (uploadId) params.upload_id = parseInt(uploadId)
@@ -242,7 +243,7 @@ export default function PrHistory() {
                 )}
                 {prList.map((pr, i) => (
                   <tr key={pr.id} className={styles.tr}>
-                    <td className={styles.td}>{(page - 1) * 30 + i + 1}</td>
+                    <td className={styles.td}>{(page - 1) * perPage + i + 1}</td>
                     <td className={styles.td}>{pr.upload_id}</td>
                     <td className={`${styles.td} ${styles.tdCode}`}>{pr.pr_doc_num || '-'}</td>
                     <td className={`${styles.td} ${styles.tdDesc}`} title={pr.description}>{pr.description || '-'}</td>
@@ -270,13 +271,33 @@ export default function PrHistory() {
 
           {/* Pagination */}
           <div className={styles.pagination}>
-            <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className={styles.pgBtn}>‹ Prev</button>
-            <span className={styles.pgLabel}>Hal {page} / {totalPages}</span>
-            <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className={styles.pgBtn}>Next ›</button>
+            <div className={styles.perPageWrap}>
+              <span className={styles.perPageLabel}>Tampilkan:</span>
+              <select
+                className={styles.perPageSelect}
+                value={perPage}
+                onChange={e => {
+                  setPerPage(Number(e.target.value))
+                  setPage(1)
+                }}
+              >
+                <option value={10}>10 item</option>
+                <option value={25}>25 item</option>
+                <option value={30}>30 item</option>
+                <option value={50}>50 item</option>
+                <option value={100}>100 item</option>
+              </select>
+              <span className={styles.totalInfo}>dari {total} data</span>
+            </div>
+
+            <div className={styles.pgActions}>
+              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className={styles.pgBtn}>‹ Prev</button>
+              <span className={styles.pgLabel}>Hal {page} / {totalPages}</span>
+              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className={styles.pgBtn}>Next ›</button>
+            </div>
           </div>
         </>
       )}
     </div>
   )
-
 }

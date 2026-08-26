@@ -16,6 +16,33 @@ planning_bp = Blueprint("planning", __name__)
 # ------------------------------------------------------------------
 @planning_bp.route("/upload", methods=["POST"])
 def upload_planning():
+    """Unggah File Excel Master Planning Budget
+    ---
+    tags:
+      - Upload & Batch History
+    security:
+      - Bearer: []
+    consumes:
+      - multipart/form-data
+    parameters:
+      - in: formData
+        name: file
+        type: file
+        required: true
+        description: File Excel master plan anggaran tahunan
+      - in: formData
+        name: user_id
+        type: integer
+        default: 1
+      - in: formData
+        name: periode
+        type: string
+        required: true
+        example: "2026"
+    responses:
+      200:
+        description: Planning berhasil diunggah dan detail diuraikan ke database
+    """
     file = request.files.get("file")
     user_id = request.form.get("user_id", 1)
     periode = request.form.get("periode")
@@ -34,6 +61,31 @@ def upload_planning():
 # ------------------------------------------------------------------
 @planning_bp.route("/", methods=["GET"])
 def get_all_planning():
+    """Mendapatkan Daftar Header Master Planning Budget
+    ---
+    tags:
+      - Budget & Planning
+    parameters:
+      - name: periode
+        in: query
+        type: string
+        example: "2026"
+      - name: status
+        in: query
+        type: string
+        enum: [UPLOADING, SUCCESS, FAILED]
+      - name: page
+        in: query
+        type: integer
+        default: 1
+      - name: per_page
+        in: query
+        type: integer
+        default: 20
+    responses:
+      200:
+        description: Daftar file master planning yang tersimpan
+    """
     periode = request.args.get("periode")
     status = request.args.get("status")
     page = request.args.get("page", 1, type=int)
@@ -66,6 +118,21 @@ def get_all_planning():
 # ------------------------------------------------------------------
 @planning_bp.route("/<int:header_id>", methods=["GET"])
 def get_planning_by_id(header_id):
+    """Mendapatkan Detail Satu Planning Header
+    ---
+    tags:
+      - Budget & Planning
+    parameters:
+      - name: header_id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Detail header planning
+      404:
+        description: Planning tidak ditemukan
+    """
     header = db.session.get(PlanningHeader, header_id)
     if not header:
         return jsonify({"success": False, "message": "Planning tidak ditemukan"}), 404
@@ -82,6 +149,21 @@ def get_planning_by_id(header_id):
 # ------------------------------------------------------------------
 @planning_bp.route("/<int:header_id>", methods=["DELETE"])
 def delete_planning(header_id):
+    """Menghapus Master Planning Header dan Seluruh Detailnya
+    ---
+    tags:
+      - Budget & Planning
+    security:
+      - Bearer: []
+    parameters:
+      - name: header_id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Planning berhasil dihapus
+    """
     result, status = PlanningHeaderService.delete_planning_header(header_id)
     return jsonify(result), status
 
@@ -92,6 +174,26 @@ def delete_planning(header_id):
 # ------------------------------------------------------------------
 @planning_bp.route("/<int:header_id>/details", methods=["GET"])
 def get_planning_details(header_id):
+    """Mendapatkan Rincian Item Planning per Bulan & Kategori
+    ---
+    tags:
+      - Budget & Planning
+    parameters:
+      - name: header_id
+        in: path
+        type: integer
+        required: true
+      - name: month
+        in: query
+        type: string
+        example: "Mei"
+      - name: kategori_id
+        in: query
+        type: integer
+    responses:
+      200:
+        description: Rincian item alokasi anggaran
+    """
     header = db.session.get(PlanningHeader, header_id)
     if not header:
         return jsonify({"success": False, "message": "Planning tidak ditemukan"}), 404
@@ -116,9 +218,26 @@ def get_planning_details(header_id):
     }), 200
 @planning_bp.route("/cancelled", methods=["GET"])
 def get_cancelled_planning():
-    """
-    Daftar item Planning (planning_detail) yang statusnya CANCELLED,
-    untuk ditampilkan saat card 'Dibatalkan' di dashboard diklik.
+    """Daftar Item Planning yang Dibatalkan
+    ---
+    tags:
+      - Budget & Planning
+    parameters:
+      - name: periode
+        in: query
+        type: string
+        example: "2026"
+      - name: page
+        in: query
+        type: integer
+        default: 1
+      - name: per_page
+        in: query
+        type: integer
+        default: 20
+    responses:
+      200:
+        description: Daftar baris item planning dengan status CANCELLED
     """
     periode = request.args.get("periode")
     page = request.args.get("page", 1, type=int)
@@ -144,5 +263,20 @@ def get_cancelled_planning():
 @planning_bp.route("/detail/<int:planning_detail_id>/cancel", methods=["POST"])
 @role_required('admin')
 def cancel_planning_detail(planning_detail_id):
+    """Membatalkan Satu Item Planning Detail
+    ---
+    tags:
+      - Budget & Planning
+    security:
+      - Bearer: []
+    parameters:
+      - name: planning_detail_id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Item planning detail berhasil dibatalkan
+    """
     result, status = PlanningDetailService.cancel_planning_detail(planning_detail_id)
     return jsonify(result), status

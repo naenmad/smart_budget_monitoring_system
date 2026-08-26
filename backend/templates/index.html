@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Smart Budget Monitoring & QC System — Backend Services</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --primary-light: #eff6ff;
+      --primary-glow: rgba(37, 99, 235, 0.25);
+
+      --success: #10b981;
+      --success-light: #ecfdf5;
+      --success-text: #065f46;
+      --success-glow: rgba(16, 185, 129, 0.2);
+
+      --warning: #f59e0b;
+      --danger: #ef4444;
+
+      --bg-app: #0b0f19;
+      --bg-surface: #111827;
+      --bg-card: rgba(17, 24, 39, 0.85);
+      --bg-card-hover: rgba(31, 41, 55, 0.85);
+      --bg-subtle: #1f2937;
+
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-hover: rgba(59, 130, 246, 0.4);
+
+      --text-main: #f8fafc;
+      --text-body: #94a3b8;
+      --text-muted: #64748b;
+
+      --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-app);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(37, 99, 235, 0.12) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(99, 102, 241, 0.1) 0px, transparent 50%);
+      background-attachment: fixed;
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem;
+      width: 100%;
+    }
+
+    /* Header & Branding */
+    .header {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+      margin-bottom: 2.5rem;
+      padding-bottom: 2rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .brand-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(37, 99, 235, 0.12);
+      border: 1px solid rgba(37, 99, 235, 0.3);
+      color: #93c5fd;
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .brand-badge svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .title-group h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      color: #ffffff;
+      margin-bottom: 0.35rem;
+    }
+
+    .title-group p {
+      font-size: 1rem;
+      color: var(--text-body);
+      max-width: 700px;
+    }
+
+    /* Live Health Bar */
+    .health-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .health-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.2s ease;
+    }
+
+    .health-card:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    }
+
+    .health-info {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    .health-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .health-val {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.3rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+
+    .status-pill.online {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .status-pill.loading {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background-color: currentColor;
+    }
+
+    .dot.pulse {
+      box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.7);
+      animation: pulse-ring 1.8s infinite cubic-bezier(0.66, 0, 0, 1);
+    }
+
+    @keyframes pulse-ring {
+      0% {
+        box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.7);
+      }
+      70% {
+        box-shadow: 0 0 0 8px rgba(52, 211, 153, 0);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(52, 211, 153, 0);
+      }
+    }
+
+    /* Action Cards Section */
+    .section-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .actions-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 3rem;
+    }
+
+    .action-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      text-decoration: none;
+      color: inherit;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .action-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #2563eb, #6366f1);
+      opacity: 0;
+      transition: opacity 0.25s ease;
+    }
+
+    .action-card:hover {
+      border-color: rgba(59, 130, 246, 0.5);
+      background: var(--bg-card-hover);
+      transform: translateY(-3px);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4), 0 0 20px var(--primary-glow);
+    }
+
+    .action-card:hover::before {
+      opacity: 1;
+    }
+
+    .action-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+
+    .action-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: rgba(37, 99, 235, 0.15);
+      border: 1px solid rgba(37, 99, 235, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #60a5fa;
+    }
+
+    .action-icon.swagger {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: rgba(16, 185, 129, 0.3);
+      color: #34d399;
+    }
+
+    .action-icon.frontend {
+      background: rgba(245, 158, 11, 0.15);
+      border-color: rgba(245, 158, 11, 0.3);
+      color: #fbbf24;
+    }
+
+    .action-icon.json {
+      background: rgba(168, 85, 247, 0.15);
+      border-color: rgba(168, 85, 247, 0.3);
+      color: #c084fc;
+    }
+
+    .action-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 0.35rem;
+    }
+
+    .action-desc {
+      font-size: 0.875rem;
+      color: var(--text-body);
+      line-height: 1.45;
+      margin-bottom: 1.25rem;
+    }
+
+    .action-footer {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #60a5fa;
+    }
+
+    .action-card:hover .action-footer {
+      color: #93c5fd;
+    }
+
+    /* Modules Directory Table */
+    .modules-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 1.5rem;
+      margin-bottom: 3rem;
+    }
+
+    .modules-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+
+    .modules-table th {
+      text-align: left;
+      padding: 0.75rem 1rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .modules-table td {
+      padding: 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      color: var(--text-body);
+    }
+
+    .modules-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .modules-table tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .endpoint-code {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: #93c5fd;
+      background: rgba(37, 99, 235, 0.1);
+      padding: 0.2rem 0.5rem;
+      border-radius: 6px;
+      border: 1px solid rgba(37, 99, 235, 0.2);
+    }
+
+    .method-badge {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      margin-right: 0.25rem;
+    }
+
+    .method-get { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+    .method-post { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+    .method-put { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+    .method-del { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+
+    /* Footer */
+    .footer {
+      margin-top: auto;
+      padding: 2rem 0;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .footer a {
+      color: #60a5fa;
+      text-decoration: none;
+    }
+
+    .footer a:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 1.5rem 1rem;
+      }
+      .title-group h1 {
+        font-size: 1.5rem;
+      }
+      .health-grid {
+        grid-template-columns: 1fr;
+      }
+      .actions-grid {
+        grid-template-columns: 1fr;
+      }
+      .modules-table th:nth-child(3),
+      .modules-table td:nth-child(3) {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    
+    <!-- Header -->
+    <header class="header">
+      <div class="brand-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        PT Summit Adyawinsa Indonesia
+      </div>
+      <div class="title-group">
+        <h1>Smart Budget Monitoring & QC System</h1>
+        <p>REST API Engine, Real-time Budget Monitoring & AI Classifier Services</p>
+      </div>
+    </header>
+
+    <!-- Live System Status Grid -->
+    <div class="health-grid">
+      <div class="health-card">
+        <div class="health-info">
+          <span class="health-label">API Gateway</span>
+          <span class="health-val" id="api-status-val">Flask Engine</span>
+        </div>
+        <div class="status-pill online" id="api-status-pill">
+          <span class="dot pulse"></span>
+          <span id="api-status-text">Online (5001)</span>
+        </div>
+      </div>
+
+      <div class="health-card">
+        <div class="health-info">
+          <span class="health-label">MySQL Database</span>
+          <span class="health-val" id="db-status-val">smart_budget_db</span>
+        </div>
+        <div class="status-pill loading" id="db-status-pill">
+          <span class="dot"></span>
+          <span id="db-status-text">Checking...</span>
+        </div>
+      </div>
+
+      <div class="health-card">
+        <div class="health-info">
+          <span class="health-label">AI Engine</span>
+          <span class="health-val">SVM & Regex</span>
+        </div>
+        <div class="status-pill online">
+          <span class="dot"></span>
+          <span>Ready (v1.0)</span>
+        </div>
+      </div>
+
+      <div class="health-card">
+        <div class="health-info">
+          <span class="health-label">Environment</span>
+          <span class="health-val">Development</span>
+        </div>
+        <div class="status-pill online" style="background: rgba(99, 102, 241, 0.15); color: #a5b4fc; border-color: rgba(99, 102, 241, 0.3);">
+          <span>REST v1</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Access Hub -->
+    <h2 class="section-title">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+      </svg>
+      Developer Quick Access
+    </h2>
+
+    <div class="actions-grid">
+      <!-- Swagger UI Link -->
+      <a href="/apidocs/" class="action-card">
+        <div>
+          <div class="action-header">
+            <div class="action-icon swagger">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <polyline points="10 9 9 9 8 9"/>
+              </svg>
+            </div>
+            <span class="status-pill online">Interactive UI</span>
+          </div>
+          <div class="action-title">Swagger API Documentation</div>
+          <div class="action-desc">Jelajahi dan uji seluruh endpoint REST API, schema payload JSON, autentikasi JWT Bearer langsung dari browser.</div>
+        </div>
+        <div class="action-footer">
+          Buka Swagger UI (/apidocs/) &rarr;
+        </div>
+      </a>
+
+      <!-- OpenAPI Spec Link -->
+      <a href="/apispec_1.json" target="_blank" class="action-card">
+        <div>
+          <div class="action-header">
+            <div class="action-icon json">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                <line x1="12" y1="22.08" x2="12" y2="12"/>
+              </svg>
+            </div>
+            <span class="status-pill" style="background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3);">OpenAPI 3.0</span>
+          </div>
+          <div class="action-title">OpenAPI JSON Specification</div>
+          <div class="action-desc">Raw JSON schema resmi untuk diimpor ke Postman, Insomnia, atau generator SDK client frontend.</div>
+        </div>
+        <div class="action-footer">
+          Lihat JSON Spec (/apispec_1.json) &rarr;
+        </div>
+      </a>
+
+      <!-- Frontend UI Link -->
+      <a href="http://localhost:5173" id="frontend-link" class="action-card">
+        <div>
+          <div class="action-header">
+            <div class="action-icon frontend">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                <line x1="8" y1="21" x2="16" y2="21"/>
+                <line x1="12" y1="17" x2="12" y2="21"/>
+              </svg>
+            </div>
+            <span class="status-pill online">Client App</span>
+          </div>
+          <div class="action-title">Frontend React Application</div>
+          <div class="action-desc">Buka antarmuka web Smart Budget Monitoring System (Dashboard, PR Review, dan Manajemen Anggaran).</div>
+        </div>
+        <div class="action-footer">
+          Buka Web Client (Port 5173) &rarr;
+        </div>
+      </a>
+    </div>
+
+    <!-- API Domain Modules Directory -->
+    <h2 class="section-title">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="20" x2="18" y2="10"/>
+        <line x1="12" y1="20" x2="12" y2="4"/>
+        <line x1="6" y1="20" x2="6" y2="14"/>
+      </svg>
+      Direktori Modul Endpoint REST API (/api/v1)
+    </h2>
+
+    <div class="modules-card">
+      <table class="modules-table">
+        <thead>
+          <tr>
+            <th>Modul Domain</th>
+            <th>Base Route</th>
+            <th>Metode HTTP</th>
+            <th>Deskripsi Layanan</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Authentication & Users</strong></td>
+            <td><span class="endpoint-code">/api/v1/users</span></td>
+            <td>
+              <span class="method-badge method-get">GET</span>
+              <span class="method-badge method-post">POST</span>
+              <span class="method-badge method-put">PUT</span>
+              <span class="method-badge method-del">DEL</span>
+            </td>
+            <td>Login JWT, manajemen akun, reset password, dan role akses.</td>
+          </tr>
+          <tr>
+            <td><strong>PR / PO Tracking Stages</strong></td>
+            <td><span class="endpoint-code">/api/v1/pr</span></td>
+            <td>
+              <span class="method-badge method-get">GET</span>
+              <span class="method-badge method-post">POST</span>
+              <span class="method-badge method-put">PUT</span>
+            </td>
+            <td>Pelacakan tahap procurement (PR &rarr; PO &rarr; GR), dashboard metrik, dan trigger pipeline.</td>
+          </tr>
+          <tr>
+            <td><strong>Data Klasifikasi PR / PO</strong></td>
+            <td><span class="endpoint-code">/api/v1/pr-po-data</span></td>
+            <td>
+              <span class="method-badge method-get">GET</span>
+              <span class="method-badge method-post">POST</span>
+              <span class="method-badge method-put">PUT</span>
+              <span class="method-badge method-del">DEL</span>
+            </td>
+            <td>Dataset rekaman PR, antrean review manual, quick approve, dan summary bulanan.</td>
+          </tr>
+          <tr>
+            <td><strong>AI & Machine Learning</strong></td>
+            <td><span class="endpoint-code">/api/v1/classification</span></td>
+            <td>
+              <span class="method-badge method-post">POST</span>
+            </td>
+            <td>Prediksi klasifikasi kategori single / batch menggunakan TF-IDF SVM & regex matching.</td>
+          </tr>
+          <tr>
+            <td><strong>Item Mapping & Threshold</strong></td>
+            <td><span class="endpoint-code">/api/v1/mapping</span></td>
+            <td>
+              <span class="method-badge method-get">GET</span>
+              <span class="method-badge method-post">POST</span>
+            </td>
+            <td>Kandidat Top-5 fuzzy matching, konfirmasi manual/OOP, dan batch threshold auto-confirm.</td>
+          </tr>
+          <tr>
+            <td><strong>Budget & Planning</strong></td>
+            <td><span class="endpoint-code">/api/v1/budgets</span> &amp; <span class="endpoint-code">/planning</span></td>
+            <td>
+              <span class="method-badge method-get">GET</span>
+              <span class="method-badge method-post">POST</span>
+              <span class="method-badge method-del">DEL</span>
+            </td>
+            <td>Alokasi master plan anggaran per bulan, monitoring konsumsi actual, dan pembatalan item.</td>
+          </tr>
+          <tr>
+            <td><strong>Upload & Parsing Engine</strong></td>
+            <td><span class="endpoint-code">/api/v1/upload</span></td>
+            <td>
+              <span class="method-badge method-get">GET</span>
+              <span class="method-badge method-post">POST</span>
+            </td>
+            <td>Ekstraksi file Excel PR/PO & master planning dengan batch logging.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div>
+        &copy; 2026 <strong>PT Summit Adyawinsa Indonesia</strong> — Quality Control & Information Technology Division
+      </div>
+      <div>
+        <a href="/apidocs/">Swagger UI</a> &bull; <a href="/health">Health API</a> &bull; <a href="/db-test">Database Status</a>
+      </div>
+    </footer>
+
+  </div>
+
+  <script>
+    // Realtime Database & API Ping
+    async function checkHealth() {
+      try {
+        const res = await fetch('/db-test');
+        const data = await res.json();
+        const pill = document.getElementById('db-status-pill');
+        const text = document.getElementById('db-status-text');
+        
+        if (data.status === 'success' || data.database === 'Connected') {
+          pill.className = 'status-pill online';
+          pill.innerHTML = '<span class="dot pulse"></span><span>Connected</span>';
+        } else {
+          pill.className = 'status-pill';
+          pill.style.background = 'rgba(239, 68, 68, 0.15)';
+          pill.style.color = '#f87171';
+          pill.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+          pill.innerHTML = '<span class="dot"></span><span>Disconnected</span>';
+        }
+      } catch (err) {
+        const pill = document.getElementById('db-status-pill');
+        if (pill) {
+          pill.className = 'status-pill';
+          pill.style.background = 'rgba(239, 68, 68, 0.15)';
+          pill.style.color = '#f87171';
+          pill.innerHTML = '<span class="dot"></span><span>DB Offline</span>';
+        }
+      }
+    }
+
+    // Auto adapt frontend host link if accessed via remote IP
+    function setupFrontendLink() {
+      const hostname = window.location.hostname;
+      const frontendLink = document.getElementById('frontend-link');
+      if (frontendLink && hostname !== 'localhost' && hostname !== '127.0.0.1') {
+        frontendLink.href = `http://${hostname}:5173`;
+        const footerText = frontendLink.querySelector('.action-footer');
+        if (footerText) {
+          footerText.textContent = `Buka Web Client (${hostname}:5173) →`;
+        }
+      }
+    }
+
+    setupFrontendLink();
+    checkHealth();
+  </script>
+</body>
+</html>

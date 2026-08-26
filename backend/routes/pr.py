@@ -12,6 +12,36 @@ pr_bp = Blueprint("pr", __name__)
 # ------------------------------------------------------------------
 @pr_bp.route("/upload", methods=["POST"])
 def upload_pr():
+    """Unggah File Excel PR / PO
+    ---
+    tags:
+      - Upload & Batch History
+    security:
+      - Bearer: []
+    consumes:
+      - multipart/form-data
+    parameters:
+      - in: formData
+        name: file
+        type: file
+        required: true
+        description: File Excel (.xlsx / .xls)
+      - in: formData
+        name: user_id
+        type: integer
+        required: false
+        default: 1
+      - in: formData
+        name: periode
+        type: string
+        required: true
+        example: "2026"
+    responses:
+      200:
+        description: File PR berhasil diunggah dan disimpan ke antrean parsing
+      400:
+        description: File atau parameter periode tidak valid
+    """
     file = request.files.get("file")
     user_id = request.form.get("user_id", 1)
     periode = request.form.get("periode")
@@ -40,6 +70,41 @@ def upload_pr():
 # ------------------------------------------------------------------
 @pr_bp.route("/", methods=["GET"])
 def get_all():
+    """Daftar Riwayat PR / PO dengan Paginasi dan Filter
+    ---
+    tags:
+      - PR / PO Tracking & Stages
+    parameters:
+      - name: page
+        in: query
+        type: integer
+        default: 1
+      - name: per_page
+        in: query
+        type: integer
+        default: 50
+      - name: upload_id
+        in: query
+        type: integer
+      - name: status_ai
+        in: query
+        type: string
+        enum: [WAITING, PROCESSING, DONE, FAILED, CANCELLED]
+      - name: tracking_stage
+        in: query
+        type: string
+        enum: [PR, PO, GR]
+      - name: filter_status
+        in: query
+        type: string
+        enum: [DONE, PENDING, ON_PLAN, OVER_PLAN, OOP, CANCELLED]
+      - name: search
+        in: query
+        type: string
+    responses:
+      200:
+        description: Daftar baris data PR
+    """
     upload_id = request.args.get("upload_id", type=int)
     status_ai = request.args.get("status_ai")
     tracking_stage = request.args.get("tracking_stage")
@@ -68,6 +133,21 @@ def get_all():
 # ------------------------------------------------------------------
 @pr_bp.route("/<int:pr_id>", methods=["GET"])
 def get_by_id(pr_id):
+    """Mendapatkan Detail Satu PR berdasarkan ID
+    ---
+    tags:
+      - PR / PO Tracking & Stages
+    parameters:
+      - name: pr_id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Detail data PR
+      404:
+        description: PR tidak ditemukan
+    """
     result, status = PrService.get_by_id(pr_id)
     return jsonify(result), status
 
@@ -79,6 +159,36 @@ def get_by_id(pr_id):
 # ------------------------------------------------------------------
 @pr_bp.route("/<int:pr_id>/kategori", methods=["PUT"])
 def update_kategori(pr_id):
+    """Koreksi Manual Kategori PR
+    ---
+    tags:
+      - PR / PO Tracking & Stages
+    security:
+      - Bearer: []
+    parameters:
+      - name: pr_id
+        in: path
+        type: integer
+        required: true
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - kategori_id
+            - user_id
+          properties:
+            kategori_id:
+              type: integer
+              example: 2
+            user_id:
+              type: integer
+              example: 1
+    responses:
+      200:
+        description: Kategori PR berhasil diperbarui
+    """
     data = request.get_json()
     kategori_id = data.get("kategori_id")
     user_id = data.get("user_id")
@@ -99,6 +209,36 @@ def update_kategori(pr_id):
 # ------------------------------------------------------------------
 @pr_bp.route("/<int:pr_id>/cancel", methods=["POST"])
 def cancel_pr(pr_id):
+    """Membatalkan PR dan Melepaskan Kaitannya dengan Budget Plan
+    ---
+    tags:
+      - PR / PO Tracking & Stages
+    security:
+      - Bearer: []
+    parameters:
+      - name: pr_id
+        in: path
+        type: integer
+        required: true
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - user_id
+            - alasan
+          properties:
+            user_id:
+              type: integer
+              example: 1
+            alasan:
+              type: string
+              example: "Item dibatalkan oleh user pemohon"
+    responses:
+      200:
+        description: PR berhasil dibatalkan
+    """
     data = request.get_json() or {}
     user_id = data.get("user_id")
     alasan = data.get("alasan", "").strip() or None
@@ -116,6 +256,19 @@ def cancel_pr(pr_id):
 # ------------------------------------------------------------------
 @pr_bp.route("/summary/<int:upload_id>", methods=["GET"])
 def get_summary(upload_id):
+    """Mendapatkan Ringkasan Status AI per Upload Batch
+    ---
+    tags:
+      - PR / PO Tracking & Stages
+    parameters:
+      - name: upload_id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Ringkasan jumlah status WAITING, PROCESSING, DONE, FAILED
+    """
     result, status = PrService.get_summary_by_upload(upload_id)
     return jsonify(result), status
 
@@ -127,6 +280,28 @@ def get_summary(upload_id):
 # ------------------------------------------------------------------
 @pr_bp.route("/process_pipeline", methods=["POST"])
 def process_pipeline():
+    """Menjalankan Pipeline Otomatisasi (Klasifikasi & Budget Mapping) untuk Semua PR WAITING
+    ---
+    tags:
+      - PR / PO Tracking & Stages
+    security:
+      - Bearer: []
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - periode
+          properties:
+            periode:
+              type: string
+              example: "2026"
+    responses:
+      200:
+        description: Pipeline pemrosesan berhasil dijalankan
+    """
     data = request.get_json()
     periode = data.get("periode") if data else None
     
@@ -143,6 +318,28 @@ def process_pipeline():
 # ------------------------------------------------------------------
 @pr_bp.route("/retry_mapping", methods=["POST"])
 def retry_mapping():
+    """Menjalankan Ulang Mapping untuk PR yang Membutuhkan Budget Matching
+    ---
+    tags:
+      - PR / PO Tracking & Stages
+    security:
+      - Bearer: []
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - periode
+          properties:
+            periode:
+              type: string
+              example: "2026"
+    responses:
+      200:
+        description: Retry mapping berhasil diproses
+    """
     data = request.get_json()
     periode = data.get("periode") if data else None
     
@@ -158,6 +355,20 @@ def retry_mapping():
 # ------------------------------------------------------------------
 @pr_bp.route("/dashboard_summary", methods=["GET"])
 def get_dashboard_summary():
+    """Mendapatkan Ringkasan Metrik Dashboard PR Tracking Stages & Budget Realization
+    ---
+    tags:
+      - PR / PO Tracking & Stages
+    parameters:
+      - name: periode
+        in: query
+        type: string
+        required: true
+        example: "2026"
+    responses:
+      200:
+        description: Metrik stage_pr, stage_po, stage_gr, on_plan, over_plan, under_plan, out_of_plan, cancelled_pr
+    """
     periode = request.args.get("periode")
     if not periode:
         return jsonify({"success": False, "message": "periode wajib diisi"}), 400
@@ -167,6 +378,20 @@ def get_dashboard_summary():
 
 @pr_bp.route("/dashboard_summary_monthly", methods=["GET"])
 def get_dashboard_summary_monthly():
+    """Mendapatkan Tren Bulanan Realisasi PR
+    ---
+    tags:
+      - PR / PO Tracking & Stages
+    parameters:
+      - name: periode
+        in: query
+        type: string
+        required: true
+        example: "2026"
+    responses:
+      200:
+        description: Breakdown realisasi per bulan
+    """
     periode = request.args.get("periode")
     if not periode:
         return jsonify({"success": False, "message": "periode wajib diisi"}), 400

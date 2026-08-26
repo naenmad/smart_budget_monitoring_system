@@ -291,10 +291,45 @@
 
 .pagination {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
   padding: 12px 16px;
   border-top: 1px solid var(--border-color);
   background: var(--bg-card);
+  flex-wrap: wrap;
+}
+
+.perPageWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.perPageLabel {
+  font-weight: 500;
+}
+
+.perPageSelect {
+  padding: 4px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  color: var(--text-main);
+  font-size: 12px;
+  outline: none;
+  cursor: pointer;
+}
+
+.perPageSelect:focus {
+  border-color: var(--primary);
+}
+
+.totalInfo {
+  font-size: 11.5px;
+  color: var(--text-muted);
 }
 
 .paginationRow {

@@ -4,6 +4,8 @@ from models.pr_po_data import PrPoData
 from models.mapping_log import MappingLog
 from models.planning_detail import PlanningDetail
 from models.planning_header import PlanningHeader
+from models.system_setting import SystemSetting
+from models.item_mapping import ItemMapping
 from services.budget_monitoring_service import BudgetMonitoringService
 from services.mapping.advanced_mapping_service import AdvancedMappingService
 from utils.auth import role_required
@@ -15,11 +17,52 @@ def _recalculate_planning_status(planning_detail_id):
     """Delegasi ke BudgetMonitoringService — single source of truth."""
     BudgetMonitoringService.recalculate_planning_status(planning_detail_id)
 
+def _save_auto_learning_rule(pr, detail):
+    """Otomatis simpan rule baru ke item_mapping jika auto_learning aktif."""
+    try:
+        auto_learn = SystemSetting.get_value("auto_learning", "true")
+        if auto_learn.lower() in ["true", "1", "yes"] and pr.description and detail and detail.item:
+            clean_keyword = pr.description.strip()
+            if len(clean_keyword) >= 3:
+                existing = ItemMapping.query.filter(
+                    ItemMapping.keyword.ilike(clean_keyword),
+                    ItemMapping.planning_item == detail.item
+                ).first()
+                if not existing:
+                    new_rule = ItemMapping(
+                        keyword=clean_keyword,
+                        planning_item=detail.item,
+                        kategori_id=detail.kategori_id,
+                        priority=2,
+                        is_active=True
+                    )
+                    db.session.add(new_rule)
+                    print(f"[Auto-Learning] Saved new rule: '{clean_keyword}' -> '{detail.item}'")
+    except Exception as e:
+        print(f"[Auto-Learning] Error saving rule: {e}")
+
 @mapping_bp.route("/pending", methods=["GET"])
 def get_pending_mapping():
-    """
-    Mengambil data pr_po_data yang butuh mapping (status_ai='NEED_MAPPING').
-    Disertai dengan kandidat top 5 dari mapping_log.
+    """Mendapatkan Antrean PR yang Membutuhkan Budget Mapping & Top 5 AI Candidates
+    ---
+    tags:
+      - Item Mapping & Threshold
+    parameters:
+      - name: page
+        in: query
+        type: integer
+        default: 1
+      - name: per_page
+        in: query
+        type: integer
+        default: 20
+      - name: keyword
+        in: query
+        type: string
+        description: Filter pencarian teks nomor PR, deskripsi, atau komentar
+    responses:
+      200:
+        description: Daftar PR NEED_MAPPING beserta kandidat fuzzy matching Top-5
     """
     # Ambil pagination dari query string
     page = request.args.get('page', 1, type=int)
@@ -74,8 +117,35 @@ def get_pending_mapping():
 @mapping_bp.route("/<int:pr_id>/confirm", methods=["POST"])
 @role_required("admin")
 def confirm_mapping(pr_id):
-    """
-    Endpoint manual review untuk memilih kandidat mapping.
+    """Konfirmasi Manual Pilihan Item Planning atau OOP untuk Satu PR
+    ---
+    tags:
+      - Item Mapping & Threshold
+    security:
+      - Bearer: []
+    parameters:
+      - name: pr_id
+        in: path
+        type: integer
+        required: true
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            planning_detail_id:
+              type: integer
+              example: 174
+            rank_no:
+              type: integer
+              example: 1
+            is_oop:
+              type: boolean
+              example: false
+    responses:
+      200:
+        description: Mapping berhasil dikonfirmasi dan konsumsi budget dihitung
     """
     data = request.get_json(silent=True)
     if not data or not isinstance(data, dict):
@@ -171,6 +241,9 @@ def confirm_mapping(pr_id):
     # 2) planning_detail lama (jika berubah mapping, item lama kehilangan satu PR)
     if old_planning_detail_id and old_planning_detail_id != planning_detail_id:
         _recalculate_planning_status(old_planning_detail_id)
+
+    # Simpan rule auto-learning jika diaktifkan
+    _save_auto_learning_rule(pr, detail)
 
     db.session.commit()
     db.session.refresh(pr)  # reload relationship agar kategori_kode reflect update
@@ -364,6 +437,9 @@ def bulk_confirm():
         # Kalkulasi
         if not is_oop and planning_detail_id:
             _recalculate_planning_status(planning_detail_id)
+            detail = db.session.get(PlanningDetail, planning_detail_id)
+            if detail:
+                _save_auto_learning_rule(pr, detail)
             
         if old_planning_detail_id and old_planning_detail_id != planning_detail_id:
             _recalculate_planning_status(old_planning_detail_id)
@@ -377,4 +453,133 @@ def bulk_confirm():
         "success": True,
         "message": f"{success_count} PR berhasil diproses.",
         "errors": errors
+    }), 200
+
+# ------------------------------------------------------------------
+# Auto-Mapping Settings
+# GET & POST /api/v1/mapping/settings
+# ------------------------------------------------------------------
+@mapping_bp.route("/settings", methods=["GET"])
+def get_mapping_settings():
+    """Mengambil konfigurasi ambang batas persentase otomatisasi & auto-learning."""
+    raw_thresh = SystemSetting.get_value("auto_mapping_threshold", "85")
+    raw_learn = SystemSetting.get_value("auto_learning", "true")
+    
+    try:
+        threshold = float(raw_thresh)
+    except (ValueError, TypeError):
+        threshold = 85.0
+        
+    auto_learning = raw_learn.lower() in ["true", "1", "yes"]
+    
+    return jsonify({
+        "success": True,
+        "data": {
+            "auto_mapping_threshold": threshold,
+            "auto_learning": auto_learning
+        }
+    }), 200
+
+@mapping_bp.route("/settings", methods=["POST"])
+@role_required("admin")
+def update_mapping_settings():
+    """Memperbarui ambang batas persentase otomatisasi & status auto-learning."""
+    data = request.get_json(silent=True) or {}
+    
+    threshold = data.get("auto_mapping_threshold")
+    auto_learning = data.get("auto_learning")
+    
+    if threshold is not None:
+        try:
+            threshold_val = float(threshold)
+            if not (0 <= threshold_val <= 100):
+                return jsonify({"success": False, "message": "Threshold harus antara 0% dan 100%"}), 400
+            SystemSetting.set_value("auto_mapping_threshold", str(threshold_val), "Ambang batas confidence score minimum (%) untuk persetujuan otomatis AI")
+        except (ValueError, TypeError):
+            return jsonify({"success": False, "message": "Threshold harus berupa angka"}), 400
+            
+    if auto_learning is not None:
+        learn_val = "true" if auto_learning else "false"
+        SystemSetting.set_value("auto_learning", learn_val, "Otomatis simpan konfirmasi manual menjadi rule baru di item_mapping")
+        
+    return jsonify({
+        "success": True,
+        "message": "Pengaturan otomatisasi mapping berhasil diperbarui",
+        "data": {
+            "auto_mapping_threshold": float(SystemSetting.get_value("auto_mapping_threshold", "85")),
+            "auto_learning": SystemSetting.get_value("auto_learning", "true").lower() in ["true", "1", "yes"]
+        }
+    }), 200
+
+# ------------------------------------------------------------------
+# Trigger Batch Auto-Confirm by Threshold
+# POST /api/v1/mapping/auto_confirm_threshold
+# ------------------------------------------------------------------
+@mapping_bp.route("/auto_confirm_threshold", methods=["POST"])
+@role_required("admin")
+def auto_confirm_by_threshold():
+    """
+    Eksekusi persetujuan otomatis secara massal pada seluruh PR berstatus
+    NEED_MAPPING yang skor AI kandidat Top-1 nya >= ambang batas saat ini.
+    """
+    raw_thresh = SystemSetting.get_value("auto_mapping_threshold", "85")
+    try:
+        threshold = float(raw_thresh)
+    except (ValueError, TypeError):
+        threshold = 85.0
+
+    threshold_fraction = threshold / 100.0
+
+    # Cari semua PR berstatus NEED_MAPPING
+    pending_prs = PrPoData.query.filter_by(status_ai="NEED_MAPPING").all()
+    approved_count = 0
+    errors = []
+
+    for pr in pending_prs:
+        # Ambil top candidate dari mapping_log
+        top_log = MappingLog.query.filter_by(
+            pr_po_data_id=pr.id,
+            method="FUZZY_MATCH"
+        ).order_by(MappingLog.rank_no.asc()).first()
+
+        if not top_log or not top_log.planning_detail_hasil_id:
+            continue
+
+        score = float(top_log.confidence_score or 0.0)
+        
+        # Cek part code mismatch
+        detail = db.session.get(PlanningDetail, top_log.planning_detail_hasil_id)
+        if not detail:
+            continue
+
+        pr_code = AdvancedMappingService.extract_code(pr.description)
+        cand_code = AdvancedMappingService.extract_code(detail.item)
+        code_mismatch = (pr_code is not None and cand_code is not None and pr_code != cand_code)
+
+        # Jika skor mencukupi dan tidak ada perbedaan kode
+        if score >= threshold_fraction and not code_mismatch:
+            old_planning_detail_id = pr.planning_detail_id
+
+            if pr.kategori_id != detail.kategori_id:
+                pr.kategori_id_koreksi = detail.kategori_id
+            pr.kategori_id = detail.kategori_id
+            pr.planning_detail_id = detail.id
+            pr.status_ai = "DONE"
+            pr.perlu_review = False
+            top_log.is_selected = True
+
+            _recalculate_planning_status(detail.id)
+            if old_planning_detail_id and old_planning_detail_id != detail.id:
+                _recalculate_planning_status(old_planning_detail_id)
+
+            BudgetMonitoringService.calculate_budget_consumption(pr)
+            approved_count += 1
+
+    db.session.commit()
+
+    return jsonify({
+        "success": True,
+        "message": f"{approved_count} PR berhasil disetujui otomatis sesuai ambang batas {threshold:.0f}%.",
+        "approved_count": approved_count,
+        "threshold": threshold
     }), 200

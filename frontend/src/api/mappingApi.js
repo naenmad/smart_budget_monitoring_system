@@ -22,4 +22,14 @@ export const mappingApi = {
 
   bulkConfirm: (mappings) => 
     api.post('/mapping/bulk_confirm', { mappings }),
+
+  // Pengaturan Otomatisasi Mapping
+  getSettings: () =>
+    api.get('/mapping/settings'),
+
+  updateSettings: (data) =>
+    api.post('/mapping/settings', data),
+
+  autoConfirmByThreshold: () =>
+    api.post('/mapping/auto_confirm_threshold'),
 }

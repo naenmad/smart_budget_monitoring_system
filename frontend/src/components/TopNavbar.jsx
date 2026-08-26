@@ -3,7 +3,7 @@ import {
   Menu, 
   PanelLeftClose, 
   PanelLeftOpen, 
-  Sparkles,
+  // Sparkles,
   LayoutGrid,
   Sun,
   Moon,
@@ -108,10 +108,10 @@ export default function TopNavbar({ onToggleSidebar, sidebarMode, isMobileOpen }
           {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
         </button>
 
-        <div className={s.systemTag}>
+        {/* <div className={s.systemTag}>
           <Sparkles size={13} className={s.sparkleIcon} />
           <span className={s.tagText}>SAI QC System</span>
-        </div>
+        </div> */}
       </div>
     </header>
   )

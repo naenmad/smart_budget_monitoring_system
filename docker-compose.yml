@@ -1,34 +1,105 @@
+version: '3.8'
+
 services:
+  # -------------------------------------------------------------
+  # MySQL Database Service (8.0)
+  # -------------------------------------------------------------
   mysql:
     image: mysql:8.0
-    container_name: mysql-db
+    container_name: sbms-mysql
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${DB_NAME:-smart_budget_db}
     ports:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./log:/var/log/mysql
+      - ./logs/mysql:/var/log/mysql
+      - ./backend/database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
     command:
       - --log_bin_trust_function_creators=1
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$${MYSQL_ROOT_PASSWORD} || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    networks:
+      - sbms-network
 
+  # -------------------------------------------------------------
+  # phpMyAdmin Database Management UI (Port: 8080)
+  # -------------------------------------------------------------
   phpmyadmin:
     image: phpmyadmin:latest
-    container_name: phpmyadmin
+    container_name: sbms-phpmyadmin
     restart: always
     environment:
       PMA_HOST: mysql
       PMA_PORT: 3306
+      UPLOAD_LIMIT: 64M
     ports:
       - "8080:80"
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
+    networks:
+      - sbms-network
+
+  # -------------------------------------------------------------
+  # Backend Flask REST API & AI Classifier (Port: 5001)
+  # -------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sbms-backend
+    restart: always
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: ${DB_PASSWORD:-rootpassword}
+      DB_NAME: ${DB_NAME:-smart_budget_db}
+      SECRET_KEY: ${SECRET_KEY:-smart-budget-secret-key-production}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-smart-budget-jwt-secret-key-production}
+      FLASK_ENV: production
+      PORT: 5001
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./backend/uploads:/app/uploads
+      - ./logs/backend:/app/logs
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - sbms-network
+
+  # -------------------------------------------------------------
+  # Frontend React Web Application (Port: 5173 -> Nginx 80)
+  # -------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: sbms-frontend
+    restart: always
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    networks:
+      - sbms-network
 
 volumes:
   mysql_data:
+    driver: local
+
+networks:
+  sbms-network:
+    driver: bridge

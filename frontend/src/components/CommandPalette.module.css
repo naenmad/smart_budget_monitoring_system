@@ -64,6 +64,23 @@
   font-size: 13.5px;
 }
 
+.clearBtn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  border-radius: 4px;
+  margin-right: 6px;
+}
+
+.clearBtn:hover {
+  color: var(--text-main);
+  background: var(--bg-subtle);
+}
+
 .shortcutHint {
   display: flex;
   align-items: center;

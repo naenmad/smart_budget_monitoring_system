@@ -318,35 +318,35 @@ export default function Dashboard() {
             <div className={s.metricGrid} style={{ gridTemplateColumns: 'repeat(5, minmax(0, 1fr))' }}>
               <MetricCard
                 label="On Plan"
-                value={prSummary?.on_plan || 0}
+                value={prSummary?.on_plan ?? 0}
                 sub="Sesuai planning"
                 variant="success"
                 onClick={() => setSelectedForm('ON_PLAN')}
               />
               <MetricCard
                 label="Over Plan"
-                value={prSummary?.over_plan || 0}
+                value={prSummary?.over_plan ?? 0}
                 sub="Realisasi melebihi"
                 variant="danger"
                 onClick={() => setSelectedForm('OVER_PLAN')}
               />
               <MetricCard
                 label="Under Plan"
-                value={prSummary?.under_plan || 0}
+                value={prSummary?.under_plan ?? 0}
                 sub="Masih ada sisa"
                 variant="info"
                 onClick={() => setSelectedForm('UNDER_PLAN')}
               />
               <MetricCard
                 label="Out of Plan"
-                value={prSummary?.out_of_plan || 0}
+                value={prSummary?.out_of_plan ?? prSummary?.oop ?? 0}
                 sub="Tidak ada di plan"
                 variant="warning"
                 onClick={() => setSelectedForm('OOP')}
               />
               <MetricCard
                 label="PR Dibatalkan"
-                value={prSummary?.cancelled_pr || 0}
+                value={prSummary?.cancelled_pr ?? prSummary?.cancelled_pr_count ?? 0}
                 sub="PR tidak terealisasi"
                 variant="danger"
                 onClick={() => setSelectedForm('CANCELLED_PR')}
@@ -359,21 +359,21 @@ export default function Dashboard() {
             <div className={s.metricGrid} style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
               <MetricCard
                 label="Stage PR"
-                value={prSummary?.stage_pr || 0}
+                value={prSummary?.stage_pr ?? prSummary?.pr_stage ?? 0}
                 sub="Purchase Requisition"
                 variant="warning"
                 onClick={() => setSelectedForm('STAGE_PR')}
               />
               <MetricCard
                 label="Stage PO"
-                value={prSummary?.stage_po || 0}
+                value={prSummary?.stage_po ?? prSummary?.po_stage ?? 0}
                 sub="Purchase Order Terbit"
                 variant="info"
                 onClick={() => setSelectedForm('STAGE_PO')}
               />
               <MetricCard
                 label="Stage GR"
-                value={prSummary?.stage_gr || 0}
+                value={prSummary?.stage_gr ?? prSummary?.gr_stage ?? 0}
                 sub="Goods Receipt Selesai"
                 variant="success"
                 onClick={() => setSelectedForm('STAGE_GR')}

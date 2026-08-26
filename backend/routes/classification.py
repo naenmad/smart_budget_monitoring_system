@@ -10,9 +10,46 @@ classification_bp = Blueprint(
 
 @classification_bp.route("/classify", methods=["POST"])
 def classify():
-    """
-    Klasifikasi satu teks.
-    Body: { "text": "KALIBRASI TOHNICHI TORQUE WRENCH" }
+    """Prediksi Klasifikasi Kategori untuk Satu Teks
+    ---
+    tags:
+      - AI & Machine Learning
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - text
+          properties:
+            text:
+              type: string
+              example: "KALIBRASI TOHNICHI TORQUE WRENCH QL200N"
+    responses:
+      200:
+        description: Hasil prediksi kategori, confidence score, dan metode yang digunakan
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            data:
+              type: object
+              properties:
+                kategori_kode:
+                  type: string
+                  example: "E-9"
+                metode:
+                  type: string
+                  example: "REGEX"
+                confidence_score:
+                  type: number
+                  example: 1.0
+                perlu_review:
+                  type: boolean
+                  example: false
     """
     data = request.get_json()
 
@@ -32,9 +69,27 @@ def classify():
 
 @classification_bp.route("/classify/bulk", methods=["POST"])
 def classify_bulk():
-    """
-    Klasifikasi banyak teks sekaligus (tanpa simpan ke DB).
-    Body: { "items": ["teks 1", "teks 2", ...] }
+    """Prediksi Klasifikasi untuk Banyak Teks Sekaligus (Batch)
+    ---
+    tags:
+      - AI & Machine Learning
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - items
+          properties:
+            items:
+              type: array
+              items:
+                type: string
+              example: ["KALIBRASI STEEL RULE", "PEMBELIAN KUNCI L SET", "REPAIR PUNCH DIE"]
+    responses:
+      200:
+        description: Array hasil klasifikasi
     """
     data = request.get_json()
 
@@ -64,8 +119,18 @@ def classify_bulk():
     methods=["POST"]
 )
 def classify_pr_po(pr_po_data_id):
-    """
-    Klasifikasi satu record PrPoData dan simpan hasilnya.
+    """Jalankan Klasifikasi AI pada Satu Record PR/PO Tertentu
+    ---
+    tags:
+      - AI & Machine Learning
+    parameters:
+      - name: pr_po_data_id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Klasifikasi berhasil dan data diperbarui di database
     """
     result, status = ClassificationService.classify_and_save(
         pr_po_data_id
@@ -78,8 +143,18 @@ def classify_pr_po(pr_po_data_id):
     methods=["POST"]
 )
 def classify_upload(upload_id):
-    """
-    Klasifikasi semua record PrPoData dari satu upload batch.
+    """Jalankan Klasifikasi AI pada Seluruh Record PR/PO dalam Satu Batch Upload
+    ---
+    tags:
+      - AI & Machine Learning
+    parameters:
+      - name: upload_id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Klasifikasi batch upload selesai
     """
     result, status = ClassificationService.classify_by_upload_id(
         upload_id

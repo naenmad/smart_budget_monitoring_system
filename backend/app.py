@@ -2,11 +2,13 @@
 from dotenv import load_dotenv
 load_dotenv()
 # pyrefly: ignore [missing-import]
-from flask import Flask
+from flask import Flask, redirect, render_template
 from flask_cors import CORS
 from sqlalchemy import text
+from flasgger import Swagger
 
 from config import Config
+from swagger_config import SWAGGER_CONFIG, SWAGGER_TEMPLATE
 from utils.db import db
 from flask_migrate import Migrate
 from utils.logger import setup_logger
@@ -35,8 +37,9 @@ setup_logger()
 # Ensure uploads directory exists for file parsing
 os.makedirs(os.path.join(os.path.dirname(__file__), "uploads"), exist_ok=True)
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder="templates")
 app.config.from_object(Config)
+app.url_map.strict_slashes = False
 
 # Enable CORS for Vercel, Railway, and localhost
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
@@ -44,6 +47,9 @@ CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 # Init database
 db.init_app(app)
 migrate = Migrate(app, db)  
+
+# Init Swagger API Documentation
+swagger = Swagger(app, config=SWAGGER_CONFIG, template=SWAGGER_TEMPLATE)
 
 # --- Register Blueprints ---
 
@@ -102,7 +108,12 @@ app.register_blueprint(
 
 @app.route("/")
 def home():
-    return "SAI QC Backend Running"
+    return render_template("index.html")
+
+
+@app.route("/docs")
+def docs_redirect():
+    return redirect("/apidocs/")
 
 
 @app.route("/health")

@@ -10,6 +10,22 @@ export default defineConfig({
         target: 'http://localhost:5001',
         changeOrigin: true,
       },
+      '/apidocs': {
+        target: 'http://localhost:5001',
+        changeOrigin: true,
+      },
+      '/apispec_1.json': {
+        target: 'http://localhost:5001',
+        changeOrigin: true,
+      },
+      '/flasgger_static': {
+        target: 'http://localhost:5001',
+        changeOrigin: true,
+      },
+      '/docs': {
+        target: 'http://localhost:5001',
+        changeOrigin: true,
+      },
     },
   },
 })

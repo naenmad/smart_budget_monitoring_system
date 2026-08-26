@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react'
 import s from './Users.module.css'
 import { userApi } from '../api/userApi'
 import { useAuth } from '../context/AuthContext'
-import { CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
+import { CheckCircle2, AlertCircle, Loader2, KeyRound, Eye, EyeOff, X } from 'lucide-react'
 
+const USERNAME_REGEX = /^[a-z0-9_.-]{3,30}$/
 const EMPTY_FORM = { username: '', password: '', role: 'admin' }
 
 export default function Users() {
@@ -17,6 +18,15 @@ export default function Users() {
   const [deletingId, setDeletingId] = useState(null)
   const [feedback, setFeedback] = useState({ type: '', text: '' })
   const [showPassword, setShowPassword] = useState(false)
+
+  // Modal ubah password pengguna
+  const [pwdModalUser, setPwdModalUser] = useState(null)
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [pwdSaving, setPwdSaving] = useState(false)
+  const [pwdError, setPwdError] = useState('')
+  const [pwdFeedback, setPwdFeedback] = useState('')
 
   useEffect(() => {
     fetchUsers()
@@ -34,6 +44,16 @@ export default function Users() {
     }
   }
 
+  function handleUsernameChange(val) {
+    // Otomatis lowercase dan hilangkan spasi
+    const sanitized = val.toLowerCase().replace(/\s+/g, '')
+    setForm(prev => ({ ...prev, username: sanitized }))
+    
+    if (errors.username) {
+      setErrors(prev => ({ ...prev, username: '' }))
+    }
+  }
+
   function handleChange(field, value) {
     setForm(prev => ({ ...prev, [field]: value }))
     if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }))
@@ -41,10 +61,22 @@ export default function Users() {
 
   function validate() {
     const e = {}
-    if (!form.username.trim()) e.username = 'Username wajib diisi'
-    else if (form.username.trim().length < 3) e.username = 'Minimal 3 karakter'
-    if (!form.password.trim()) e.password = 'Password wajib diisi'
-    else if (form.password.length < 6) e.password = 'Minimal 6 karakter'
+    const trimmedUser = form.username.trim().toLowerCase()
+    if (!trimmedUser) {
+      e.username = 'Username wajib diisi'
+    } else if (trimmedUser.length < 3) {
+      e.username = 'Username minimal 3 karakter'
+    } else if (trimmedUser.length > 30) {
+      e.username = 'Username maksimal 30 karakter'
+    } else if (!USERNAME_REGEX.test(trimmedUser)) {
+      e.username = 'Hanya boleh huruf kecil, angka, titik (.), strip (-), atau underscore (_)'
+    }
+
+    if (!form.password.trim()) {
+      e.password = 'Password wajib diisi'
+    } else if (form.password.length < 6) {
+      e.password = 'Password minimal 6 karakter'
+    }
     return e
   }
 
@@ -57,7 +89,7 @@ export default function Users() {
     setSaving(true)
     try {
       const res = await userApi.create({
-        username: form.username.trim(),
+        username: form.username.trim().toLowerCase(),
         password: form.password,
         role: form.role,
       })
@@ -100,6 +132,58 @@ export default function Users() {
     }
   }
 
+  function openPasswordModal(u) {
+    setPwdModalUser(u)
+    setNewPassword('')
+    setConfirmPassword('')
+    setPwdError('')
+    setPwdFeedback('')
+    setShowNewPassword(false)
+  }
+
+  function closePasswordModal() {
+    setPwdModalUser(null)
+    setNewPassword('')
+    setConfirmPassword('')
+    setPwdError('')
+    setPwdFeedback('')
+  }
+
+  async function handleSavePassword(e) {
+    e.preventDefault()
+    setPwdError('')
+    setPwdFeedback('')
+
+    if (!newPassword || newPassword.length < 6) {
+      setPwdError('Password baru minimal 6 karakter')
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      setPwdError('Konfirmasi password tidak cocok')
+      return
+    }
+
+    setPwdSaving(true)
+    try {
+      const res = await userApi.update(pwdModalUser.id, {
+        password: newPassword
+      })
+      if (res.success) {
+        setPwdFeedback(`Password untuk "${pwdModalUser.username}" berhasil diubah!`)
+        setTimeout(() => {
+          closePasswordModal()
+          setFeedback({ type: 'success', text: `Password untuk user "${pwdModalUser.username}" berhasil diperbarui.` })
+        }, 900)
+      } else {
+        setPwdError(res.message || 'Gagal mengubah password')
+      }
+    } catch (err) {
+      setPwdError(err.response?.data?.message || 'Gagal mengubah password')
+    } finally {
+      setPwdSaving(false)
+    }
+  }
+
   return (
     <div className={s.page}>
       <div className={s.header}>
@@ -115,11 +199,11 @@ export default function Users() {
           {feedback.text && (
             <div className={`${s.feedback} ${feedback.type === 'success' ? s.feedbackSuccess : s.feedbackError}`}>
               {feedback.type === 'success' ? (
-                <CheckCircle2 size={15} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+                <CheckCircle2 size={15} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle', flexShrink: 0 }} />
               ) : (
-                <AlertCircle size={15} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+                <AlertCircle size={15} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle', flexShrink: 0 }} />
               )}
-              {feedback.text}
+              <span>{feedback.text}</span>
             </div>
           )}
 
@@ -129,13 +213,16 @@ export default function Users() {
               <input
                 className={`${s.input} ${errors.username ? s.inputError : ''}`}
                 type="text"
-                placeholder="Contoh: budi.santoso"
+                placeholder="contoh: budi_santoso"
                 autoComplete="off"
                 value={form.username}
-                onChange={e => handleChange('username', e.target.value)}
+                onChange={e => handleUsernameChange(e.target.value)}
               />
+              <span className={s.helperText}>
+                Huruf kecil, angka, dot, strip, atau underscore (3-30 karakter, tanpa spasi).
+              </span>
               {errors.username && (
-                <span style={{ fontSize: 11, color: '#e85d3a', marginTop: 3, display: 'block' }}>
+                <span className={s.errorText}>
                   {errors.username}
                 </span>
               )}
@@ -157,16 +244,13 @@ export default function Users() {
                   className={s.eyeBtn}
                   onClick={() => setShowPassword(!showPassword)}
                   tabIndex="-1"
+                  aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
                 >
-                  {showPassword ? (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
-                  ) : (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-                  )}
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
               {errors.password && (
-                <span style={{ fontSize: 11, color: '#e85d3a', marginTop: 3, display: 'block' }}>
+                <span className={s.errorText}>
                   {errors.password}
                 </span>
               )}
@@ -221,17 +305,17 @@ export default function Users() {
                     <th>Username</th>
                     <th>Role</th>
                     <th>Status</th>
-                    <th></th>
+                    <th style={{ textAlign: 'right' }}>Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
                   {users.map((u, i) => (
                     <tr key={u.id}>
-                      <td style={{ color: '#73726c', width: 28 }}>{i + 1}</td>
-                      <td style={{ fontWeight: u.id === currentUser?.id ? 600 : 400 }}>
+                      <td style={{ color: 'var(--text-muted)', width: 28 }}>{i + 1}</td>
+                      <td style={{ fontWeight: u.id === currentUser?.id ? 700 : 500, color: 'var(--text-main)' }}>
                         {u.username}
                         {u.id === currentUser?.id && (
-                          <span style={{ fontSize: 10, color: '#73726c', marginLeft: 6, fontWeight: 400 }}>
+                          <span style={{ fontSize: 10, color: 'var(--primary)', marginLeft: 6, fontWeight: 600 }}>
                             (Anda)
                           </span>
                         )}
@@ -248,14 +332,26 @@ export default function Users() {
                         </span>
                       </td>
                       <td>
-                        <button
-                          className={s.deleteBtn}
-                          onClick={() => handleDelete(u.id, u.username)}
-                          disabled={deletingId === u.id || u.id === currentUser?.id}
-                          title={u.id === currentUser?.id ? 'Tidak bisa menghapus akun sendiri' : 'Hapus user'}
-                        >
-                          {deletingId === u.id ? '...' : 'Hapus'}
-                        </button>
+                        <div className={s.rowActions}>
+                          <button
+                            type="button"
+                            className={s.pwdBtn}
+                            onClick={() => openPasswordModal(u)}
+                            title={`Ubah password ${u.username}`}
+                          >
+                            <KeyRound size={13} />
+                            <span>Ubah Password</span>
+                          </button>
+                          <button
+                            type="button"
+                            className={s.deleteBtn}
+                            onClick={() => handleDelete(u.id, u.username)}
+                            disabled={deletingId === u.id || u.id === currentUser?.id}
+                            title={u.id === currentUser?.id ? 'Tidak bisa menghapus akun sendiri' : 'Hapus user'}
+                          >
+                            {deletingId === u.id ? '...' : 'Hapus'}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -265,6 +361,97 @@ export default function Users() {
           )}
         </div>
       </div>
+
+      {/* ── Modal Ubah Password Pengguna ── */}
+      {pwdModalUser && (
+        <div className={s.modalOverlay} onClick={closePasswordModal}>
+          <div className={s.modalDialog} onClick={e => e.stopPropagation()}>
+            <div className={s.modalHeader}>
+              <div>
+                <h3 className={s.modalHeading}>Ubah Password Pengguna</h3>
+                <p className={s.modalSub}>Reset password untuk akun <strong>{pwdModalUser.username}</strong> ({pwdModalUser.role})</p>
+              </div>
+              <button className={s.modalCloseBtn} onClick={closePasswordModal} type="button">
+                <X size={18} />
+              </button>
+            </div>
+
+            {pwdFeedback && (
+              <div className={`${s.feedback} ${s.feedbackSuccess}`}>
+                <CheckCircle2 size={15} />
+                <span>{pwdFeedback}</span>
+              </div>
+            )}
+
+            {pwdError && (
+              <div className={`${s.feedback} ${s.feedbackError}`}>
+                <AlertCircle size={15} />
+                <span>{pwdError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSavePassword} className={s.modalForm}>
+              <div>
+                <label className={s.label}>Password Baru</label>
+                <div className={s.passwordWrap}>
+                  <input
+                    className={s.input}
+                    type={showNewPassword ? "text" : "password"}
+                    placeholder="Minimal 6 karakter"
+                    value={newPassword}
+                    onChange={e => setNewPassword(e.target.value)}
+                    autoFocus
+                  />
+                  <button 
+                    type="button" 
+                    className={s.eyeBtn}
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    tabIndex="-1"
+                  >
+                    {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className={s.label}>Konfirmasi Password Baru</label>
+                <input
+                  className={s.input}
+                  type={showNewPassword ? "text" : "password"}
+                  placeholder="Ulangi password baru"
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                />
+              </div>
+
+              <div className={s.modalActions}>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={closePasswordModal}
+                  disabled={pwdSaving}
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={pwdSaving}
+                >
+                  {pwdSaving ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      <span>Menyimpan...</span>
+                    </>
+                  ) : (
+                    'Simpan Password'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

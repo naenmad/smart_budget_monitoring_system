@@ -20,10 +20,10 @@ class PlanningHeader(db.Model):
         db.Enum(
             "UPLOADING",
             "SUCCESS",
+            "SUCCES",
             "FAILED"
         ),
-        default="UPLOADING",
-        
+        default="SUCCESS",
     )
     uploaded_at = db.Column(
         db.DateTime()
