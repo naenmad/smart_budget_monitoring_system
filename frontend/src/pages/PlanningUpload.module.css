@@ -85,17 +85,18 @@
 
 .dropzone:hover {
   border-color: var(--primary);
-  background: var(--primary-light);
+  background: var(--bg-card);
 }
 
 .dropzoneActive {
   border-color: var(--success);
-  background: var(--success-light);
+  background: var(--bg-card);
 }
 
 .dropzoneDragging {
   border-color: var(--primary) !important;
-  background: var(--primary-light) !important;
+  background: var(--bg-card) !important;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
   transform: scale(1.01);
 }
 
@@ -104,11 +105,13 @@
   flex-direction: column;
   align-items: center;
   gap: 4px;
+  pointer-events: none;
 }
 
 .uploadIcon {
   color: var(--primary);
   margin-bottom: 4px;
+  pointer-events: none;
 }
 
 .dropzoneTitle {

@@ -16,7 +16,6 @@ import {
   Layers,
   CheckSquare,
   UserCog,
-  FileCode2,
   ChevronDown,
   LogOut,
   KeyRound,

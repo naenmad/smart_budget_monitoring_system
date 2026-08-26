@@ -5,6 +5,7 @@
 ---
 
 ## ✅ Selesai Dikerjakan (Recently Completed)
+- [x] **Pembersihan Aset Gambar Tidak Terpakai**: Menghapus 7 file gambar redundan (~1.13 MB) di `frontend/src/assets/` dan `frontend/public/` (`bg_gedung.webp`, `budget_walpaper.webp`, `balon.webp`, `hero.webp`, `sai_nobg.webp`, `vite.svg`, `favicon.svg`).
 - [x] **Pusat Dokumentasi Terpadu (`docs/`)**: Penyusunan 11 dokumen panduan teknis lengkap (Arsitektur, API, DB Schema, Docker, AI Engine, Frontend, Development, Troubleshooting, dll).
 - [x] **Keamanan Login & Anti-Autofill Password**: Penonaktifan autocomplete password browser dan proteksi password pada `Login.jsx`.
 - [x] **Penyederhanaan Navigasi Sidebar**: Menghapus tautan eksternal API Docs dari sidebar menu agar lebih fokus dan bersih.

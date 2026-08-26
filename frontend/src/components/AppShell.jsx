@@ -41,6 +41,19 @@ export default function AppShell() {
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
+  // Prevent browser default file drag-and-drop takeover / blue overlay
+  useEffect(() => {
+    const preventDrag = (e) => {
+      e.preventDefault()
+    }
+    window.addEventListener('dragover', preventDrag)
+    window.addEventListener('drop', preventDrag)
+    return () => {
+      window.removeEventListener('dragover', preventDrag)
+      window.removeEventListener('drop', preventDrag)
+    }
+  }, [])
+
   // Auto close mobile drawer on route change
   useEffect(() => {
     if (window.innerWidth <= 768) {

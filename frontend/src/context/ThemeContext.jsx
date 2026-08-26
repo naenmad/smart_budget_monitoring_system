@@ -7,15 +7,12 @@ const ThemeContext = createContext({
 
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(() => {
-    // Cek localStorage
+    // Cek localStorage terlebih dahulu
     const savedTheme = localStorage.getItem('sbms_theme')
     if (savedTheme === 'dark' || savedTheme === 'light') {
       return savedTheme
     }
-    // Deteksi OS Preference (Jika tidak ada preferensi di localStorage)
-    if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      return 'dark'
-    }
+    // Default standar: clean light mode
     return 'light'
   })
 

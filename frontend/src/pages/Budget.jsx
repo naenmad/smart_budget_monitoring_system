@@ -1,12 +1,14 @@
 import { useState, useRef, useEffect } from 'react'
 import * as XLSX from 'xlsx'
+import toast from 'react-hot-toast'
 import s from './Budget.module.css'
 import { budgetApi } from '../api/budgetApi'
 import { kategoriApi } from '../api/kategoriApi'
 import { useAuth } from '../context/AuthContext'
-import { CheckCircle2, AlertCircle, Save, Trash2, BarChart3, Download } from 'lucide-react'
+import { CheckCircle2, AlertCircle, Save, Trash2, BarChart3, Download, FileSpreadsheet, UploadCloud, Loader2 } from 'lucide-react'
 
 const CURRENT_YEAR = String(new Date().getFullYear())
+const YEAR_OPTIONS = Array.from({ length: 6 }, (_, i) => String(parseInt(CURRENT_YEAR, 10) - 2 + i))
 
 const FORM_FIELDS = [
   { key: 'e1', code: 'E-1', cls: s.badgeE1 },
@@ -18,6 +20,7 @@ export default function Budget() {
   const { user } = useAuth()
   const [activeTab, setActiveTab] = useState('manual')
   const [form, setForm] = useState({ periode: CURRENT_YEAR, capex: '', opex: '', e1: '', e9: '', i1: '' })
+  const [selectedFile, setSelectedFile] = useState(null)
   const fileRef = useRef()
 
   // Data from API
@@ -75,12 +78,16 @@ export default function Budget() {
       const res = await budgetApi.deleteByPeriode(form.periode)
       if (res.success) {
         setMessage({ type: 'success', text: res.message })
+        toast.success(res.message)
         await fetchData()
       } else {
         setMessage({ type: 'error', text: res.message })
+        toast.error(res.message)
       }
     } catch (err) {
-      setMessage({ type: 'error', text: err.response?.data?.message || 'Gagal menghapus budget' })
+      const errMsg = err.response?.data?.message || 'Gagal menghapus budget'
+      setMessage({ type: 'error', text: errMsg })
+      toast.error(errMsg)
     } finally {
       setLoading(false)
     }
@@ -137,85 +144,152 @@ export default function Budget() {
           type: 'success',
           text: `${successCount} budget berhasil disimpan${errorMessages.length > 0 ? ` (${errorMessages.length} gagal)` : ''}`,
         })
+        toast.success(`${successCount} budget berhasil disimpan!`)
         await fetchData()
         handleReset()
       } else {
         setMessage({ type: 'error', text: errorMessages.join('; ') })
+        toast.error('Gagal menyimpan data budget')
       }
     } catch (err) {
-      setMessage({ type: 'error', text: err.response?.data?.message || 'Gagal menyimpan budget' })
+      const errMsg = err.response?.data?.message || 'Gagal menyimpan budget'
+      setMessage({ type: 'error', text: errMsg })
+      toast.error(errMsg)
     } finally {
       setSaving(false)
     }
   }
 
   async function handleFile(e) {
-    const file = e.target.files[0]
+    const file = e.target.files?.[0]
     if (!file) return
+    setSelectedFile(file)
+
     const reader = new FileReader()
     reader.onload = async (evt) => {
-      const wb = XLSX.read(evt.target.result, { type: 'binary' })
-      const ws = wb.Sheets[wb.SheetNames[0]]
-      const data = XLSX.utils.sheet_to_json(ws)
+      try {
+        const dataBuffer = new Uint8Array(evt.target.result)
+        const wb = XLSX.read(dataBuffer, { type: 'array' })
+        const ws = wb.Sheets[wb.SheetNames[0]]
+        const rawData = XLSX.utils.sheet_to_json(ws)
 
-      setSaving(true)
-      setMessage({ type: '', text: '' })
-
-      let successCount = 0
-      let errorMessages = []
-
-      for (const row of data) {
-        const kode = row['Form'] || row['form'] || row['Kode'] || row['kode']
-        const nominal = row['Budget'] || row['budget'] || row['Nominal'] || row['nominal']
-        const periode = row['Periode'] || row['periode'] || CURRENT_YEAR
-
-        const kategori = kategoris.find(k => k.kode === kode)
-        if (!kategori || !nominal) {
-          errorMessages.push(`Kode '${kode}' tidak valid atau nominal kosong`)
-          continue
+        if (!rawData || rawData.length === 0) {
+          setMessage({ type: 'error', text: 'File Excel kosong atau tidak terbaca' })
+          toast.error('File Excel kosong')
+          return
         }
 
-        try {
-          const res = await budgetApi.create({
-            kategori_id: kategori.id,
-            periode: String(periode),
-            nominal: parseFloat(nominal),
-            created_by: user?.id,
-          })
-          if (res.success) {
-            successCount++
-          } else {
-            errorMessages.push(res.message)
+        setSaving(true)
+        setMessage({ type: '', text: '' })
+
+        // Check if this is a Planning Excel by checking for 'item' and 'planning_amount'
+        const firstRowKeys = Object.keys(rawData[0]).map(k => k.trim().toLowerCase().replace(/ /g, '_'))
+        const isPlanningFile = firstRowKeys.includes('planning_amount') && firstRowKeys.includes('item')
+
+        let successCount = 0
+        let errorMessages = []
+
+        if (isPlanningFile) {
+          // If user uploaded a Planning file to Budget, aggregate planning_amount by form
+          const aggregated = {}
+          for (const row of rawData) {
+            const formKey = Object.keys(row).find(k => k.trim().toLowerCase() === 'form' || k.trim().toLowerCase() === 'kategori')
+            const amountKey = Object.keys(row).find(k => k.trim().toLowerCase() === 'planning_amount' || k.trim().toLowerCase() === 'amount')
+            const formCode = formKey ? String(row[formKey]).trim().toUpperCase() : null
+            const amountVal = amountKey ? parseFloat(row[amountKey]) : 0
+
+            if (formCode && !isNaN(amountVal)) {
+              aggregated[formCode] = (aggregated[formCode] || 0) + amountVal
+            }
           }
-        } catch (err) {
-          errorMessages.push(err.response?.data?.message || `Error saving ${kode}`)
+
+          for (const [kode, totalNominal] of Object.entries(aggregated)) {
+            const kategori = kategoris.find(k => k.kode.toUpperCase() === kode)
+            if (kategori) {
+              try {
+                const res = await budgetApi.create({
+                  kategori_id: kategori.id,
+                  periode: form.periode,
+                  nominal: totalNominal,
+                  created_by: user?.id,
+                })
+                if (res.success) successCount++
+              } catch (err) {
+                errorMessages.push(`Gagal simpan kategori ${kode}`)
+              }
+            }
+          }
+
+          toast.success(`Berhasil mengalokasikan total budget dari file planning (${successCount} kategori)!`)
+        } else {
+          // Standard budget Excel format (Form, Periode, Budget)
+          for (const row of rawData) {
+            let kode = null
+            let nominal = null
+            let rowPeriode = form.periode
+
+            for (const [k, v] of Object.entries(row)) {
+              const cleanK = k.trim().toLowerCase().replace(/ /g, '_')
+              if (['form', 'kode', 'kategori', 'kategori_kode'].includes(cleanK)) kode = String(v).trim().toUpperCase()
+              if (['budget', 'nominal', 'amount', 'total_budget'].includes(cleanK)) nominal = v
+              if (['periode', 'tahun', 'year'].includes(cleanK)) rowPeriode = String(v).trim()
+            }
+
+            const kategori = kategoris.find(k => k.kode.toUpperCase() === kode)
+            if (!kategori || !nominal) {
+              errorMessages.push(`Kode '${kode || 'Unknown'}' tidak valid atau nominal kosong`)
+              continue
+            }
+
+            try {
+              const res = await budgetApi.create({
+                kategori_id: kategori.id,
+                periode: String(rowPeriode),
+                nominal: parseFloat(nominal),
+                created_by: user?.id,
+              })
+              if (res.success) {
+                successCount++
+              } else {
+                errorMessages.push(res.message)
+              }
+            } catch (err) {
+              errorMessages.push(err.response?.data?.message || `Error saving ${kode}`)
+            }
+          }
         }
-      }
 
-      if (successCount > 0) {
-        setMessage({
-          type: 'success',
-          text: `${successCount} dari ${data.length} baris berhasil disimpan`,
-        })
-        await fetchData()
-      } else {
-        setMessage({ type: 'error', text: errorMessages.join('; ') || 'Tidak ada data yang berhasil disimpan' })
+        if (successCount > 0) {
+          const successText = `${successCount} baris data budget berhasil disimpan ke periode ${form.periode}`
+          setMessage({ type: 'success', text: successText })
+          toast.success(successText)
+          await fetchData()
+        } else {
+          const errText = errorMessages.join('; ') || 'Tidak ada data budget yang cocok untuk disimpan'
+          setMessage({ type: 'error', text: errText })
+          toast.error(errText)
+        }
+      } catch (parseErr) {
+        console.error('Parse error:', parseErr)
+        setMessage({ type: 'error', text: 'Gagal memproses file Excel: ' + parseErr.message })
+        toast.error('Gagal membaca file Excel')
+      } finally {
+        setSaving(false)
       }
-
-      setSaving(false)
     }
-    reader.readAsBinaryString(file)
+    reader.readAsArrayBuffer(file)
   }
 
   function downloadTemplate() {
     const ws = XLSX.utils.json_to_sheet([
-      { Form: 'E-1', Periode: CURRENT_YEAR, Budget: 150000000 },
-      { Form: 'E-9', Periode: CURRENT_YEAR, Budget: 180000000 },
-      { Form: 'I-1', Periode: CURRENT_YEAR, Budget: 500000000 },
+      { Form: 'E-1', Periode: form.periode || CURRENT_YEAR, Budget: 150000000 },
+      { Form: 'E-9', Periode: form.periode || CURRENT_YEAR, Budget: 180000000 },
+      { Form: 'I-1', Periode: form.periode || CURRENT_YEAR, Budget: 500000000 },
     ])
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Budget')
-    XLSX.writeFile(wb, 'template_budget.xlsx')
+    XLSX.writeFile(wb, `template_budget_${form.periode || CURRENT_YEAR}.xlsx`)
+    toast.success('Template Excel berhasil diunduh!')
   }
 
   // Build active budget display from API data
@@ -310,13 +384,19 @@ export default function Budget() {
             <div className={s.sectionLabel}>Periode & total budget</div>
             <div className={s.formGroup}>
               <div>
-                <label className={s.label}>Periode</label>
-                <input
+                <label className={s.label}>Periode Tahun</label>
+                <select
                   className={s.input}
-                  style={{ width: 100 }}
+                  style={{ width: '100%', maxWidth: 200 }}
                   value={form.periode}
                   onChange={e => handleChange('periode', e.target.value)}
-                />
+                >
+                  {YEAR_OPTIONS.map(yr => (
+                    <option key={yr} value={yr}>
+                      Tahun {yr} {yr === CURRENT_YEAR ? '(Tahun Berjalan)' : ''}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className={s.twoCol}>
                 <div style={{ marginBottom: 16 }}>
@@ -439,6 +519,23 @@ export default function Budget() {
         <div className={s.grid}>
           <div className={s.card}>
             <div className={s.sectionLabel}>Upload Excel budget</div>
+            
+            <div style={{ marginBottom: 14 }}>
+              <label className={s.label}>Target Periode Tahun *</label>
+              <select
+                className={s.input}
+                value={form.periode}
+                onChange={e => handleChange('periode', e.target.value)}
+                disabled={saving}
+              >
+                {YEAR_OPTIONS.map(yr => (
+                  <option key={yr} value={yr}>
+                    Tahun {yr} {yr === CURRENT_YEAR ? '(Tahun Berjalan)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div 
               className={`${s.dropzone} ${isDragging ? s.dropzoneDragging : ''}`} 
               onClick={() => fileRef.current.click()}
@@ -447,14 +544,26 @@ export default function Budget() {
               onDrop={handleDrop}
             >
               <input ref={fileRef} type="file" accept=".xlsx,.xls" style={{ display: 'none' }} onChange={handleFile} disabled={saving} />
-              <div className={s.dropzonePlaceholder}>
-                <UploadCloud size={32} className={s.uploadIcon} />
-                <div className={s.dropzoneTitle}>
-                  {saving ? 'Memproses file...' : isDragging ? 'Lepaskan file Excel di sini' : 'Drag & Drop atau Klik untuk upload file Excel'}
+              
+              {selectedFile ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left' }}>
+                  <FileSpreadsheet size={32} color="#16a34a" />
+                  <div>
+                    <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#166534' }}>{selectedFile.name}</div>
+                    <div style={{ fontSize: '12px', color: '#15803d' }}>{(selectedFile.size / 1024).toFixed(1)} KB • Klik untuk ganti file</div>
+                  </div>
                 </div>
-                <div className={s.dropzoneSub}>Mendukung format .xlsx dan .xls</div>
-              </div>
+              ) : (
+                <div className={s.dropzonePlaceholder}>
+                  <UploadCloud size={32} className={s.uploadIcon} />
+                  <div className={s.dropzoneTitle}>
+                    {saving ? 'Memproses file...' : isDragging ? 'Lepaskan file Excel di sini' : 'Drag & Drop atau Klik untuk upload file Excel'}
+                  </div>
+                  <div className={s.dropzoneSub}>Mendukung format .xlsx dan .xls</div>
+                </div>
+              )}
             </div>
+            
             <button className={`btn-secondary ${s.templateBtn}`} onClick={downloadTemplate}>
               <Download size={14} />
               <span>Download Template Excel</span>
@@ -463,6 +572,9 @@ export default function Budget() {
 
           <div className={s.card}>
             <div className={s.sectionLabel}>Format yang diharapkan</div>
+            <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginBottom: 10, lineHeight: 1.5 }}>
+              Sistem mendukung format template sederhana maupun file Master Planning otomatis:
+            </p>
             <table className={s.formatTable}>
               <thead>
                 <tr>
@@ -472,10 +584,10 @@ export default function Budget() {
                 </tr>
               </thead>
               <tbody>
-                {[['E-1', CURRENT_YEAR, '150000000'], ['E-9', CURRENT_YEAR, '180000000'], ['I-1', CURRENT_YEAR, '500000000']].map(([form, per, val]) => (
-                  <tr key={form}>
-                    <td>{form}</td>
-                    <td style={{ color: '#73726c' }}>{per}</td>
+                {[['E-1', form.periode, '150000000'], ['E-9', form.periode, '180000000'], ['I-1', form.periode, '500000000']].map(([formCode, per, val]) => (
+                  <tr key={formCode}>
+                    <td><strong>{formCode}</strong></td>
+                    <td style={{ color: 'var(--text-muted)' }}>{per}</td>
                     <td style={{ textAlign: 'right' }}>{val}</td>
                   </tr>
                 ))}
