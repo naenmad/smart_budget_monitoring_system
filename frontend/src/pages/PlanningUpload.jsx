@@ -6,10 +6,13 @@ import * as XLSX from 'xlsx'
 import { UploadCloud, CheckCircle2, Loader2, FileSpreadsheet, Info, Check } from 'lucide-react'
 import styles from './PlanningUpload.module.css'
 
+const CURRENT_YEAR = new Date().getFullYear()
+const YEAR_OPTIONS = Array.from({ length: 6 }, (_, i) => String(CURRENT_YEAR - 2 + i))
+
 export default function PlanningUpload() {
   const { user } = useAuth()
   const [file, setFile] = useState(null)
-  const [periode, setPeriode] = useState('')
+  const [periode, setPeriode] = useState(String(CURRENT_YEAR))
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
   const fileInputRef = useRef(null)
@@ -163,14 +166,19 @@ export default function PlanningUpload() {
           <form onSubmit={handleSubmit} className={styles.form}>
             <div>
               <label className={styles.label}>Tahun Periode *</label>
-              <input
+              <select
                 className={styles.input}
-                placeholder="Contoh: 2025"
                 value={periode}
                 onChange={e => setPeriode(e.target.value)}
                 required
                 disabled={loading}
-              />
+              >
+                {YEAR_OPTIONS.map(yr => (
+                  <option key={yr} value={yr}>
+                    Tahun {yr} {yr === String(CURRENT_YEAR) ? '(Tahun Berjalan)' : ''}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>

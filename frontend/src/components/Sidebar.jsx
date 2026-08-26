@@ -65,8 +65,7 @@ const MENU_CONFIG = [
   { 
     group: 'Pengaturan', 
     items: [
-      { to: '/users', label: 'Kelola Pengguna', roles: ['admin'], icon: UserCog },
-      { href: '/apidocs/', label: 'API Docs (Swagger)', roles: ['admin', 'manager'], icon: FileCode2, isExternal: true }
+      { to: '/users', label: 'Kelola Pengguna', roles: ['admin'], icon: UserCog }
     ]
   }
 ]

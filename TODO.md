@@ -5,7 +5,11 @@
 ---
 
 ## ✅ Selesai Dikerjakan (Recently Completed)
-- [x] **Dokumentasi REST API Interaktif (Swagger UI / Flasgger)**: Integrasi OpenAPI 3.0 via `/apidocs/` dan `/docs`, JWT Bearer authorization, 8 domain tags, dan direct menu link di Sidebar frontend.
+- [x] **Pusat Dokumentasi Terpadu (`docs/`)**: Penyusunan 11 dokumen panduan teknis lengkap (Arsitektur, API, DB Schema, Docker, AI Engine, Frontend, Development, Troubleshooting, dll).
+- [x] **Keamanan Login & Anti-Autofill Password**: Penonaktifan autocomplete password browser dan proteksi password pada `Login.jsx`.
+- [x] **Penyederhanaan Navigasi Sidebar**: Menghapus tautan eksternal API Docs dari sidebar menu agar lebih fokus dan bersih.
+- [x] **Dropdown Pilihan Tahun Periode (Upload PR & Planning)**: Mengganti input manual teks dengan dropdown pilihan tahun interaktif otomatis (`2024` - `2029`) dengan default tahun berjalan.
+- [x] **Dokumentasi REST API Interaktif (Swagger UI / Flasgger)**: Integrasi OpenAPI 3.0 via `/apidocs/` dan `/docs`, JWT Bearer authorization, 8 domain tags.
 - [x] **Pencegahan iOS Safari Auto-Zoom & Network Redirect Bug**: Perbaikan viewport, 16px input font size di mobile, serta penghilangan Werkzeug 308 redirect pada akses IP lokal.
 - [x] **Form Validation & Standardisasi Akun Pengguna**: Format username tanpa spasi `^[a-z0-9_.-]{3,30}$` dan password min 6 karakter pada backend & frontend.
 - [x] **Redesign Laman Login**: Tema enterprise modern selaras dengan sistem, branding PT SAI, Lucide icons, dan modal bantuan lupa password ke Admin.

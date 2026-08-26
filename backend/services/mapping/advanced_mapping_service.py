@@ -60,7 +60,10 @@ class AdvancedMappingService:
             return {"success": False, "message": "Gagal ekstrak periode dari pr_doc_num", "status": "NEED_MAPPING"}
 
         # Cari planning_header yang sesuai
-        header = PlanningHeader.query.filter_by(periode=periode, status="SUCCES").first()
+        header = PlanningHeader.query.filter(
+            PlanningHeader.periode == periode,
+            PlanningHeader.status.in_(["SUCCESS", "SUCCES"])
+        ).first()
         if not header:
             pr.status_ai = "NEED_MAPPING"
             db.session.commit()

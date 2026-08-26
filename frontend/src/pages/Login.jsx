@@ -59,7 +59,7 @@ export default function Login() {
           </div>
 
           {/* Form */}
-          <form className={s.form} onSubmit={handleSubmit} noValidate>
+          <form className={s.form} onSubmit={handleSubmit} noValidate autoComplete="off">
             <div className={s.field}>
               <label className={s.label} htmlFor="login-username">Username</label>
               <div className={s.inputWrap}>
@@ -99,7 +99,9 @@ export default function Login() {
                   className={`${s.input} ${s.inputPassword} ${error ? s.inputError : ''}`}
                   type={showPassword ? "text" : "password"}
                   placeholder="Masukkan password"
-                  autoComplete="current-password"
+                  autoComplete="new-password"
+                  data-lpignore="true"
+                  data-form-type="other"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                 />
