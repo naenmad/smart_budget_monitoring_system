@@ -19,4 +19,7 @@ export const mappingApi = {
   // Batalkan konfirmasi mapping/OOP sebelumnya, kembalikan ke antrian review
   undoMapping: (prId) =>
     api.post(`/mapping/${prId}/undo_mapping`),
+
+  bulkConfirm: (mappings) => 
+    api.post('/mapping/bulk_confirm', { mappings }),
 }

@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from './context/AuthContext'
+import { ThemeProvider } from './context/ThemeContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import AppShell from './components/AppShell'
 import Login from './pages/Login'
@@ -32,40 +33,42 @@ const queryClient = new QueryClient({
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <Toaster position="top-right" />
-        <AuthProvider>
-          <Routes>
-            {/* public */}
-            <Route path="/login" element={<Login />} />
+      <ThemeProvider>
+        <BrowserRouter>
+          <Toaster position="top-right" />
+          <AuthProvider>
+            <Routes>
+              {/* public */}
+              <Route path="/login" element={<Login />} />
 
-            {/* protected — wrapped in sidebar shell */}
-            <Route element={<AppShell />}>
-              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-              <Route path="/predict" element={<ProtectedRoute roles={['admin']}><Predict /></ProtectedRoute>} />
-              <Route path="/budget" element={<ProtectedRoute roles={['admin']}><Budget /></ProtectedRoute>} />
-              <Route path="/classification" element={<ProtectedRoute><Classification /></ProtectedRoute>} />
-              <Route path="/users" element={<ProtectedRoute roles={['admin']}><Users /></ProtectedRoute>} />
+              {/* protected — wrapped in sidebar shell */}
+              <Route element={<AppShell />}>
+                <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                <Route path="/predict" element={<ProtectedRoute roles={['admin']}><Predict /></ProtectedRoute>} />
+                <Route path="/budget" element={<ProtectedRoute roles={['admin']}><Budget /></ProtectedRoute>} />
+                <Route path="/classification" element={<ProtectedRoute><Classification /></ProtectedRoute>} />
+                <Route path="/users" element={<ProtectedRoute roles={['admin']}><Users /></ProtectedRoute>} />
 
-              {/* Master Data */}
-              <Route path="/master/item-mapping" element={<ProtectedRoute roles={['admin']}><ItemMapping /></ProtectedRoute>} />
+                {/* Master Data */}
+                <Route path="/master/item-mapping" element={<ProtectedRoute roles={['admin']}><ItemMapping /></ProtectedRoute>} />
 
-              {/* Planning */}
-              <Route path="/planning/upload" element={<ProtectedRoute roles={['admin']}><PlanningUpload /></ProtectedRoute>} />
-              <Route path="/planning/list" element={<ProtectedRoute><PlanningList /></ProtectedRoute>} />
+                {/* Planning */}
+                <Route path="/planning/upload" element={<ProtectedRoute roles={['admin']}><PlanningUpload /></ProtectedRoute>} />
+                <Route path="/planning/list" element={<ProtectedRoute><PlanningList /></ProtectedRoute>} />
 
-              {/* PR */}
-              <Route path="/pr/upload" element={<ProtectedRoute roles={['admin']}><PrUpload /></ProtectedRoute>} />
-              <Route path="/pr/history" element={<ProtectedRoute><PrHistory /></ProtectedRoute>} />
-              <Route path="/pr/result" element={<ProtectedRoute><PrResult /></ProtectedRoute>} />
-              <Route path="/pr/mapping-review" element={<ProtectedRoute><MappingReview /></ProtectedRoute>} />
-            </Route>
+                {/* PR */}
+                <Route path="/pr/upload" element={<ProtectedRoute roles={['admin']}><PrUpload /></ProtectedRoute>} />
+                <Route path="/pr/history" element={<ProtectedRoute><PrHistory /></ProtectedRoute>} />
+                <Route path="/pr/result" element={<ProtectedRoute><PrResult /></ProtectedRoute>} />
+                <Route path="/pr/mapping-review" element={<ProtectedRoute><MappingReview /></ProtectedRoute>} />
+              </Route>
 
-            {/* catch-all */}
-            <Route path="*" element={<Navigate to="/dashboard" />} />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
+              {/* catch-all */}
+              <Route path="*" element={<Navigate to="/dashboard" />} />
+            </Routes>
+          </AuthProvider>
+        </BrowserRouter>
+      </ThemeProvider>
     </QueryClientProvider>
   )
 }

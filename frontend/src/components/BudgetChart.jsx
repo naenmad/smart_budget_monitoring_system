@@ -60,23 +60,23 @@ export default function BudgetChart({ title, data = [] }) {
 
             <div className={s.chartArea}>
                 {data.length === 0 ? (
-                    <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: '13px' }}>
+                    <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
                         Tidak ada data budget untuk ditampilkan
                     </div>
                 ) : (
                     <ResponsiveContainer width="100%" height={240}>
                         <BarChart data={data} barCategoryGap="25%" barGap={4}>
-                            <CartesianGrid vertical={false} stroke="#e2e8f0" strokeDasharray="3 3" />
+                            <CartesianGrid vertical={false} stroke="var(--border-color)" strokeDasharray="3 3" />
                             <XAxis
                                 dataKey="name"
-                                axisLine={{ stroke: '#cbd5e1' }}
+                                axisLine={{ stroke: 'var(--border-subtle)' }}
                                 tickLine={false}
-                                tick={{ fontSize: 12, fill: '#64748b', fontWeight: 600 }}
+                                tick={{ fontSize: 12, fill: 'var(--text-muted)', fontWeight: 600 }}
                             />
                             <YAxis
                                 axisLine={false}
                                 tickLine={false}
-                                tick={{ fontSize: 11, fill: '#64748b' }}
+                                tick={{ fontSize: 11, fill: 'var(--text-muted)' }}
                                 tickFormatter={fmtYAxis}
                                 width={65}
                             />

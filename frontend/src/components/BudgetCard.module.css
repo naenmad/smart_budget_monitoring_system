@@ -2,22 +2,23 @@
     border-radius: 12px;
     padding: 1.25rem;
     cursor: pointer;
-    transition: opacity .15s;
-    border: 0.5px solid transparent;
+    transition: opacity .15s, background-color .3s ease, border-color .3s ease;
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
 }
 
 .card:hover {
-    opacity: .85;
+    opacity: .9;
 }
 
 .card.capex {
-    background: #EBF4FF;
-    border-color: #BDD6F5;
+    background: var(--badge-e1-bg);
+    border-color: var(--primary-border);
 }
 
 .card.opex {
-    background: #EDFAF4;
-    border-color: #B2E8D4;
+    background: var(--badge-e9-bg);
+    border-color: var(--success-border);
 }
 
 .header {
@@ -29,58 +30,64 @@
 
 .title {
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .title.capex {
-    color: #0C447C;
+    color: var(--primary);
 }
 
 .title.opex {
-    color: #085041;
+    color: var(--success);
 }
 
 .detailLink {
     font-size: 11px;
+    font-weight: 600;
 }
 
 .detailLink.capex {
-    color: #378ADD;
+    color: var(--primary);
 }
 
 .detailLink.opex {
-    color: #1D9E75;
+    color: var(--success);
 }
 
 .value {
     font-size: 22px;
-    font-weight: 500;
+    font-weight: 700;
     margin-bottom: 3px;
+    color: var(--text-main);
+    letter-spacing: -0.01em;
 }
 
 .value.capex {
-    color: #0C447C;
+    color: var(--text-main);
 }
 
 .value.opex {
-    color: #085041;
+    color: var(--text-main);
 }
 
 .sub {
     font-size: 12px;
     margin-bottom: 0;
+    color: var(--text-muted);
 }
 
 .sub.capex {
-    color: #378ADD;
+    color: var(--text-muted);
 }
 
 .sub.opex {
-    color: #1D9E75;
+    color: var(--text-muted);
 }
 
 .progBg {
-    background: rgba(0, 0, 0, 0.08);
+    background: var(--bg-muted);
     border-radius: 4px;
     height: 6px;
     overflow: hidden;
@@ -94,28 +101,29 @@
 }
 
 .progBar.capex {
-    background: #378ADD;
+    background: var(--primary);
 }
 
 .progBar.opex {
-    background: #1D9E75;
+    background: var(--success);
 }
 
 .usage {
     font-size: 11px;
     margin-top: 5px;
+    font-weight: 600;
 }
 
 .usage.capex {
-    color: #378ADD;
+    color: var(--primary);
 }
 
 .usage.normal {
-    color: #1D9E75;
+    color: var(--success);
 }
 
 .usage.over {
-    color: #e85d3a;
+    color: var(--danger);
 }
 
 /* ── Responsive ── */

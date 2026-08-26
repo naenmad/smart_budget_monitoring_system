@@ -1,6 +1,6 @@
 .banner {
-    background: #FEF3EC;
-    border: 0.5px solid #F5C49A;
+    background: var(--warning-light);
+    border: 0.5px solid var(--border-color);
     border-radius: 12px;
     padding: .75rem 1rem;
     display: flex;
@@ -10,7 +10,7 @@
 
 .icon {
     font-size: 15px;
-    color: #C4622D;
+    color: var(--warning-text);
     flex-shrink: 0;
 }
 
@@ -21,11 +21,11 @@
 
 .title {
     font-weight: 500;
-    color: #7A3010;
+    color: var(--warning-text);
 }
 
 .desc {
-    color: #C4622D;
+    color: var(--warning-text);
     margin-left: 6px;
 }
 
@@ -33,7 +33,7 @@
     background: none;
     border: none;
     cursor: pointer;
-    color: #C4622D;
+    color: var(--warning-text);
     font-size: 16px;
     padding: 0;
     line-height: 1;

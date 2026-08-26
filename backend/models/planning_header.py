@@ -19,7 +19,7 @@ class PlanningHeader(db.Model):
     status = db.Column(
         db.Enum(
             "UPLOADING",
-            "SUCCES",
+            "SUCCESS",
             "FAILED"
         ),
         default="UPLOADING",

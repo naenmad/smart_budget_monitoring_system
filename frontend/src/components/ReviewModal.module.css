@@ -16,7 +16,7 @@
 }
 
 .modal {
-  background: #ffffff;
+  background: var(--bg-card);
   border-radius: 16px;
   width: 90%;
   max-width: 500px;
@@ -32,7 +32,7 @@
 
 .header {
   padding: 24px;
-  border-bottom: 1px solid #e1e0db;
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -42,14 +42,14 @@
   margin: 0;
   font-size: 1.25rem;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--text-main);
 }
 
 .closeBtn {
   background: none;
   border: none;
   font-size: 1.5rem;
-  color: #73726c;
+  color: var(--text-muted);
   cursor: pointer;
   padding: 4px;
   line-height: 1;
@@ -58,8 +58,8 @@
 }
 
 .closeBtn:hover {
-  background: #f5f4ef;
-  color: #1a1a1a;
+  background: var(--bg-subtle);
+  color: var(--text-main);
 }
 
 .form {
@@ -67,17 +67,17 @@
 }
 
 .error {
-  background: #fef2f2;
-  color: #b91c1c;
+  background: var(--danger-light);
+  color: var(--danger);
   padding: 12px 16px;
   border-radius: 8px;
   margin-bottom: 20px;
   font-size: 0.9rem;
-  border: 1px solid #fca5a5;
+  border: 1px solid var(--border-color);
 }
 
 .infoBox {
-  background: #f5f4ef;
+  background: var(--bg-subtle);
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 24px;
@@ -95,14 +95,14 @@
 .infoLabel {
   font-size: 0.75rem;
   text-transform: uppercase;
-  color: #73726c;
+  color: var(--text-muted);
   letter-spacing: 0.5px;
   font-weight: 600;
 }
 
 .infoValue {
   font-size: 0.95rem;
-  color: #1a1a1a;
+  color: var(--text-main);
   word-break: break-word;
 }
 
@@ -114,18 +114,18 @@
   display: block;
   font-size: 0.9rem;
   font-weight: 500;
-  color: #1a1a1a;
+  color: var(--text-main);
   margin-bottom: 8px;
 }
 
 .select {
   width: 100%;
   padding: 12px 16px;
-  border: 1.5px solid #e1e0db;
+  border: 1.5px solid var(--border-color);
   border-radius: 10px;
   font-size: 0.95rem;
-  color: #1a1a1a;
-  background: #ffffff;
+  color: var(--text-main);
+  background: var(--bg-card);
   transition: all 0.2s;
   cursor: pointer;
   appearance: none;
@@ -137,7 +137,7 @@
 
 .select:focus {
   outline: none;
-  border-color: #1a1a1a;
+  border-color: var(--text-main);
   box-shadow: 0 0 0 3px rgba(26,26,26,0.1);
 }
 
@@ -146,5 +146,5 @@
   justify-content: flex-end;
   gap: 12px;
   padding-top: 16px;
-  border-top: 1px solid #e1e0db;
+  border-top: 1px solid var(--border-color);
 }

@@ -6,7 +6,7 @@
 .tableWrap {
     overflow-x: auto;
     margin-top: 16px;
-    border: 1px solid rgba(0, 0, 0, 0.08);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     max-height: 60vh;
 }
@@ -21,13 +21,13 @@
 .table td {
     padding: 10px 12px;
     text-align: right;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    border-bottom: 1px solid var(--border-color);
     white-space: nowrap;
 }
 
 .table th {
-    background: #f9fafb;
-    color: #4b5563;
+    background: var(--bg-subtle);
+    color: var(--text-body);
     font-weight: 600;
     position: sticky;
     top: 0;
@@ -35,17 +35,17 @@
 }
 
 .table td {
-    color: #374151;
+    color: var(--text-body);
 }
 
 .table tr:hover td {
-    background: #f5f5f3;
+    background: var(--bg-subtle);
 }
 
 .stickyCol {
     position: sticky;
     left: 0;
-    background: #fff;
+    background: var(--bg-card);
     z-index: 1;
     text-align: left !important;
     font-weight: 500;
@@ -54,20 +54,20 @@
 
 .table th.stickyCol {
     z-index: 3;
-    background: #f9fafb;
+    background: var(--bg-subtle);
 }
 
 .typeHeader {
-    background: #f3f4f6 !important;
+    background: var(--bg-subtle) !important;
 }
 
 .typeCell {
-    background: #fafafa;
+    background: var(--bg-subtle);
     font-weight: 500;
 }
 
 .loadingState {
     text-align: center;
     padding: 60px;
-    color: #73726c;
+    color: var(--text-muted);
 }

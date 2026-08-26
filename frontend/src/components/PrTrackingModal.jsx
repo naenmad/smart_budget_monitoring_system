@@ -2,7 +2,8 @@ import React, { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { prApi } from '../api/prApi'
 import { formatRp } from '../utils/format'
-import { X } from 'lucide-react'
+import { X, Loader2 } from 'lucide-react'
+import s from './PrStatusModal.module.css'
 
 export default function PrTrackingModal({ stage, onClose }) {
   const [page, setPage] = useState(1)
@@ -20,70 +21,84 @@ export default function PrTrackingModal({ stage, onClose }) {
   const totalPages = listData?.pages || 1
 
   return (
-    <div style={modalOverlayStyle} onClick={onClose}>
-      <div style={modalContentStyle} onClick={e => e.stopPropagation()} >
-        <div style={headerStyle}>
-          <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>
-            Detail Tahapan: {stage} ({total} Data)
-          </h2>
-          <button onClick={onClose} style={closeBtnStyle} aria-label="Tutup">
-            <X size={18} />
-          </button>
+    <div className={s.overlay} onClick={onClose}>
+      <div className={s.modal} onClick={e => e.stopPropagation()}>
+        <div className={s.header}>
+          <div className={s.headerLeft}>
+            <h2>Detail Tahapan: {stage} ({total} Data)</h2>
+            <p>Daftar Purchase Requisition pada tahap {stage}</p>
+          </div>
+          <div className={s.headerActions}>
+            <button className={s.closeBtn} onClick={onClose} aria-label="Tutup">
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
-        <div style={bodyStyle}>
+        <div className={s.content}>
           {isLoading ? (
-            <p>Memuat data...</p>
+            <div className={s.loadingState}>
+              <Loader2 size={18} className="animate-spin" style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
+              Memuat data...
+            </div>
+          ) : prList.length === 0 ? (
+            <div className={s.emptyState}>Belum ada data</div>
           ) : (
-            <table style={tableStyle}>
-              <thead>
-                <tr>
-                  <th style={thStyle}>#</th>
-                  <th style={thStyle}>PR Doc</th>
-                  <th style={thStyle}>PO Doc</th>
-                  <th style={thStyle}>GR Legal</th>
-                  <th style={thStyle}>Description</th>
-                  <th style={thStyle}>Total Price</th>
-                  <th style={thStyle}>Supplier</th>
-                </tr>
-              </thead>
-              <tbody>
-                {prList.length === 0 ? (
+            <div className={s.tableContainer}>
+              <table className={s.table}>
+                <thead>
                   <tr>
-                    <td colSpan={7} style={{ textAlign: 'center', padding: '1rem' }}>Belum ada data</td>
+                    <th>#</th>
+                    <th>PR Doc</th>
+                    <th>PO Doc</th>
+                    <th>GR Legal</th>
+                    <th>Description</th>
+                    <th className={s.right}>Total Price</th>
+                    <th>Supplier</th>
                   </tr>
-                ) : (
-                  prList.map((pr, i) => (
+                </thead>
+                <tbody>
+                  {prList.map((pr, i) => (
                     <tr key={pr.id}>
-                      <td style={tdStyle}>{(page - 1) * 30 + i + 1}</td>
-                      <td style={{ ...tdStyle, fontFamily: 'monospace', fontWeight: 600 }}>{pr.pr_doc_num || '-'}</td>
-                      <td style={{ ...tdStyle, fontFamily: 'monospace', fontWeight: 600 }}>{pr.po_doc_num || '-'}</td>
-                      <td style={{ ...tdStyle, fontFamily: 'monospace', fontWeight: 600 }}>{pr.gr_legal_number || '-'}</td>
-                      <td style={tdStyle} title={pr.description}>{pr.description ? (pr.description.length > 50 ? pr.description.substring(0, 50) + '...' : pr.description) : '-'}</td>
-                      <td style={{ ...tdStyle, textAlign: 'right' }}>{formatRp(pr.total_price)}</td>
-                      <td style={tdStyle}>{pr.supplier_name || '-'}</td>
+                      <td>{(page - 1) * 30 + i + 1}</td>
+                      <td className={s.monospace} style={{ fontWeight: 600 }}>{pr.pr_doc_num || '-'}</td>
+                      <td className={s.monospace} style={{ fontWeight: 600 }}>{pr.po_doc_num || '-'}</td>
+                      <td className={s.monospace} style={{ fontWeight: 600 }}>{pr.gr_legal_number || '-'}</td>
+                      <td className={s.truncate} title={pr.description}>{pr.description || '-'}</td>
+                      <td className={s.right}>{formatRp(pr.total_price)}</td>
+                      <td>{pr.supplier_name || '-'}</td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
 
         {totalPages > 1 && (
-          <div style={footerStyle}>
+          <div style={{
+            padding: '12px 24px',
+            borderTop: '1px solid var(--border-color)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: '12px',
+            background: 'var(--bg-subtle)'
+          }}>
             <button
+              className="btn-secondary"
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page === 1}
-              style={pageBtnStyle}
+              style={{ padding: '4px 10px', fontSize: '12px' }}
             >
               ‹ Prev
             </button>
-            <span style={{ fontSize: '0.875rem' }}>Hal {page} / {totalPages}</span>
+            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Hal {page} / {totalPages}</span>
             <button
+              className="btn-secondary"
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
-              style={pageBtnStyle}
+              style={{ padding: '4px 10px', fontSize: '12px' }}
             >
               Next ›
             </button>
@@ -92,91 +107,4 @@ export default function PrTrackingModal({ stage, onClose }) {
       </div>
     </div>
   )
-}
-
-// Inline styles for quick modal
-const modalOverlayStyle = {
-  position: 'fixed',
-  top: 0, left: 0, right: 0, bottom: 0,
-  backgroundColor: 'rgba(0,0,0,0.5)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  zIndex: 9999,
-  padding: '2rem'
-}
-
-const modalContentStyle = {
-  backgroundColor: '#fff',
-  borderRadius: '12px',
-  width: '100%',
-  maxWidth: '900px',
-  maxHeight: '90vh',
-  display: 'flex',
-  flexDirection: 'column',
-  boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-  overflow: 'hidden'
-}
-
-const headerStyle = {
-  padding: '1.25rem 1.5rem',
-  borderBottom: '1px solid #e2e8f0',
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  backgroundColor: '#f8fafc'
-}
-
-const closeBtnStyle = {
-  background: 'none',
-  border: 'none',
-  fontSize: '1.25rem',
-  cursor: 'pointer',
-  color: '#64748b'
-}
-
-const bodyStyle = {
-  padding: '1.5rem',
-  overflowY: 'auto',
-  flex: 1
-}
-
-const tableStyle = {
-  width: '100%',
-  borderCollapse: 'collapse',
-  fontSize: '0.875rem'
-}
-
-const thStyle = {
-  textAlign: 'left',
-  padding: '0.75rem',
-  borderBottom: '2px solid #e2e8f0',
-  color: '#475569',
-  fontWeight: 600,
-  whiteSpace: 'nowrap'
-}
-
-const tdStyle = {
-  padding: '0.75rem',
-  borderBottom: '1px solid #f1f5f9',
-  color: '#334155'
-}
-
-const footerStyle = {
-  padding: '1rem 1.5rem',
-  borderTop: '1px solid #e2e8f0',
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-  gap: '1rem',
-  backgroundColor: '#f8fafc'
-}
-
-const pageBtnStyle = {
-  padding: '0.5rem 1rem',
-  border: '1px solid #e2e8f0',
-  backgroundColor: '#fff',
-  borderRadius: '6px',
-  cursor: 'pointer',
-  fontSize: '0.875rem'
 }

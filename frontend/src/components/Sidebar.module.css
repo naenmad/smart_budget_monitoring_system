@@ -1,8 +1,8 @@
 /* Sidebar Container */
 .sidebar {
   width: 250px;
-  background: #ffffff;
-  border-right: 1px solid rgba(0, 0, 0, 0.08);
+  background: var(--bg-card);
+  border-right: 1px solid var(--border-color);
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -12,7 +12,8 @@
   transition: width 0.22s cubic-bezier(0.16, 1, 0.3, 1),
               margin-left 0.28s cubic-bezier(0.16, 1, 0.3, 1),
               opacity 0.2s ease,
-              transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+              transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.3s ease;
   box-shadow: 1px 0 6px rgba(0, 0, 0, 0.02);
 }
 
@@ -45,8 +46,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-  background: #ffffff;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-card);
   width: 100%;
 }
 
@@ -105,7 +106,7 @@
 .collapsedDivider {
   height: 1px;
   width: 32px;
-  background: rgba(0, 0, 0, 0.08);
+  background: var(--border-color);
   margin: 8px auto;
 }
 
@@ -174,8 +175,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-  background: #ffffff;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-card);
   width: 100%;
   gap: 8px;
 }
@@ -204,7 +205,7 @@
 .brandCompany {
   font-size: 12px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-main);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -214,22 +215,22 @@
 .brandApp {
   font-size: 10.5px;
   font-weight: 600;
-  color: #378add;
+  color: var(--primary);
 }
 
 .closeMobileBtn {
   display: none;
   background: transparent;
   border: none;
-  color: #64748b;
+  color: var(--text-muted);
   cursor: pointer;
   padding: 4px;
   border-radius: 6px;
 }
 
 .closeMobileBtn:hover {
-  background: #f1f5f9;
-  color: #0f172a;
+  background: var(--bg-subtle);
+  color: var(--text-main);
 }
 
 /* Navigation List */
@@ -242,7 +243,7 @@
   gap: 10px;
   width: 100%;
   scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 transparent;
+  scrollbar-color: var(--border-subtle) transparent;
 }
 
 .navContainer::-webkit-scrollbar {
@@ -250,7 +251,7 @@
 }
 
 .navContainer::-webkit-scrollbar-thumb {
-  background-color: #cbd5e1;
+  background-color: var(--border-subtle);
   border-radius: 4px;
 }
 
@@ -275,7 +276,7 @@
 }
 
 .groupToggle:hover {
-  background: #f8fafc;
+  background: var(--bg-subtle);
 }
 
 .groupTitle {
@@ -283,11 +284,11 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #94a3b8;
+  color: var(--text-subtle);
 }
 
 .groupChevron {
-  color: #94a3b8;
+  color: var(--text-subtle);
   transition: transform 0.2s ease;
 }
 
@@ -308,7 +309,7 @@
   gap: 10px;
   padding: 9px 12px;
   border-radius: 8px;
-  color: #475569;
+  color: var(--text-body);
   text-decoration: none;
   font-size: 13px;
   font-weight: 500;
@@ -317,13 +318,13 @@
 }
 
 .navLink:hover {
-  background: #f1f5f9;
-  color: #0f172a;
+  background: var(--bg-subtle);
+  color: var(--text-main);
 }
 
 .navLinkActive {
-  background: #eef2ff;
-  color: #2563eb;
+  background: var(--primary-light);
+  color: var(--primary);
   font-weight: 600;
 }
 
@@ -334,22 +335,22 @@
   top: 6px;
   bottom: 6px;
   width: 3.5px;
-  background: #2563eb;
+  background: var(--primary);
   border-radius: 0 4px 4px 0;
 }
 
 .navIcon {
   flex-shrink: 0;
-  color: #64748b;
+  color: var(--text-muted);
   transition: color 0.15s ease;
 }
 
 .navLink:hover .navIcon {
-  color: #0f172a;
+  color: var(--text-main);
 }
 
 .navLinkActive .navIcon {
-  color: #2563eb;
+  color: var(--primary);
 }
 
 .navText {
@@ -361,8 +362,8 @@
 /* User Card at Footer */
 .userCard {
   padding: 12px 14px;
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
-  background: #f8fafc;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-subtle);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -379,9 +380,9 @@
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  color: #475569;
+  background: var(--bg-muted);
+  border: 1px solid var(--border-color);
+  color: var(--text-body);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -397,7 +398,7 @@
 .userCardName {
   font-size: 12.5px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text-main);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -415,13 +416,13 @@
 }
 
 .roleAdmin {
-  background: #dbeafe;
-  color: #1d4ed8;
+  background: var(--badge-e1-bg);
+  color: var(--badge-e1-text);
 }
 
 .roleManager {
-  background: #dcfce7;
-  color: #15803d;
+  background: var(--badge-e9-bg);
+  color: var(--badge-e9-text);
 }
 
 .userCardActions {
@@ -437,9 +438,9 @@
   gap: 5px;
   padding: 6px 8px;
   border-radius: 6px;
-  border: 1px solid #e2e8f0;
-  background: #ffffff;
-  color: #475569;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-body);
   font-size: 11px;
   font-weight: 500;
   cursor: pointer;
@@ -447,15 +448,15 @@
 }
 
 .actionBtn:hover {
-  background: #f1f5f9;
-  color: #0f172a;
-  border-color: #cbd5e1;
+  background: var(--bg-subtle);
+  color: var(--text-main);
+  border-color: var(--border-subtle);
 }
 
 .logoutBtn:hover {
-  background: #fef2f2;
-  color: #dc2626;
-  border-color: #fecaca;
+  background: var(--danger-light);
+  color: var(--danger);
+  border-color: var(--danger-border);
 }
 
 /* Collapsed User Card */
@@ -474,17 +475,17 @@
   align-items: center;
   justify-content: center;
   border-radius: 6px;
-  border: 1px solid #e2e8f0;
-  background: #ffffff;
-  color: #475569;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-body);
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .collapsedActionBtn:hover {
-  background: #f1f5f9;
-  color: #0f172a;
-  border-color: #cbd5e1;
+  background: var(--bg-subtle);
+  color: var(--text-main);
+  border-color: var(--border-subtle);
 }
 
 /* ── Resizer Handle ── */
@@ -511,7 +512,7 @@
   width: 2px;
   height: 24px;
   border-radius: 2px;
-  background-color: #94a3b8;
+  background-color: var(--text-subtle);
   opacity: 0;
   transition: opacity 0.15s ease, background-color 0.15s ease;
 }
@@ -519,7 +520,7 @@
 .resizer:hover .resizerKnob,
 .sidebar.resizing .resizerKnob {
   opacity: 1;
-  background-color: #2563eb;
+  background-color: var(--primary);
 }
 
 /* Mobile Responsive */

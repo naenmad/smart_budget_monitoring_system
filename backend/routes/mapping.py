@@ -199,12 +199,12 @@ def search_planning_detail():
     # Default: scope ke header (tahun) yang sama dengan PR ini
     if pr:
         periode = AdvancedMappingService.extract_periode(pr.pr_doc_num)
-        header = PlanningHeader.query.filter_by(periode=periode, status="SUCCES").first()
+        header = PlanningHeader.query.filter(
+            PlanningHeader.periode == periode,
+            PlanningHeader.status.in_(["SUCCESS", "SUCCES"])
+        ).first()
         if header:
             query = query.filter_by(planning_header_id=header.id)
-        # SENGAJA TIDAK filter kategori_id atau month di sini —
-        # ini pencarian manual, biarkan reviewer yang menilai relevansinya,
-        # bukan dibatasi filter otomatis yang mungkin salah (kategori misklasifikasi, dll)
 
     if keyword:
         query = query.filter(PlanningDetail.item.ilike(f"%{keyword}%"))
@@ -218,7 +218,11 @@ def search_planning_detail():
                 "item": p.item,
                 "month": p.month,
                 "kategori_id": p.kategori_id,
-                "planning_amount": float(p.planning_amount)
+                "kategori_kode": p.kategori.kode if p.kategori else None,
+                "kategori_nama": p.kategori.nama if p.kategori else None,
+                "kategori_tipe_formulir": p.kategori.tipe_formulir if p.kategori else None,
+                "planning_amount": float(p.planning_amount) if p.planning_amount else 0,
+                "remarks": p.remarks
             } for p in results
         ]
     }), 200
@@ -266,5 +270,111 @@ def undo_mapping(pr_id):
         "message": f"Konfirmasi dibatalkan (sebelumnya: {old_status_summary}), dikembalikan ke antrian review",
         "data": pr.to_dict()
     }), 200
- 
-        
+
+@mapping_bp.route("/bulk_confirm", methods=["POST"])
+@role_required('admin')
+def bulk_confirm():
+    """
+    Endpoint untuk bulk action confirm mapping PR.
+    Payload:
+    {
+      "mappings": [
+         { "pr_id": 1, "planning_detail_id": 10, "rank_no": 1, "is_oop": false },
+         ...
+      ]
+    }
+    """
+    data = request.get_json(silent=True)
+    if not data or not isinstance(data, dict) or "mappings" not in data:
+        return jsonify({"success": False, "message": "Payload harus berupa JSON dengan key 'mappings'"}), 400
+
+    mappings = data.get("mappings", [])
+    if not isinstance(mappings, list):
+        return jsonify({"success": False, "message": "'mappings' harus berupa array"}), 400
+
+    success_count = 0
+    errors = []
+
+    for item in mappings:
+        pr_id = item.get("pr_id")
+        planning_detail_id = item.get("planning_detail_id")
+        rank_no = item.get("rank_no")
+        is_oop = item.get("is_oop", False)
+
+        pr = db.session.get(PrPoData, pr_id)
+        if not pr:
+            errors.append(f"PR ID {pr_id} tidak ditemukan.")
+            continue
+            
+        old_planning_detail_id = pr.planning_detail_id
+            
+        if is_oop:
+            pr.planning_detail_id = None
+            pr.status_ai = "DONE"
+            pr.budget_status = "OOP"
+            pr.perlu_review = False
+            
+            new_log = MappingLog(
+                pr_po_data_id=pr.id,
+                method="MANUAL",
+                planning_detail_hasil_id=None,
+                confidence_score=None,
+                rank_no=None,
+                is_selected=True,
+                processing_time=0.0
+            )
+            db.session.add(new_log)
+        else:
+            if not planning_detail_id:
+                errors.append(f"PR ID {pr_id}: planning_detail_id kosong.")
+                continue
+                
+            detail = db.session.get(PlanningDetail, planning_detail_id)
+            if not detail:
+                errors.append(f"PR ID {pr_id}: planning_detail_id {planning_detail_id} tidak valid.")
+                continue
+
+            if pr.kategori_id != detail.kategori_id:
+                pr.kategori_id_koreksi = detail.kategori_id
+            pr.kategori_id = detail.kategori_id
+            pr.planning_detail_id = planning_detail_id
+            pr.status_ai = "DONE"
+            pr.perlu_review = False
+            
+            new_log = MappingLog(
+                pr_po_data_id=pr.id,
+                method="MANUAL",
+                planning_detail_hasil_id=planning_detail_id,
+                confidence_score=None,
+                rank_no=rank_no,
+                is_selected=True,
+                processing_time=0.0
+            )
+            db.session.add(new_log)
+            
+            if rank_no:
+                old_log = MappingLog.query.filter_by(
+                    pr_po_data_id=pr.id, 
+                    method="FUZZY_MATCH", 
+                    planning_detail_hasil_id=planning_detail_id
+                ).first()
+                if old_log:
+                    old_log.is_selected = True
+
+        # Kalkulasi
+        if not is_oop and planning_detail_id:
+            _recalculate_planning_status(planning_detail_id)
+            
+        if old_planning_detail_id and old_planning_detail_id != planning_detail_id:
+            _recalculate_planning_status(old_planning_detail_id)
+            
+        BudgetMonitoringService.calculate_budget_consumption(pr)
+        success_count += 1
+
+    db.session.commit()
+    
+    return jsonify({
+        "success": True,
+        "message": f"{success_count} PR berhasil diproses.",
+        "errors": errors
+    }), 200

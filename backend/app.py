@@ -27,14 +27,19 @@ from routes.item_mapping import item_mapping_bp
 from routes.pr import pr_bp
 from routes.mapping import mapping_bp
 
+import os
+
 # Setup logger
 setup_logger()
+
+# Ensure uploads directory exists for file parsing
+os.makedirs(os.path.join(os.path.dirname(__file__), "uploads"), exist_ok=True)
 
 app = Flask(__name__)
 app.config.from_object(Config)
 
-# Enable CORS
-CORS(app)
+# Enable CORS for Vercel, Railway, and localhost
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
 # Init database
 db.init_app(app)

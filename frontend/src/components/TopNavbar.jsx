@@ -4,8 +4,12 @@ import {
   PanelLeftClose, 
   PanelLeftOpen, 
   Sparkles,
-  LayoutGrid
+  LayoutGrid,
+  Sun,
+  Moon,
+  Search
 } from 'lucide-react'
+import { useTheme } from '../context/ThemeContext'
 import s from './TopNavbar.module.css'
 
 const ROUTE_TITLES = {
@@ -24,6 +28,10 @@ const ROUTE_TITLES = {
 
 export default function TopNavbar({ onToggleSidebar, sidebarMode, isMobileOpen }) {
   const location = useLocation()
+  const { theme, toggleTheme } = useTheme()
+
+  const isMac = typeof window !== 'undefined' && /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform || navigator.userAgent || '')
+  const shortcutLabel = isMac ? '⌘K' : 'Ctrl+K'
 
   const currentRoute = ROUTE_TITLES[location.pathname] || {
     title: 'Smart Budget Monitoring',
@@ -79,6 +87,27 @@ export default function TopNavbar({ onToggleSidebar, sidebarMode, isMobileOpen }
       </div>
 
       <div className={s.rightSection}>
+        <button
+          type="button"
+          className={s.searchBarBtn}
+          onClick={() => window.dispatchEvent(new CustomEvent('open-command-palette'))}
+          title={`Pencarian Universal: Halaman, Card, Tabel, Dokumen (${shortcutLabel})`}
+          aria-label="Pencarian Universal"
+        >
+          <Search size={14} className={s.searchIcon} />
+          <span className={s.searchPlaceholder}>Cari halaman, card, tabel, PR...</span>
+          <kbd className={s.searchKbd}>{shortcutLabel}</kbd>
+        </button>
+
+        <button 
+          onClick={toggleTheme} 
+          className={s.themeToggle}
+          aria-label="Toggle Dark Mode"
+          title="Toggle Dark Mode"
+        >
+          {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+        </button>
+
         <div className={s.systemTag}>
           <Sparkles size={13} className={s.sparkleIcon} />
           <span className={s.tagText}>SAI QC System</span>

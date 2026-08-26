@@ -1,13 +1,13 @@
 .tabsContainer {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.25rem;
 }
 
 .tabList {
   display: flex;
   gap: 0.5rem;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--border-color);
   overflow-x: auto;
   padding-bottom: 1px;
 }
@@ -20,26 +20,28 @@
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
-  padding: 0.75rem 1rem;
-  font-size: 0.9375rem;
+  padding: 0.65rem 1rem;
+  font-size: 13.5px;
   font-weight: 500;
-  color: var(--text2);
+  color: var(--text-muted);
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
+  font-family: inherit;
 }
 
 .tabButton:hover {
-  color: var(--text);
+  color: var(--text-main);
 }
 
 .tabButton.active {
-  color: var(--text);
-  border-bottom-color: var(--text);
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+  font-weight: 700;
 }
 
 .tabContent {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 1.25rem;
 }

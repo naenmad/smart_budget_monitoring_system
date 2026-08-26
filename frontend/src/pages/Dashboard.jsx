@@ -18,7 +18,8 @@ import PeriodeSwitcher from '../components/SwitchComponent'
 import { budgetApi } from '../api/budgetApi'
 import { prApi } from '../api/prApi'
 import { formatRp } from '../utils/format'
-import { Loader2, AlertTriangle, Download } from 'lucide-react'
+import { Loader2, AlertTriangle, Download, FileSpreadsheet } from 'lucide-react'
+import { exportBudgetSummaryToExcel } from '../utils/exportReport'
 
 export default function Dashboard() {
   const [periode, setPeriode] = useState(String(new Date().getFullYear()))
@@ -97,7 +98,7 @@ export default function Dashboard() {
             <p>Memuat data...</p>
           </div>
         </div>
-        <div style={{ textAlign: 'center', padding: 60, color: '#73726c', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+        <div style={{ textAlign: 'center', padding: 60, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
           <Loader2 size={18} className="animate-spin" />
           <span>Memuat data dashboard...</span>
         </div>
@@ -114,7 +115,7 @@ export default function Dashboard() {
             <p>Monitoring budget {periode}</p>
           </div>
         </div>
-        <div style={{ textAlign: 'center', padding: 60, color: '#e85d3a' }}>
+        <div style={{ textAlign: 'center', padding: 60, color: 'var(--danger)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 8 }}>
             <AlertTriangle size={18} />
             <span>{error}</span>
@@ -137,16 +138,59 @@ export default function Dashboard() {
   const items = summary?.items ?? []
 
   const alerts = []
+
+  // Check CAPEX & OPEX Thresholds
   if (capex.actual > capex.budget && capex.budget > 0) {
     alerts.push({
       type: 'danger',
-      message: `CAPEX melebihi budget sebesar ${formatRp(capex.actual - capex.budget)} (${Math.round((capex.actual / capex.budget) * 100)}%)`
+      message: `Kritis: CAPEX telah melebihi pagu anggaran sebesar ${formatRp(capex.actual - capex.budget)} (${Math.round((capex.actual / capex.budget) * 100)}%)`
+    })
+  } else if (capex.budget > 0 && (capex.actual / capex.budget) >= 0.8) {
+    alerts.push({
+      type: 'warning',
+      message: `Peringatan Plafon: Realisasi CAPEX telah mencapai ${Math.round((capex.actual / capex.budget) * 100)}% dari total pagu anggaran.`
     })
   }
+
   if (opex.actual > opex.budget && opex.budget > 0) {
     alerts.push({
       type: 'danger',
-      message: `OPEX melebihi budget sebesar ${formatRp(opex.actual - opex.budget)} (${Math.round((opex.actual / opex.budget) * 100)}%)`
+      message: `Kritis: OPEX telah melebihi pagu anggaran sebesar ${formatRp(opex.actual - opex.budget)} (${Math.round((opex.actual / opex.budget) * 100)}%)`
+    })
+  } else if (opex.budget > 0 && (opex.actual / opex.budget) >= 0.8) {
+    alerts.push({
+      type: 'warning',
+      message: `Peringatan Plafon: Realisasi OPEX telah mencapai ${Math.round((opex.actual / opex.budget) * 100)}% dari total pagu anggaran.`
+    })
+  }
+
+  // Check Per-Form Early Warning
+  items.forEach(item => {
+    const b = Number(item.budget || 0)
+    const a = Number(item.actual || 0)
+    if (b > 0) {
+      const pct = Math.round((a / b) * 100)
+      if (pct > 100) {
+        alerts.push({
+          type: 'danger',
+          message: `Over-Budget: Form ${item.kode} (${item.nama || ''}) telah melebihi anggaran (${pct}% - Defisit ${formatRp(a - b)})`
+        })
+      } else if (pct >= 80) {
+        alerts.push({
+          type: 'warning',
+          message: `Peringatan Dini: Form ${item.kode} (${item.nama || ''}) telah mencapai ${pct}% dari pagu anggaran (${formatRp(a)} / ${formatRp(b)}).`
+        })
+      }
+    }
+  })
+
+  // Export Excel Handler
+  const handleExportExcel = () => {
+    exportBudgetSummaryToExcel({
+      periode,
+      capex,
+      opex,
+      items
     })
   }
 
@@ -386,9 +430,19 @@ export default function Dashboard() {
         <div className={s.headerRight}>
           <PeriodeSwitcher value={periode} onChange={setPeriode} />
           <button
+            className="btn-secondary"
+            onClick={handleExportExcel}
+            title="Download Laporan Realisasi Anggaran Resmi (Excel)"
+            style={{ fontSize: '13px', padding: '7px 12px' }}
+          >
+            <FileSpreadsheet size={15} color="#16a34a" />
+            <span>Export Excel</span>
+          </button>
+          <button
             className="btn-primary"
             onClick={handleExportAll}
             disabled={isExporting}
+            style={{ fontSize: '13px', padding: '7px 12px' }}
           >
             {isExporting ? (
               <>

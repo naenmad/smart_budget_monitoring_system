@@ -15,7 +15,7 @@
 }
 
 .modal {
-    background: #fff;
+    background: var(--bg-card);
     border-radius: 16px;
     width: 100%;
     max-width: 900px;
@@ -29,7 +29,7 @@
 
 .header {
     padding: 1.5rem 2rem;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
@@ -38,13 +38,13 @@
 .headerLeft h2 {
     margin: 0 0 4px;
     font-size: 1.25rem;
-    color: #0f172a;
+    color: var(--text-main);
 }
 
 .headerLeft p {
     margin: 0;
     font-size: 13px;
-    color: #64748b;
+    color: var(--text-muted);
 }
 
 .headerActions {
@@ -55,8 +55,8 @@
 
 .exportBtn {
     padding: 6px 12px;
-    background: #334155;
-    color: #fff;
+    background: var(--bg-muted);
+    color: var(--text-main);
     border: none;
     border-radius: 6px;
     cursor: pointer;
@@ -69,14 +69,14 @@
 }
 
 .exportBtn:hover {
-    background: #1e293b;
+    background: var(--text-main);
 }
 
 .closeBtn {
     background: none;
     border: none;
     font-size: 1.2rem;
-    color: #94a3b8;
+    color: var(--text-subtle);
     cursor: pointer;
     padding: 4px;
     border-radius: 6px;
@@ -84,8 +84,8 @@
 }
 
 .closeBtn:hover {
-    background: #f1f5f9;
-    color: #475569;
+    background: var(--bg-subtle);
+    color: var(--text-body);
 }
 
 .content {
@@ -97,7 +97,7 @@
 .loadingState {
     text-align: center;
     padding: 40px;
-    color: #73726c;
+    color: var(--text-muted);
 }
 
 .emptyState {
@@ -117,8 +117,8 @@
 .table th {
     padding: 10px;
     font-weight: 600;
-    color: #475569;
-    background: #f1f5f9;
+    color: var(--text-body);
+    background: var(--bg-subtle);
     text-align: left;
 }
 
@@ -132,7 +132,7 @@
 
 .table td {
     padding: 10px;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .table td.monospace {
@@ -178,9 +178,9 @@
 }
 
 .undoBtn {
-    background: #fef2f2;
-    color: #dc2626;
-    border: 1px solid #fecaca;
+    background: var(--danger-light);
+    color: var(--danger);
+    border: 1px solid var(--danger-border);
     border-radius: 6px;
     padding: 4px 10px;
     font-size: 0.75rem;
@@ -189,7 +189,7 @@
 }
 
 .undoBtn:hover {
-    background: #fee2e2;
+    background: var(--danger-light);
 }
 
 .undoBtn:disabled {

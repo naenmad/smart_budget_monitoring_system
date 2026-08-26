@@ -57,9 +57,9 @@ export default function MonthlyPipelineChart({ title, data = [] }) {
             <div className={s.chartArea}>
                 <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={data} barCategoryGap="20%">
-                        <CartesianGrid vertical={false} stroke="rgba(0,0,0,0.06)" />
-                        <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#73726c' }} />
-                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#73726c' }} width={30} allowDecimals={false} />
+                        <CartesianGrid vertical={false} stroke="var(--border-color)" />
+                        <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--text-muted)' }} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--text-muted)' }} width={30} allowDecimals={false} />
                         <Tooltip content={<CustomTooltip />} />
                         <Bar dataKey="on_plan" name="On Plan" stackId="a" fill={COLORS.on_plan} />
                         <Bar dataKey="under_plan" name="Under Plan" stackId="a" fill={COLORS.under_plan} />
@@ -88,16 +88,16 @@ export default function MonthlyPipelineChart({ title, data = [] }) {
                             <tr key={row.month}>
                                 <td><strong>{row.month}</strong></td>
                                 <td>{row.total_pr}</td>
-                                <td style={{color: row.on_plan > 0 ? COLORS.on_plan : '#ccc'}}>{row.on_plan}</td>
-                                <td style={{color: row.under_plan > 0 ? COLORS.under_plan : '#ccc'}}>{row.under_plan}</td>
-                                <td style={{color: row.over_plan > 0 ? COLORS.over_plan : '#ccc'}}>{row.over_plan}</td>
-                                <td style={{color: row.out_of_plan > 0 ? COLORS.out_of_plan : '#ccc'}}>{row.out_of_plan}</td>
-                                <td style={{color: row.need_mapping > 0 ? COLORS.need_mapping : '#ccc'}}>{row.need_mapping}</td>
+                                <td style={{color: row.on_plan > 0 ? COLORS.on_plan : 'var(--text-subtle)'}}>{row.on_plan}</td>
+                                <td style={{color: row.under_plan > 0 ? COLORS.under_plan : 'var(--text-subtle)'}}>{row.under_plan}</td>
+                                <td style={{color: row.over_plan > 0 ? COLORS.over_plan : 'var(--text-subtle)'}}>{row.over_plan}</td>
+                                <td style={{color: row.out_of_plan > 0 ? COLORS.out_of_plan : 'var(--text-subtle)'}}>{row.out_of_plan}</td>
+                                <td style={{color: row.need_mapping > 0 ? COLORS.need_mapping : 'var(--text-subtle)'}}>{row.need_mapping}</td>
                             </tr>
                         ))}
                         {data.length === 0 && (
                             <tr>
-                                <td colSpan="7" style={{textAlign: 'center', color: '#888'}}>Belum ada data</td>
+                                <td colSpan="7" style={{textAlign: 'center', color: 'var(--text-muted)'}}>Belum ada data</td>
                             </tr>
                         )}
                     </tbody>

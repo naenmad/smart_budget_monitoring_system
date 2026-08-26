@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import Sidebar from './Sidebar'
 import TopNavbar from './TopNavbar'
 import Footer from './Footer'
+import CommandPalette from './CommandPalette'
 
 /**
  * AppShell — layout wrapper that shows sidebar + top navbar + main content + footer.
@@ -84,6 +85,7 @@ export default function AppShell() {
         </main>
         <Footer />
       </div>
+      <CommandPalette />
     </div>
   )
 }

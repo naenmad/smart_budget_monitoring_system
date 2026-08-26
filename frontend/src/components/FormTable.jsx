@@ -41,22 +41,24 @@ export default function FormTable({ data = {}, onRowClick }) {
                 const saldo = Number(d.saldo || (budget - actual))
                 const pct = budget > 0 ? Math.round((actual / budget) * 100) : 0
                 const isOver = pct > 100 || saldo < 0
+                const isWarning = !isOver && pct >= 80
 
                 return (
                     <div
                         key={f.code}
-                        className={`${s.row} ${isOver ? s.over : ''}`}
+                        className={`${s.row} ${isOver ? s.over : isWarning ? s.warningRow : ''}`}
                         onClick={() => onRowClick?.(f.code)}
                     >
                         <div className={s.formCell}>
                             <span className={`${s.badge} ${s[f.cls]}`}>{f.code}</span>
                             <span className={s.typeLabel}>{f.type}</span>
                             {isOver && <span className={s.overTag}>Over</span>}
+                            {isWarning && <span className={s.warningTag}>Warning (≥80%)</span>}
                         </div>
 
                         <div className={s.numCell}>{formatRp(budget)}</div>
-                        <div className={`${s.numCell} ${s.warning}`}>{formatRp(actual)}</div>
-                        <div className={`${s.numCell} ${isOver ? s.danger : s.success}`}>
+                        <div className={`${s.numCell} ${isOver || isWarning ? s.warning : ''}`}>{formatRp(actual)}</div>
+                        <div className={`${s.numCell} ${isOver ? s.danger : isWarning ? s.warning : s.success}`}>
                             {formatRp(saldo)}
                         </div>
 
@@ -66,12 +68,12 @@ export default function FormTable({ data = {}, onRowClick }) {
                                     className={s.progBar}
                                     style={{
                                         width: `${Math.min(pct, 100)}%`,
-                                        background: isOver ? '#dc2626' : f.color,
+                                        background: isOver ? '#dc2626' : isWarning ? '#f59e0b' : f.color,
                                     }}
                                 />
                             </div>
-                            <div className={`${s.progLabel} ${isOver ? s.over : s.normal}`}>
-                                {pct}%{isOver && <AlertTriangle size={11} style={{ display: 'inline', marginLeft: 3, verticalAlign: 'middle' }} />}
+                            <div className={`${s.progLabel} ${isOver ? s.over : isWarning ? s.warningLabel : s.normal}`}>
+                                {pct}%{(isOver || isWarning) && <AlertTriangle size={11} style={{ display: 'inline', marginLeft: 3, verticalAlign: 'middle' }} />}
                             </div>
                         </div>
                     </div>
