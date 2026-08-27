@@ -1,6 +1,4 @@
 import { useState, useEffect, useRef } from 'react'
-import jsPDF from 'jspdf'
-import html2canvas from 'html2canvas'
 import s from './Dashboard.module.css'
 import AlertBanner from '../components/AlertBanner'
 import Tabs from '../components/Tabs'
@@ -37,6 +35,11 @@ export default function Dashboard() {
     if (!dashboardRef.current) return
     try {
       setIsExporting(true)
+      // Dynamic import: only load these heavy libs when user clicks export
+      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+        import('html2canvas'),
+        import('jspdf'),
+      ])
       const canvas = await html2canvas(dashboardRef.current, { scale: 2, useCORS: true, backgroundColor: '#ffffff' })
       const imgData = canvas.toDataURL('image/png')
       const pdf = new jsPDF('p', 'mm', 'a4')
@@ -185,8 +188,8 @@ export default function Dashboard() {
   })
 
   // Export Excel Handler
-  const handleExportExcel = () => {
-    exportBudgetSummaryToExcel({
+  const handleExportExcel = async () => {
+    await exportBudgetSummaryToExcel({
       periode,
       capex,
       opex,

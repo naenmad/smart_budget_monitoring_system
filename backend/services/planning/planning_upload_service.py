@@ -90,7 +90,11 @@ class PlanningUploadService:
             return header_resp, status_code
 
         planning_header_id = header_resp["data"]["id"]
-        db.session.commit() # Ensure header is committed
+        try:
+            db.session.commit()  # Ensure header is committed
+        except Exception as commit_err:
+            db.session.rollback()
+            return {"success": False, "message": f"Gagal menyimpan header planning: {str(commit_err)}"}, 500
 
         from flask import current_app
         import threading

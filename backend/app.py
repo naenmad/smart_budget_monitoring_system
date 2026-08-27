@@ -129,18 +129,67 @@ def health():
 def db_test():
     try:
         result = db.session.execute(text("SELECT 1"))
-
         return {
             "status": "success",
             "database": "Connected",
             "result": result.scalar()
         }
-
     except Exception as e:
         return {
             "status": "error",
             "message": str(e)
         }, 500
+
+
+# --- Global JSON Error Handlers ---
+
+@app.errorhandler(400)
+def bad_request_error(err):
+    return {
+        "success": False,
+        "message": getattr(err, "description", "Bad Request — format data tidak valid"),
+        "error_code": "BAD_REQUEST"
+    }, 400
+
+
+@app.errorhandler(404)
+def not_found_error(err):
+    return {
+        "success": False,
+        "message": getattr(err, "description", "Endpoint atau resource tidak ditemukan"),
+        "error_code": "RESOURCE_NOT_FOUND"
+    }, 404
+
+
+@app.errorhandler(405)
+def method_not_allowed_error(err):
+    return {
+        "success": False,
+        "message": "Metode HTTP tidak diizinkan untuk endpoint ini",
+        "error_code": "METHOD_NOT_ALLOWED"
+    }, 405
+
+
+@app.errorhandler(500)
+def internal_server_error(err):
+    db.session.rollback()
+    return {
+        "success": False,
+        "message": "Terjadi kesalahan internal server. Silakan coba beberapa saat lagi.",
+        "error_code": "INTERNAL_SERVER_ERROR"
+    }, 500
+
+
+@app.errorhandler(Exception)
+def unhandled_exception(err):
+    db.session.rollback()
+    import traceback
+    traceback.print_exc()
+    return {
+        "success": False,
+        "message": str(err) if app.debug else "Terjadi kesalahan tidak terduga pada sistem",
+        "error_code": "UNEXPECTED_ERROR"
+    }, 500
 
 
 if __name__ == "__main__":

@@ -1,13 +1,21 @@
-# --- Environment & secrets ---
+# ================================================================
+# Smart Budget Monitoring System - .gitignore
+# PT Summit Adyawinsa Indonesia
+# ================================================================
+
+# --- Environment & Secrets (NEVER commit these) ---
 .env
 .env.local
 .env.*.local
+backend/.env
 *.pem
+*.key
 
-# --- Python / Flask backend ---
+# --- Python / Flask Backend ---
 venv/
 backend/venv/
 __pycache__/
+backend/**/__pycache__/
 *.pyc
 *.pyo
 *.pyd
@@ -15,8 +23,10 @@ __pycache__/
 *.egg-info/
 instance/
 .pytest_cache/
+.coverage
+htmlcov/
 
-# --- Node / React frontend ---
+# --- Node / React Frontend ---
 node_modules/
 frontend/node_modules/
 dist/
@@ -25,16 +35,23 @@ build/
 .vite/
 frontend/.vite/
 
-# --- Uploaded files & temporary assets ---
+# --- Uploaded Excel & Temporary Files ---
 uploads/
 backend/uploads/
+!uploads/.gitkeep
+!backend/uploads/.gitkeep
 *.xlsx
 *.xls
-!backend/tests/*.xlsx
-!frontend/src/assets/*
 
-# --- Antigravity Customizations ---
-.agents/
+# --- Logs (keep folder structure only) ---
+logs/*.log
+logs/**/*.log
+backend/logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
 # --- IDE / OS ---
 .vscode/
@@ -44,10 +61,16 @@ Thumbs.db
 *.swp
 *.swo
 
-# --- Logs ---
-*.log
-logs/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
+# --- Development Tools (not for production) ---
+pyrightconfig.json
+fix_css.py
+.pytest_cache/
+
+# --- Platform-specific (use Docker only) ---
+backend/render.yaml
+frontend/vercel.json
+backend/Procfile
+
+# --- AI Agent Internal Files (dev only) ---
+.agents/
+agents.md

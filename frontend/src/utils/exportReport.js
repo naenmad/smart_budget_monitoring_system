@@ -1,10 +1,10 @@
-import * as XLSX from 'xlsx'
 import { formatRp } from './format'
 
 /**
  * Generate and download professional Excel budget report for PT Summit Adyawinsa Indonesia
+ * Uses dynamic import for xlsx to avoid loading it in the initial bundle
  */
-export function exportBudgetSummaryToExcel({
+export async function exportBudgetSummaryToExcel({
   periode = new Date().getFullYear(),
   capex = { budget: 0, actual: 0, saldo: 0, persen: 0 },
   opex = { budget: 0, actual: 0, saldo: 0, persen: 0 },
@@ -17,6 +17,9 @@ export function exportBudgetSummaryToExcel({
     hour: '2-digit',
     minute: '2-digit'
   })
+
+  // Dynamic import: hanya load xlsx saat user klik export
+  const XLSX = await import('xlsx')
 
   // 1. Data Ringkasan Eksekutif
   const data = [

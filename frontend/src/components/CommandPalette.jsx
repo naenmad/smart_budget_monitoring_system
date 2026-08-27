@@ -240,7 +240,7 @@ export default function CommandPalette() {
         const currYear = String(new Date().getFullYear())
         const res = await budgetApi.getSummary(currYear)
         if (res.success && res.data) {
-          exportBudgetSummaryToExcel({
+          await exportBudgetSummaryToExcel({
             periode: currYear,
             capex: res.data.capex,
             opex: res.data.opex,

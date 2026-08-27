@@ -1,5 +1,4 @@
 import { useState, useRef } from 'react'
-import * as XLSX from 'xlsx'
 import s from './Predict.module.css'
 import { classificationApi } from '../api/classificationApi'
 import { prPoDataApi } from '../api/prPoDataApi'
@@ -36,20 +35,22 @@ export default function Predict() {
 
   const step = results.length > 0 ? 4 : rows.length > 0 ? 2 : 1
 
-  function handleFile(e) {
+  async function handleFile(e) {
     const file = e.target.files[0]
     if (!file) return
     setFileName(file.name)
     setResults([])
     setMessage({ type: '', text: '' })
+    const XLSX = await import('xlsx')
     const reader = new FileReader()
     reader.onload = (evt) => {
-      const wb = XLSX.read(evt.target.result, { type: 'binary' })
+      const dataBuffer = new Uint8Array(evt.target.result)
+      const wb = XLSX.read(dataBuffer, { type: 'array' })
       const ws = wb.Sheets[wb.SheetNames[0]]
       const data = XLSX.utils.sheet_to_json(ws)
       setRows(data)
     }
-    reader.readAsBinaryString(file)
+    reader.readAsArrayBuffer(file)
   }
 
   async function handlePredict() {

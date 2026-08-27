@@ -3,8 +3,6 @@ import s from './PrStatusModal.module.css'
 import { prPoDataApi } from '../api/prPoDataApi'
 import { mappingApi } from '../api/mappingApi'
 import { formatRp } from '../utils/format'
-import { jsPDF } from 'jspdf'
-import autoTable from 'jspdf-autotable'
 import { FileText, X, Loader2, Undo2 } from 'lucide-react'
 
 export default function PrStatusModal({ status, onClose }) {
@@ -63,38 +61,47 @@ export default function PrStatusModal({ status, onClose }) {
         CANCELLED_PR: 'PR Dibatalkan Langsung',
     }[status] || status
 
-    const handleExportPDF = () => {
-        const doc = new jsPDF()
+    const handleExportPDF = async () => {
+        try {
+            // Dynamic import: load jsPDF only when user clicks export PDF
+            const [{ jsPDF }, { default: autoTable }] = await Promise.all([
+                import('jspdf'),
+                import('jspdf-autotable'),
+            ])
+            const doc = new jsPDF()
 
-        doc.setFontSize(16)
-        doc.text(`Laporan PR/PO - ${title}`, 14, 20)
+            doc.setFontSize(16)
+            doc.text(`Laporan PR/PO - ${title}`, 14, 20)
 
-        doc.setFontSize(10)
-        doc.text(`Total Data: ${prList.length}`, 14, 28)
+            doc.setFontSize(10)
+            doc.text(`Total Data: ${prList.length}`, 14, 28)
 
-        const tableColumn = ["PR Doc", "Description", "Supplier", "Nilai", "Kategori"]
-        const tableRows = []
+            const tableColumn = ["PR Doc", "Description", "Supplier", "Nilai", "Kategori"]
+            const tableRows = []
 
-        prList.forEach(pr => {
-            const prData = [
-                pr.pr_doc_num || '-',
-                pr.description || '-',
-                pr.supplier_name || '-',
-                formatRp(pr.total_price),
-                pr.kategori_kode || '-'
-            ]
-            tableRows.push(prData)
-        })
+            prList.forEach(pr => {
+                const prData = [
+                    pr.pr_doc_num || '-',
+                    pr.description || '-',
+                    pr.supplier_name || '-',
+                    formatRp(pr.total_price),
+                    pr.kategori_kode || '-'
+                ]
+                tableRows.push(prData)
+            })
 
-        autoTable(doc, {
-            head: [tableColumn],
-            body: tableRows,
-            startY: 32,
-            styles: { fontSize: 9 },
-            headStyles: { fillColor: [30, 41, 59] } // dark blue/gray
-        })
+            autoTable(doc, {
+                head: [tableColumn],
+                body: tableRows,
+                startY: 32,
+                styles: { fontSize: 9 },
+                headStyles: { fillColor: [30, 41, 59] }
+            })
 
-        doc.save(`Laporan_${status}_${new Date().getTime()}.pdf`)
+            doc.save(`Laporan_${status}_${new Date().getTime()}.pdf`)
+        } catch (err) {
+            console.error('Error exporting PDF:', err)
+        }
     }
 
     return (
