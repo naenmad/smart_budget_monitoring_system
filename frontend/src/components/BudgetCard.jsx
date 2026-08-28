@@ -43,7 +43,7 @@ export default function BudgetCard({
                 <div className={`${s.metricBlock} ${s.pr}`}>
                     <div className={s.metricLabel}>
                         <FileText size={13} style={{ color: '#2563eb' }} />
-                        <span>Komitmen PR (Ekspektasi)</span>
+                        <span>Planning PR (Ekspektasi)</span>
                     </div>
                     <div className={s.metricVal}>{formatRp(actualPr)}</div>
                     <div className={s.metricSub}>

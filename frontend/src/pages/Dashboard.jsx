@@ -12,6 +12,7 @@ import PrStatusModal from '../components/PrStatusModal'
 import PrTrackingModal from '../components/PrTrackingModal'
 import MonthlyPipelineChart from '../components/MonthlyPipelineChart'
 import MonthlyBudgetUsageChart from '../components/MonthlyBudgetUsageChart'
+import KpiBudgetUsageReport from '../components/KpiBudgetUsageReport'
 import CancelledPlanningModal from '../components/CancelledPlanningModal'
 import PeriodeSwitcher from '../components/SwitchComponent'
 import { budgetApi } from '../api/budgetApi'
@@ -154,18 +155,18 @@ export default function Dashboard() {
 
   const alerts = []
 
-  // Check CAPEX & OPEX Thresholds (berdasarkan Komitmen PR)
+  // Check CAPEX & OPEX Thresholds (berdasarkan Planning PR)
   const capexActualPr = Number(capex.actual_pr || capex.actual || 0)
   const capexBudget = Number(capex.budget || 0)
   if (capexActualPr > capexBudget && capexBudget > 0) {
     alerts.push({
       type: 'danger',
-      message: `Kritis: Komitmen PR CAPEX telah melebihi pagu anggaran sebesar ${formatRp(capexActualPr - capexBudget)} (${Math.round((capexActualPr / capexBudget) * 100)}%)`
+      message: `Kritis: Planning PR CAPEX telah melebihi pagu anggaran sebesar ${formatRp(capexActualPr - capexBudget)} (${Math.round((capexActualPr / capexBudget) * 100)}%)`
     })
   } else if (capexBudget > 0 && (capexActualPr / capexBudget) >= 0.8) {
     alerts.push({
       type: 'warning',
-      message: `Peringatan Plafon: Komitmen PR CAPEX telah mencapai ${Math.round((capexActualPr / capexBudget) * 100)}% dari total pagu anggaran.`
+      message: `Peringatan Plafon: Planning PR CAPEX telah mencapai ${Math.round((capexActualPr / capexBudget) * 100)}% dari total pagu anggaran.`
     })
   }
 
@@ -174,12 +175,12 @@ export default function Dashboard() {
   if (opexActualPr > opexBudget && opexBudget > 0) {
     alerts.push({
       type: 'danger',
-      message: `Kritis: Komitmen PR OPEX telah melebihi pagu anggaran sebesar ${formatRp(opexActualPr - opexBudget)} (${Math.round((opexActualPr / opexBudget) * 100)}%)`
+      message: `Kritis: Planning PR OPEX telah melebihi pagu anggaran sebesar ${formatRp(opexActualPr - opexBudget)} (${Math.round((opexActualPr / opexBudget) * 100)}%)`
     })
   } else if (opexBudget > 0 && (opexActualPr / opexBudget) >= 0.8) {
     alerts.push({
       type: 'warning',
-      message: `Peringatan Plafon: Komitmen PR OPEX telah mencapai ${Math.round((opexActualPr / opexBudget) * 100)}% dari total pagu anggaran.`
+      message: `Peringatan Plafon: Planning PR OPEX telah mencapai ${Math.round((opexActualPr / opexBudget) * 100)}% dari total pagu anggaran.`
     })
   }
 
@@ -509,6 +510,16 @@ export default function Dashboard() {
             <BudgetChart title="Grafik Realisasi per Form" data={chartForm} />
           </div>
         </div>
+      )
+    },
+    {
+      id: 'kpi_report',
+      label: 'Laporan KPI Anggaran (SAI)',
+      content: (
+        <KpiBudgetUsageReport
+          periode={periode}
+          monthlyData={monthlySummary}
+        />
       )
     },
     {
