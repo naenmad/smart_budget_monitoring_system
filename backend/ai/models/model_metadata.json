@@ -1,0 +1,16 @@
+{
+  "active_model": "svm_model_20260828_073937.pkl",
+  "updated_at": "2026-08-28T07:39:37.724685",
+  "total_samples": 36,
+  "classes": [
+    "E-1",
+    "E-9",
+    "I-1"
+  ],
+  "accuracy": 0.625,
+  "ngram_range": [
+    1,
+    2
+  ],
+  "algorithm": "LinearSVC (Calibrated with Sigmoid probabilities)"
+}

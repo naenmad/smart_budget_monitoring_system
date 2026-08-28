@@ -25,6 +25,7 @@ instance/
 .pytest_cache/
 .coverage
 htmlcov/
+backend/ai/models/svm_model_*.pkl
 
 # --- Node / React Frontend ---
 node_modules/

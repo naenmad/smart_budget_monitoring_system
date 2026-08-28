@@ -1,22 +1,32 @@
-import pytest
+import os
+import sys
+import unittest
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from services.user_service import USERNAME_REGEX, UserService
 
-class TestUserValidation:
+
+class TestUserValidation(unittest.TestCase):
     def test_username_regex_valid(self):
-        assert USERNAME_REGEX.match("admin") is not None
-        assert USERNAME_REGEX.match("budi_santoso") is not None
-        assert USERNAME_REGEX.match("user.123") is not None
-        assert USERNAME_REGEX.match("user-test") is not None
+        self.assertIsNotNone(USERNAME_REGEX.match("admin"))
+        self.assertIsNotNone(USERNAME_REGEX.match("budi_santoso"))
+        self.assertIsNotNone(USERNAME_REGEX.match("user.123"))
+        self.assertIsNotNone(USERNAME_REGEX.match("user-test"))
 
     def test_username_regex_invalid_spaces(self):
         # Spasi tidak diperbolehkan
-        assert USERNAME_REGEX.match("budi santoso") is None
-        assert USERNAME_REGEX.match(" admin") is None
-        assert USERNAME_REGEX.match("admin ") is None
-        assert USERNAME_REGEX.match("admin 123") is None
+        self.assertIsNone(USERNAME_REGEX.match("budi santoso"))
+        self.assertIsNone(USERNAME_REGEX.match(" admin"))
+        self.assertIsNone(USERNAME_REGEX.match("admin "))
+        self.assertIsNone(USERNAME_REGEX.match("admin 123"))
 
     def test_username_regex_invalid_chars(self):
-        assert USERNAME_REGEX.match("user@123") is None
-        assert USERNAME_REGEX.match("user#name") is None
-        assert USERNAME_REGEX.match("ab") is None # min 3 chars
-        assert USERNAME_REGEX.match("a" * 31) is None # max 30 chars
+        self.assertIsNone(USERNAME_REGEX.match("user@123"))
+        self.assertIsNone(USERNAME_REGEX.match("user#name"))
+        self.assertIsNone(USERNAME_REGEX.match("ab"))       # min 3 chars
+        self.assertIsNone(USERNAME_REGEX.match("a" * 31))   # max 30 chars
+
+
+if __name__ == "__main__":
+    unittest.main()

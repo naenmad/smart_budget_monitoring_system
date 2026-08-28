@@ -11,12 +11,13 @@ import AllMonthlyDetailModal from '../components/AllMonthlyDetailModal'
 import PrStatusModal from '../components/PrStatusModal'
 import PrTrackingModal from '../components/PrTrackingModal'
 import MonthlyPipelineChart from '../components/MonthlyPipelineChart'
+import MonthlyBudgetUsageChart from '../components/MonthlyBudgetUsageChart'
 import CancelledPlanningModal from '../components/CancelledPlanningModal'
 import PeriodeSwitcher from '../components/SwitchComponent'
 import { budgetApi } from '../api/budgetApi'
 import { prApi } from '../api/prApi'
 import { formatRp } from '../utils/format'
-import { Loader2, AlertTriangle, Download, FileSpreadsheet } from 'lucide-react'
+import { Loader2, AlertTriangle, Download, FileSpreadsheet, Layers, CheckCircle2, Clock, AlertCircle, XCircle } from 'lucide-react'
 import { exportBudgetSummaryToExcel } from '../utils/exportReport'
 
 export default function Dashboard() {
@@ -131,46 +132,61 @@ export default function Dashboard() {
     )
   }
 
-  const totalBudget = summary?.total_budget ?? 0
-  const totalActual = summary?.total_actual ?? 0
-  const totalSaldo = summary?.total_saldo ?? 0
-  const overCount = summary?.over_count ?? 0
-
-  const capex = summary?.capex ?? { budget: 0, actual: 0, saldo: 0 }
-  const opex = summary?.opex ?? { budget: 0, actual: 0, saldo: 0 }
+  const capex = summary?.capex ?? {
+    budget: 0,
+    actual_pr: 0,
+    actual_gr: 0,
+    saldo_pr: 0,
+    saldo_gr: 0,
+    persen_pr: 0,
+    persen_gr: 0
+  }
+  const opex = summary?.opex ?? {
+    budget: 0,
+    actual_pr: 0,
+    actual_gr: 0,
+    saldo_pr: 0,
+    saldo_gr: 0,
+    persen_pr: 0,
+    persen_gr: 0
+  }
   const items = summary?.items ?? []
 
   const alerts = []
 
-  // Check CAPEX & OPEX Thresholds
-  if (capex.actual > capex.budget && capex.budget > 0) {
+  // Check CAPEX & OPEX Thresholds (berdasarkan Komitmen PR)
+  const capexActualPr = Number(capex.actual_pr || capex.actual || 0)
+  const capexBudget = Number(capex.budget || 0)
+  if (capexActualPr > capexBudget && capexBudget > 0) {
     alerts.push({
       type: 'danger',
-      message: `Kritis: CAPEX telah melebihi pagu anggaran sebesar ${formatRp(capex.actual - capex.budget)} (${Math.round((capex.actual / capex.budget) * 100)}%)`
+      message: `Kritis: Komitmen PR CAPEX telah melebihi pagu anggaran sebesar ${formatRp(capexActualPr - capexBudget)} (${Math.round((capexActualPr / capexBudget) * 100)}%)`
     })
-  } else if (capex.budget > 0 && (capex.actual / capex.budget) >= 0.8) {
+  } else if (capexBudget > 0 && (capexActualPr / capexBudget) >= 0.8) {
     alerts.push({
       type: 'warning',
-      message: `Peringatan Plafon: Realisasi CAPEX telah mencapai ${Math.round((capex.actual / capex.budget) * 100)}% dari total pagu anggaran.`
+      message: `Peringatan Plafon: Komitmen PR CAPEX telah mencapai ${Math.round((capexActualPr / capexBudget) * 100)}% dari total pagu anggaran.`
     })
   }
 
-  if (opex.actual > opex.budget && opex.budget > 0) {
+  const opexActualPr = Number(opex.actual_pr || opex.actual || 0)
+  const opexBudget = Number(opex.budget || 0)
+  if (opexActualPr > opexBudget && opexBudget > 0) {
     alerts.push({
       type: 'danger',
-      message: `Kritis: OPEX telah melebihi pagu anggaran sebesar ${formatRp(opex.actual - opex.budget)} (${Math.round((opex.actual / opex.budget) * 100)}%)`
+      message: `Kritis: Komitmen PR OPEX telah melebihi pagu anggaran sebesar ${formatRp(opexActualPr - opexBudget)} (${Math.round((opexActualPr / opexBudget) * 100)}%)`
     })
-  } else if (opex.budget > 0 && (opex.actual / opex.budget) >= 0.8) {
+  } else if (opexBudget > 0 && (opexActualPr / opexBudget) >= 0.8) {
     alerts.push({
       type: 'warning',
-      message: `Peringatan Plafon: Realisasi OPEX telah mencapai ${Math.round((opex.actual / opex.budget) * 100)}% dari total pagu anggaran.`
+      message: `Peringatan Plafon: Komitmen PR OPEX telah mencapai ${Math.round((opexActualPr / opexBudget) * 100)}% dari total pagu anggaran.`
     })
   }
 
   // Check Per-Form Early Warning
   items.forEach(item => {
     const b = Number(item.budget || 0)
-    const a = Number(item.actual || 0)
+    const a = Number(item.actual_pr || item.actual || 0)
     if (b > 0) {
       const pct = Math.round((a / b) * 100)
       if (pct > 100) {
@@ -202,14 +218,14 @@ export default function Dashboard() {
     {
       name: 'CAPEX',
       budget: Number(capex.budget || 0),
-      actual: Number(capex.actual || 0),
-      saldo: Math.max(0, Number(capex.saldo || 0))
+      actual: Number(capex.actual_pr || capex.actual || 0),
+      saldo: Math.max(0, Number(capex.saldo_pr !== undefined ? capex.saldo_pr : (capex.saldo || 0)))
     },
     {
       name: 'OPEX',
       budget: Number(opex.budget || 0),
-      actual: Number(opex.actual || 0),
-      saldo: Math.max(0, Number(opex.saldo || 0))
+      actual: Number(opex.actual_pr || opex.actual || 0),
+      saldo: Math.max(0, Number(opex.saldo_pr !== undefined ? opex.saldo_pr : (opex.saldo || 0)))
     }
   ]
 
@@ -217,8 +233,8 @@ export default function Dashboard() {
   const chartForm = items.map(item => ({
     name: item.kode,
     budget: Number(item.budget || 0),
-    actual: Number(item.actual || 0),
-    saldo: Math.max(0, Number(item.saldo || 0))
+    actual: Number(item.actual_pr || item.actual || 0),
+    saldo: Math.max(0, Number(item.saldo_pr !== undefined ? item.saldo_pr : (item.saldo || 0)))
   }))
 
   // Form table data map
@@ -226,18 +242,33 @@ export default function Dashboard() {
   items.forEach(i => {
     budgetData[i.kode] = {
       budget: Number(i.budget || 0),
-      actual: Number(i.actual || 0),
-      saldo: Number(i.saldo || 0),
+      actual: Number(i.actual_pr || i.actual || 0),
+      actual_pr: Number(i.actual_pr || i.actual || 0),
+      actual_gr: Number(i.actual_gr || 0),
+      saldo: Number(i.saldo_pr !== undefined ? i.saldo_pr : (i.saldo || 0)),
+      saldo_pr: Number(i.saldo_pr !== undefined ? i.saldo_pr : (i.saldo || 0)),
+      saldo_gr: Number(i.saldo_gr || 0),
+      persen_pr: i.persen_pr,
+      persen_gr: i.persen_gr,
       nama: i.nama,
       type: i.tipe_formulir || i.type,
       is_over: i.is_over
     }
   })
 
-  const overItems = items.filter(i => i.is_over).map(i => i.kode)
-  const overSubText = overItems.length > 0
-    ? `${overItems.join(', ')} perlu perhatian`
-    : 'Semua dalam batas'
+  // PR Pipeline Mathematics Calculation
+  const totalPr = Number(prSummary?.total_pr || 0)
+  const matchedPr = Number(prSummary?.matched_pr ?? prSummary?.total_matched ?? 0)
+  const needMappingPr = Number(prSummary?.need_mapping || 0)
+  const inPipelinePr = Number(prSummary?.in_pipeline || 0)
+  const oopPr = Number(prSummary?.out_of_plan ?? prSummary?.oop ?? 0)
+  const cancelledPr = Number(prSummary?.cancelled_pr ?? prSummary?.cancelled_pr_count ?? 0)
+
+  const pctMatched = totalPr > 0 ? (matchedPr / totalPr) * 100 : 0
+  const pctNeedMapping = totalPr > 0 ? (needMappingPr / totalPr) * 100 : 0
+  const pctInPipeline = totalPr > 0 ? (inPipelinePr / totalPr) * 100 : 0
+  const pctOop = totalPr > 0 ? (oopPr / totalPr) * 100 : 0
+  const pctCancelled = totalPr > 0 ? (cancelledPr / totalPr) * 100 : 0
 
   const dashboardTabs = [
     {
@@ -245,68 +276,99 @@ export default function Dashboard() {
       label: 'Ringkasan Utama',
       content: (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* 1. Pemisahan CAPEX & OPEX Overview (Tidak digabung) */}
           <section className="card">
-            <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--text-main)' }}>Budget Overview</h2>
-            <div className={s.metricGrid}>
-              <MetricCard
-                label="Total budget"
-                value={formatRp(totalBudget)}
-                sub="CAPEX + OPEX"
+            <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--text-main)' }}>
+              Monitoring Pagu Anggaran (CAPEX vs OPEX)
+            </h2>
+            <div className={s.budgetGrid}>
+              <BudgetCard
+                type="CAPEX"
+                title="Capital Expenditure"
+                budget={capex.budget}
+                actualPr={capex.actual_pr || capex.actual}
+                actualGr={capex.actual_gr}
+                saldoPr={capex.saldo_pr !== undefined ? capex.saldo_pr : capex.saldo}
+                saldoGr={capex.saldo_gr}
+                persenPr={capex.persen_pr}
+                persenGr={capex.persen_gr}
+                onClick={() => setSelectedForm('CAPEX')}
               />
-              <MetricCard
-                label="Terpakai"
-                value={formatRp(totalActual)}
-                sub={totalBudget > 0 ? `${Math.round((totalActual / totalBudget) * 100)}% dari total` : '—'}
-                variant="danger"
-              />
-              <MetricCard
-                label="Saldo"
-                value={formatRp(totalSaldo)}
-                sub={totalBudget > 0 ? `${Math.round((totalSaldo / totalBudget) * 100)}% dari total` : '—'}
-                variant="success"
-              />
-              <MetricCard
-                label="Over budget"
-                value={`${overCount} form`}
-                sub={overSubText}
-                variant={overCount > 0 ? 'warning' : 'default'}
+              <BudgetCard
+                type="OPEX"
+                title="Operational Expenditure"
+                budget={opex.budget}
+                actualPr={opex.actual_pr || opex.actual}
+                actualGr={opex.actual_gr}
+                saldoPr={opex.saldo_pr !== undefined ? opex.saldo_pr : opex.saldo}
+                saldoGr={opex.saldo_gr}
+                persenPr={opex.persen_pr}
+                persenGr={opex.persen_gr}
+                onClick={() => setSelectedForm('OPEX')}
               />
             </div>
           </section>
 
+          {/* 2. PR Processing Pipeline Status (Matematis & Konsisten) */}
           <section className="card">
-            <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--text-main)' }}>PR Pipeline Status</h2>
-            <div className={s.metricGrid}>
-              <MetricCard
-                label="Planning Active"
-                value={prSummary?.planning_active || 0}
-                sub="Form Planning"
-                variant="info"
-              />
-              <MetricCard
-                label="Total PR"
-                value={prSummary?.total_pr || 0}
-                sub="Data Uploaded"
-                variant="yellow"
-              />
-              <MetricCard
-                label="Total Matched"
-                value={prSummary?.total_matched || 0}
-                sub="Ke Planning Detail"
-                variant="success"
-              />
-              <MetricCard
-                label="Need Mapping"
-                value={prSummary?.need_mapping || 0}
-                sub="Belum di-mapping"
-                variant="purple"
-              />
+            <div className={s.pipelineWrapper}>
+              <div className={s.pipelineHeader}>
+                <h2 style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: 'var(--text-main)' }}>
+                  Status Aliran Pemrosesan PR (PR Pipeline)
+                </h2>
+                <div className={s.pipelineTotalBadge}>
+                  <Layers size={14} color="var(--primary)" />
+                  <span>Total PR Terunggah: <strong>{totalPr} Dokumen</strong></span>
+                </div>
+              </div>
+
+              {/* 100% Proportional Progress Bar */}
+              <div className={s.pipelineBar} title={`Matched: ${Math.round(pctMatched)}%, Need Mapping: ${Math.round(pctNeedMapping)}%, In Pipeline: ${Math.round(pctInPipeline)}%, OOP: ${Math.round(pctOop)}%, Cancelled: ${Math.round(pctCancelled)}%`}>
+                <div className={`${s.pipelineSegment} ${s.matched}`} style={{ width: `${pctMatched}%` }} />
+                <div className={`${s.pipelineSegment} ${s.needMapping}`} style={{ width: `${pctNeedMapping}%` }} />
+                <div className={`${s.pipelineSegment} ${s.inPipeline}`} style={{ width: `${pctInPipeline}%` }} />
+                <div className={`${s.pipelineSegment} ${s.oop}`} style={{ width: `${pctOop}%` }} />
+                <div className={`${s.pipelineSegment} ${s.cancelled}`} style={{ width: `${pctCancelled}%` }} />
+              </div>
+
+              <div className={s.metricGrid}>
+                <MetricCard
+                  label="Ter-Mapping ke Budget"
+                  value={matchedPr}
+                  sub={totalPr > 0 ? `${Math.round(pctMatched)}% (On / Over / Under)` : '0%'}
+                  variant="success"
+                  onClick={() => setSelectedForm('ON_PLAN')}
+                />
+                <MetricCard
+                  label="Perlu Review / Mapping"
+                  value={needMappingPr}
+                  sub={totalPr > 0 ? `${Math.round(pctNeedMapping)}% dari total PR` : '0%'}
+                  variant="purple"
+                />
+                <MetricCard
+                  label="Out of Plan (OOP)"
+                  value={oopPr}
+                  sub={totalPr > 0 ? `${Math.round(pctOop)}% non-budget` : '0%'}
+                  variant="warning"
+                  onClick={() => setSelectedForm('OOP')}
+                />
+                <MetricCard
+                  label="PR Dibatalkan"
+                  value={cancelledPr}
+                  sub={totalPr > 0 ? `${Math.round(pctCancelled)}% dibatalkan` : '0%'}
+                  variant="danger"
+                  onClick={() => setSelectedForm('CANCELLED_PR')}
+                />
+              </div>
             </div>
           </section>
 
+          {/* 3. Realisasi Budget vs PR Status */}
           <section className="card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: 8 }}>
-              <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>Realisasi Budget vs PR Status</h2>
+              <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
+                Status Realisasi Anggaran (Matched PR)
+              </h2>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button
                   className="btn-secondary"
@@ -322,91 +384,129 @@ export default function Dashboard() {
               <MetricCard
                 label="On Plan"
                 value={prSummary?.on_plan ?? 0}
-                sub="Sesuai planning"
+                sub="Sesuai rencana budget"
                 variant="success"
                 onClick={() => setSelectedForm('ON_PLAN')}
               />
               <MetricCard
                 label="Over Plan"
                 value={prSummary?.over_plan ?? 0}
-                sub="Realisasi melebihi"
+                sub="Realisasi melebihi budget"
                 variant="danger"
                 onClick={() => setSelectedForm('OVER_PLAN')}
               />
               <MetricCard
                 label="Under Plan"
                 value={prSummary?.under_plan ?? 0}
-                sub="Masih ada sisa"
+                sub="Masih tersedia saldo"
                 variant="info"
                 onClick={() => setSelectedForm('UNDER_PLAN')}
               />
               <MetricCard
-                label="Out of Plan"
-                value={prSummary?.out_of_plan ?? prSummary?.oop ?? 0}
-                sub="Tidak ada di plan"
+                label="Out of Plan (OOP)"
+                value={oopPr}
+                sub="Tidak terdaftar di plan"
                 variant="warning"
                 onClick={() => setSelectedForm('OOP')}
               />
               <MetricCard
                 label="PR Dibatalkan"
-                value={prSummary?.cancelled_pr ?? prSummary?.cancelled_pr_count ?? 0}
-                sub="PR tidak terealisasi"
+                value={cancelledPr}
+                sub="PR tidak direalisasikan"
                 variant="danger"
                 onClick={() => setSelectedForm('CANCELLED_PR')}
               />
             </div>
           </section>
 
+          {/* 4. PR Tracking Stages */}
           <section className="card">
-            <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--text-main)' }}>PR Tracking Stages</h2>
+            <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--text-main)' }}>
+              Tahapan Pengadaan Dokumen (Tracking Stages)
+            </h2>
             <div className={s.metricGrid} style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
               <MetricCard
                 label="Stage PR"
                 value={prSummary?.stage_pr ?? prSummary?.pr_stage ?? 0}
-                sub="Purchase Requisition"
+                sub="Purchase Requisition Diajukan"
                 variant="warning"
                 onClick={() => setSelectedForm('STAGE_PR')}
               />
               <MetricCard
                 label="Stage PO"
                 value={prSummary?.stage_po ?? prSummary?.po_stage ?? 0}
-                sub="Purchase Order Terbit"
+                sub="Purchase Order Diterbitkan"
                 variant="info"
                 onClick={() => setSelectedForm('STAGE_PO')}
               />
               <MetricCard
                 label="Stage GR"
                 value={prSummary?.stage_gr ?? prSummary?.gr_stage ?? 0}
-                sub="Goods Receipt Selesai"
+                sub="Goods Receipt Diterima (Selesai)"
                 variant="success"
                 onClick={() => setSelectedForm('STAGE_GR')}
               />
             </div>
           </section>
 
-          <section className="card">
-            <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--text-main)' }}>Tren Realisasi Budget per Bulan ({periode})</h2>
-            <MonthlyPipelineChart
-              data={monthlySummary}
-              onDetailClick={() => setSelectedForm('ALL')}
-            />
-          </section>
+          {/* 5. Monthly Budget Usage Monitoring (Nominal Planned vs PR vs GR) */}
+          <MonthlyBudgetUsageChart
+            title={`Monitoring Penggunaan Budget Bulanan (${periode})`}
+            monthlyData={monthlySummary}
+          />
         </div>
       )
     },
     {
+      id: 'monthly_analytics',
+      label: 'Tren Kuantitas & Aliran PR',
+      content: (
+        <section className="card">
+          <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--text-main)' }}>
+            Distribusi Status PR per Bulan ({periode})
+          </h2>
+          <MonthlyPipelineChart
+            data={monthlySummary}
+            onDetailClick={() => setSelectedForm('ALL')}
+          />
+        </section>
+      )
+    },
+    {
       id: 'capex_opex',
-      label: 'Analisis CAPEX & OPEX',
+      label: 'Analisis Form & Grafik',
       content: (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div className={s.budgetGrid}>
-            <BudgetCard type="CAPEX" {...capex} onClick={() => setSelectedForm('CAPEX')} />
-            <BudgetCard type="OPEX" {...opex} onClick={() => setSelectedForm('OPEX')} />
+            <BudgetCard
+              type="CAPEX"
+              title="Capital Expenditure"
+              budget={capex.budget}
+              actualPr={capex.actual_pr || capex.actual}
+              actualGr={capex.actual_gr}
+              saldoPr={capex.saldo_pr !== undefined ? capex.saldo_pr : capex.saldo}
+              saldoGr={capex.saldo_gr}
+              persenPr={capex.persen_pr}
+              persenGr={capex.persen_gr}
+              onClick={() => setSelectedForm('CAPEX')}
+            />
+            <BudgetCard
+              type="OPEX"
+              title="Operational Expenditure"
+              budget={opex.budget}
+              actualPr={opex.actual_pr || opex.actual}
+              actualGr={opex.actual_gr}
+              saldoPr={opex.saldo_pr !== undefined ? opex.saldo_pr : opex.saldo}
+              saldoGr={opex.saldo_gr}
+              persenPr={opex.persen_pr}
+              persenGr={opex.persen_gr}
+              onClick={() => setSelectedForm('OPEX')}
+            />
           </div>
 
           <div className={s.chartGrid}>
-            <BudgetChart title="Grafik CAPEX vs OPEX" data={chartCapexOpex} />
-            <BudgetChart title="Grafik per form" data={chartForm} />
+            <BudgetChart title="Grafik Komitmen CAPEX vs OPEX" data={chartCapexOpex} />
+            <BudgetChart title="Grafik Realisasi per Form" data={chartForm} />
           </div>
         </div>
       )
@@ -416,7 +516,9 @@ export default function Dashboard() {
       label: 'Rincian Form',
       content: (
         <section className="card">
-          <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--text-main)' }}>Rincian Form Budget</h2>
+          <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--text-main)' }}>
+            Rincian Formulir Anggaran
+          </h2>
           <FormTable data={budgetData} onRowClick={setSelectedForm} />
         </section>
       )

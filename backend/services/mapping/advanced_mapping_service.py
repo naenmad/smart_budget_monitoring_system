@@ -30,17 +30,32 @@ class AdvancedMappingService:
 
     @staticmethod
     def extract_code(text):
-        """Ambil kode/part number: angka di dalam kurung, atau kode alfanumerik di akhir teks."""
+        """
+        Ambil kode/part number/no registrasi:
+        - Angka/kode di dalam kurung: misal '(0117020)', '(\'0217035\')', '( 0217035 )'
+        - Kode alfanumerik standalone dengan minimal 4 karakter (misal MSTP6-20, 0217035, '0217035)
+        """
         if not text:
             return None
-        # Pola 1: angka/kode di dalam kurung, misal "(0117020)" atau "(003)"
-        match = re.search(r'\(([A-Za-z0-9\-]+)\)', text)
+
+        # 1. Cek di dalam tanda kurung (...)
+        match = re.search(r'\(([^)]+)\)', text)
         if match:
-            return match.group(1).upper()
-        # Pola 2: kode di akhir teks tanpa kurung, misal "MSTP6-20"
-        match = re.search(r'\b([A-Z]{2,}\d+[\-A-Z0-9]*)\b', text.upper())
-        if match:
-            return match.group(1)
+            raw_inside = match.group(1)
+            # Bersihkan tanda petik satu/dua, backtick, spasi, awalan "NO. REG:", dll
+            cleaned_code = re.sub(r"['\"`\s]|NO\.?\s*REG\s*:?", "", raw_inside, flags=re.IGNORECASE)
+            if cleaned_code:
+                return cleaned_code.upper()
+
+        # 2. Hapus tanda petik dari seluruh teks lalu cari pola kode standalone yang mengandung angka (misal '0217035, MSTP6-20, UCP205)
+        cleaned_text = text.replace("'", "").replace('"', '').replace('`', '')
+        matches = re.findall(r'\b([A-Z0-9\-]*\d+[A-Z0-9\-]*)\b', cleaned_text.upper())
+        for m in matches:
+            cand = m.strip("-")
+            # Minimal 4 karakter dan bukan angka murni 1-3 digit
+            if len(cand) >= 4:
+                return cand
+
         return None
 
     @staticmethod
@@ -122,9 +137,6 @@ class AdvancedMappingService:
                 pr.kategori_id = exact_detail.kategori_id
                 pr.planning_detail_id = exact_detail.id
                 pr.status_ai = "DONE"
-                
-                # Jangan merubah pr.perlu_review menjadi True.
-                # pr.perlu_review murni untuk klasifikasi (E-1, E-9).
 
                 proc_time = time.time() - start_time
                 log = MappingLog(
@@ -150,25 +162,34 @@ class AdvancedMappingService:
         pr_reg_num = AdvancedMappingService.extract_code(description)
         print(f"DEBUG [PR#{pr.id}] Code diekstrak: {pr_reg_num}")
 
+        # Helper untuk membersihkan tanda kutip sebelum pencocokan teks
+        clean_desc = description.replace("'", "").replace('"', '').replace('`', '').strip()
+
         # Fungsi helper untuk fuzzy match + adjustment score
         def get_adjusted_fuzzy_results(choices_dict, limit=15):
+            # Normalisasi pilihan untuk fuzzy ratio
+            normalized_choices = {
+                k: v.replace("'", "").replace('"', '').replace('`', '').strip()
+                for k, v in choices_dict.items()
+            }
             raw_results = process.extract(
-                description,
-                choices_dict,
+                clean_desc,
+                normalized_choices,
                 scorer=fuzz.token_set_ratio,
                 processor=default_process,
                 limit=limit
             )
             adjusted = []
-            for item_name, score, detail_id in raw_results:
+            for item_name_clean, score, detail_id in raw_results:
+                original_item_name = choices_dict.get(detail_id, item_name_clean)
                 new_score = score
                 # Jika PR punya reg num, dan item kandidat juga punya reg num yang sama persis
                 if pr_reg_num:
-                    cand_reg = AdvancedMappingService.extract_code(item_name)
+                    cand_reg = AdvancedMappingService.extract_code(original_item_name)
                     if cand_reg == pr_reg_num:
-                        # Kasih bobot prioritas besar
-                        new_score = min(100.0, score + 40.0)
-                adjusted.append((item_name, new_score, detail_id))
+                        # Kasih bobot prioritas maksimal (100%)
+                        new_score = 100.0
+                adjusted.append((original_item_name, new_score, detail_id))
             # Sort ulang berdasarkan score baru
             adjusted.sort(key=lambda x: x[1], reverse=True)
             return adjusted[:5]
@@ -176,8 +197,22 @@ class AdvancedMappingService:
         final_results = []
         cross_month = False
 
-        if candidates:
-            choices = {c.id: c.item for c in candidates}
+        # Inisialisasi choices
+        choices = {c.id: c.item for c in candidates}
+
+        # Jika PR memiliki part number / no registrasi unik (misal 0217035):
+        # Cari kandidat yang punya kode identik di seluruh bulan pada header & kategori yang sama
+        if pr_reg_num:
+            all_header_items = PlanningDetail.query.filter(
+                PlanningDetail.planning_header_id == header.id,
+                PlanningDetail.kategori_id == pr.kategori_id,
+                PlanningDetail.status_realisasi != 'CANCELLED'
+            ).all()
+            for pd in all_header_items:
+                if AdvancedMappingService.extract_code(pd.item) == pr_reg_num:
+                    choices[pd.id] = pd.item
+
+        if choices:
             results = get_adjusted_fuzzy_results(choices)
             # Jika skor tertinggi lumayan bagus (>= 65), gunakan hasil ini
             if results and results[0][1] >= 65.0:
@@ -196,7 +231,7 @@ class AdvancedMappingService:
             unique_choices = {}
             seen_items = set()
             for c in all_candidates:
-                normalized_name = c.item.strip().upper()
+                normalized_name = c.item.replace("'", "").replace('"', '').strip().upper()
                 if normalized_name not in seen_items:
                     seen_items.add(normalized_name)
                     unique_choices[c.id] = c.item
@@ -207,9 +242,11 @@ class AdvancedMappingService:
         print(f"DEBUG [PR#{pr.id}] fuzzy candidates (cross_month={cross_month}), top score: {final_results[0][1] if final_results else 0}")
 
         if not final_results:
-            pr.status_ai = "OUT_OF_PLAN"
+            pr.status_ai = "DONE"
+            pr.budget_status = "OOP"
+            pr.perlu_review = False
             db.session.commit()
-            return {"success": False, "message": "Tidak ada kandidat di kategori ini", "status": "OUT_OF_PLAN"}
+            return {"success": False, "message": "Tidak ada kandidat di kategori ini (Out of Plan)", "status": "OOP"}
 
         proc_time = time.time() - start_time
         

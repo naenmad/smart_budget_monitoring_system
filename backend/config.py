@@ -26,3 +26,4 @@ class Config:
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SECRET_KEY = os.getenv("SECRET_KEY", "default-sai-qc-secret-key-2026")
+    CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*")

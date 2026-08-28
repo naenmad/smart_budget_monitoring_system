@@ -41,8 +41,14 @@ app = Flask(__name__, template_folder="templates")
 app.config.from_object(Config)
 app.url_map.strict_slashes = False
 
-# Enable CORS for Vercel, Railway, and localhost
-CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+# Enable CORS with configurable origins for production security
+cors_origins_env = os.getenv("CORS_ORIGINS", "*")
+if cors_origins_env == "*" or not cors_origins_env:
+    allowed_origins = "*"
+else:
+    allowed_origins = [origin.strip() for origin in cors_origins_env.split(",") if origin.strip()]
+
+CORS(app, resources={r"/*": {"origins": allowed_origins}}, supports_credentials=True)
 
 # Init database
 db.init_app(app)

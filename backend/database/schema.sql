@@ -181,4 +181,19 @@ CREATE TABLE system_setting (
 	PRIMARY KEY (id)
 );
 
+-- =============================================================
+-- DEFAULT INITIAL DATA SEED
+-- =============================================================
+INSERT IGNORE INTO users (id, username, password, role, is_active) VALUES 
+(1, 'admin', 'scrypt:32768:8:1$psVCIqWXrOiZpuV6$84f2aca3b51f0381b3c0921a1e144c59d1fbfaee5b1a66c9dce0e1e1bd95f236beef2e13fb3347064ff9171b8e33dd35f9976c899127055016c54a832615a9d1', 'admin', 1);
+
+INSERT IGNORE INTO kategori (id, kode, nama, tipe_formulir) VALUES 
+(1, 'E-1', 'Direct Material / Maintenance', 'OPEX'),
+(2, 'E-9', 'Indirect Material / Non-Produksi', 'OPEX'),
+(3, 'I-1', 'Inventory / Peralatan Tetap', 'CAPEX');
+
+INSERT IGNORE INTO system_setting (`key`, value, description) VALUES 
+('auto_mapping_threshold', '85', 'Ambang batas confidence fuzzy matching auto approval (%)'),
+('auto_learning', 'true', 'Simpan otomatis konfirmasi manual mapping menjadi rule baru');
+
 SET FOREIGN_KEY_CHECKS=1;

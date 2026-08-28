@@ -2,50 +2,72 @@
     border-radius: 12px;
     padding: 1.25rem;
     cursor: pointer;
-    transition: opacity .15s, background-color .3s ease, border-color .3s ease;
+    transition: all .2s ease;
     border: 1px solid var(--border-color);
     background: var(--bg-card);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
 
 .card:hover {
-    opacity: .9;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
 }
 
 .card.capex {
-    background: var(--badge-e1-bg);
-    border-color: var(--primary-border);
+    border-color: rgba(37, 99, 235, 0.3);
+    background: linear-gradient(180deg, rgba(37, 99, 235, 0.03) 0%, var(--bg-card) 100%);
 }
 
 .card.opex {
-    background: var(--badge-e9-bg);
-    border-color: var(--success-border);
+    border-color: rgba(16, 185, 129, 0.3);
+    background: linear-gradient(180deg, rgba(16, 185, 129, 0.03) 0%, var(--bg-card) 100%);
 }
 
 .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 10px;
 }
 
-.title {
-    font-size: 12px;
+.titleArea {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.badge {
+    font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    padding: 3px 8px;
+    border-radius: 6px;
 }
 
-.title.capex {
+.badge.capex {
+    background: rgba(37, 99, 235, 0.12);
     color: var(--primary);
 }
 
-.title.opex {
+.badge.opex {
+    background: rgba(16, 185, 129, 0.12);
     color: var(--success);
+}
+
+.subTitle {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 500;
 }
 
 .detailLink {
     font-size: 11px;
     font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }
 
 .detailLink.capex {
@@ -56,33 +78,70 @@
     color: var(--success);
 }
 
-.value {
-    font-size: 22px;
+.budgetRow {
+    background: var(--bg-subtle);
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.budgetLabel {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.budgetValue {
+    font-size: 15px;
     font-weight: 700;
-    margin-bottom: 3px;
+    color: var(--text-main);
+}
+
+.metricsGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.metricBlock {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px 12px;
+    background: var(--bg-card);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.metricBlock.pr {
+    border-left: 3px solid #2563eb;
+}
+
+.metricBlock.gr {
+    border-left: 3px solid #10b981;
+}
+
+.metricLabel {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.metricVal {
+    font-size: 16px;
+    font-weight: 700;
     color: var(--text-main);
     letter-spacing: -0.01em;
 }
 
-.value.capex {
-    color: var(--text-main);
-}
-
-.value.opex {
-    color: var(--text-main);
-}
-
-.sub {
-    font-size: 12px;
-    margin-bottom: 0;
-    color: var(--text-muted);
-}
-
-.sub.capex {
-    color: var(--text-muted);
-}
-
-.sub.opex {
+.metricSub {
+    font-size: 11px;
     color: var(--text-muted);
 }
 
@@ -91,7 +150,7 @@
     border-radius: 4px;
     height: 6px;
     overflow: hidden;
-    margin-top: 8px;
+    margin-top: 4px;
 }
 
 .progBar {
@@ -100,39 +159,43 @@
     transition: width .3s;
 }
 
-.progBar.capex {
-    background: var(--primary);
+.progBar.pr {
+    background: #2563eb;
 }
 
-.progBar.opex {
-    background: var(--success);
+.progBar.gr {
+    background: #10b981;
 }
 
-.usage {
+.progBar.over {
+    background: var(--danger);
+}
+
+.usageRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     font-size: 11px;
-    margin-top: 5px;
     font-weight: 600;
 }
 
-.usage.capex {
-    color: var(--primary);
+.usageText {
+    color: var(--text-muted);
 }
 
-.usage.normal {
-    color: var(--success);
-}
-
-.usage.over {
+.overBadge {
     color: var(--danger);
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }
 
-/* ── Responsive ── */
 @media (max-width: 480px) {
-    .card {
-        padding: 1rem;
+    .metricsGrid {
+        grid-template-columns: 1fr;
     }
-
-    .value {
-        font-size: 18px;
+    .metricVal {
+        font-size: 15px;
     }
 }

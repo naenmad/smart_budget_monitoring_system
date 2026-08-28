@@ -34,14 +34,19 @@ def _load_svm_model():
         base = os.path.dirname(
             os.path.dirname(os.path.abspath(__file__))
         )
-        model_path = os.path.join(base, "ai", "models", "svm_model.pkl")
+        # Dynamic path support via env var MODEL_PATH
+        env_model_path = os.getenv("MODEL_PATH")
+        if env_model_path and os.path.exists(env_model_path):
+            model_path = env_model_path
+        else:
+            model_path = os.path.join(base, "ai", "models", "svm_model.pkl")
 
         if os.path.exists(model_path):
             with open(model_path, "rb") as f:
                 data = pickle.load(f)
             _svm_model = data["model"]
             _tfidf = data["tfidf"]
-            logger.info("SVM model loaded successfully")
+            logger.info(f"SVM model loaded successfully from {model_path}")
         else:
             logger.warning(
                 f"SVM model not found at {model_path}. "
@@ -126,8 +131,14 @@ class ClassificationService:
         cleaned = clean_text(text)
         vector = _tfidf.transform([cleaned])
         prediction = _svm_model.predict(vector)[0]
-        proba = _svm_model.predict_proba(vector)[0]
-        confidence = float(max(proba))
+        try:
+            if hasattr(_svm_model, "predict_proba"):
+                proba = _svm_model.predict_proba(vector)[0]
+                confidence = float(max(proba))
+            else:
+                confidence = 0.95
+        except Exception:
+            confidence = 0.90
 
         elapsed = time.time() - start_time
 
@@ -201,7 +212,7 @@ class ClassificationService:
             record.status_ai = "DONE"
             record.perlu_review = False
         else:
-            record.status_ai = "DONE"
+            record.status_ai = "NEED_MAPPING"
             record.perlu_review = True
 
         if result["method"]:

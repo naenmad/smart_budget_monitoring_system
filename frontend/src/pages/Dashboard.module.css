@@ -51,6 +51,68 @@
     gap: 14px;
 }
 
+/* ── PR Pipeline Visual Bar ── */
+.pipelineWrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.pipelineHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.pipelineTotalBadge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border-color);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.pipelineBar {
+    width: 100%;
+    height: 10px;
+    border-radius: 999px;
+    background: var(--bg-muted);
+    display: flex;
+    overflow: hidden;
+}
+
+.pipelineSegment {
+    height: 100%;
+    transition: width 0.3s ease;
+}
+
+.pipelineSegment.matched {
+    background: #10b981;
+}
+
+.pipelineSegment.needMapping {
+    background: #8b5cf6;
+}
+
+.pipelineSegment.inPipeline {
+    background: #3b82f6;
+}
+
+.pipelineSegment.oop {
+    background: #f59e0b;
+}
+
+.pipelineSegment.cancelled {
+    background: #ef4444;
+}
+
 /* ── Responsive ── */
 
 @media (max-width: 1024px) {
