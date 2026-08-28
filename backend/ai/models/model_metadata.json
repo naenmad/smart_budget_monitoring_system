@@ -1,16 +1,17 @@
 {
-  "active_model": "svm_model_20260828_073937.pkl",
-  "updated_at": "2026-08-28T07:39:37.724685",
-  "total_samples": 36,
+  "active_model": "svm_model_20260828_134502.pkl",
+  "updated_at": "2026-08-28T13:45:02.430246",
+  "total_samples": 120,
   "classes": [
     "E-1",
     "E-9",
     "I-1"
   ],
-  "accuracy": 0.625,
+  "accuracy": 0.8333,
+  "f1_macro": 0.8307,
   "ngram_range": [
     1,
-    2
+    3
   ],
-  "algorithm": "LinearSVC (Calibrated with Sigmoid probabilities)"
+  "algorithm": "LinearSVC (Calibrated with Sigmoid probabilities) + TF-IDF (1-3 Ngrams)"
 }
