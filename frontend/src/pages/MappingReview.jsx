@@ -557,6 +557,7 @@ export default function MappingReview() {
                             </span>
                             <span className={styles.candidateMonth}>
                               {cand.month} &middot; Anggaran: {fmt(cand.planning_amount)}
+                              {cand.remarks ? ` · Catatan: ${cand.remarks}` : ''}
                             </span>
                             {cand.code_mismatch && (
                               <span className={styles.codeMismatchWarn}>
@@ -707,6 +708,7 @@ export default function MappingReview() {
                       </span>
                       <span className={styles.modalResultAmount}>
                         Pagu: {fmt(item.planning_amount)}
+                        {item.remarks ? ` · ${item.remarks}` : ''}
                       </span>
                       {item.kategori_kode && (
                         <span className={styles.modalBadgeCategory}>

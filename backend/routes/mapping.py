@@ -97,6 +97,7 @@ def get_pending_mapping():
                 "planning_item": detail.item if detail else None,
                 "planning_amount": float(detail.planning_amount) if detail else None,
                 "month": detail.month if detail else None,
+                "remarks": detail.remarks if detail else None,
                 "code_mismatch": pr_code is not None and candidate_code is not None and pr_code != candidate_code,
                 "pr_code": pr_code,
                 "candidate_code": candidate_code
@@ -280,7 +281,10 @@ def search_planning_detail():
             query = query.filter_by(planning_header_id=header.id)
 
     if keyword:
-        query = query.filter(PlanningDetail.item.ilike(f"%{keyword}%"))
+        query = query.filter(
+            (PlanningDetail.item.ilike(f"%{keyword}%")) |
+            (PlanningDetail.remarks.ilike(f"%{keyword}%"))
+        )
 
     results = query.limit(150).all()
     return jsonify({

@@ -201,6 +201,33 @@
   color: var(--text-muted);
 }
 
+.actionGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btnEditStatus {
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+  background: rgba(37, 99, 235, 0.08);
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+
+.btnEditStatus:hover {
+  background: rgba(37, 99, 235, 0.16);
+  border-color: var(--primary);
+}
+
 .btnCancel {
   padding: 4px 10px;
   font-size: 12px;
@@ -228,22 +255,20 @@
 }
 
 .trCancelled td {
-  opacity: 0.55;
-  text-decoration: line-through;
-  text-decoration-color: #cbd5e1;
+  opacity: 0.7;
 }
 
+.trCancelled .btnEditStatus,
 .trCancelled .btnCancel,
 .trCancelled .cancelledNote {
-  text-decoration: none;
   opacity: 1;
 }
 
-/* ── Modal Konfirmasi Pembatalan PR ── */
+/* ── Modal Overlay & Dialog ── */
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.5);
+  background: rgba(15, 23, 42, 0.55);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
@@ -257,21 +282,54 @@
   border-radius: var(--radius-md);
   padding: 24px;
   width: 100%;
-  max-width: 480px;
+  max-width: 500px;
   box-shadow: var(--shadow-lg);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modalLarge {
+  max-width: 620px;
+}
+
+.modalHeaderRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
 .modalTitle {
-  margin: 0 0 10px;
+  margin: 0;
   font-size: 16px;
   font-weight: 700;
-  color: var(--danger);
+  color: var(--text-main);
   display: flex;
   align-items: center;
+  gap: 8px;
+}
+
+.modalCloseBtn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.modalCloseBtn:hover {
+  color: var(--text-main);
+  background: var(--bg-subtle);
 }
 
 .modalDesc {
-  margin: 0 0 8px;
+  margin: 0 0 10px;
   color: var(--text-body);
   font-size: 13px;
 }
@@ -280,11 +338,36 @@
   background: var(--bg-subtle);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
-  padding: 10px 12px;
-  margin-bottom: 12px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
   font-size: 13px;
   color: var(--text-main);
   line-height: 1.5;
+}
+
+.modalPrHeaderLine {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.modalPrDoc {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--primary);
+}
+
+.modalPrMeta {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 6px;
+  flex-wrap: wrap;
 }
 
 .modalWarning {
@@ -302,7 +385,185 @@
   font-size: 12.5px;
   font-weight: 600;
   color: var(--text-body);
-  margin-bottom: 6px;
+  margin-bottom: 8px;
+}
+
+/* ── Status Option Grid / Cards ── */
+.statusOptionGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.statusCard {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  background: var(--bg-card);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.statusCard:hover {
+  background: var(--bg-subtle);
+  border-color: var(--border-focus, #94a3b8);
+}
+
+.statusCardActive {
+  background: rgba(37, 99, 235, 0.04);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+}
+
+.statusRadio {
+  margin-top: 3px;
+  cursor: pointer;
+}
+
+.statusCardContent {
+  flex: 1;
+}
+
+.statusCardTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+
+.statusCardTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.statusCardDesc {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* ── Section Planning Picker ── */
+.planningPickerSection {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  margin-bottom: 16px;
+}
+
+.selectedPlanningCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-card);
+  border: 1px solid #86efac;
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+
+.selectedPlanningInfo {
+  font-size: 12.5px;
+}
+
+.selectedPlanningName {
+  font-weight: 600;
+  color: #166534;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.selectedPlanningMeta {
+  color: var(--text-muted);
+  font-size: 11.5px;
+}
+
+.planningSearchWrap {
+  position: relative;
+  margin-bottom: 8px;
+}
+
+.planningSearchInput {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 7px 30px 7px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+  background: var(--bg-card);
+  color: var(--text-main);
+  outline: none;
+}
+
+.planningSearchInput:focus {
+  border-color: var(--primary);
+}
+
+.planningSearchIcon {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.planningResultList {
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+}
+
+.planningResultItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 12px;
+  transition: background 0.12s;
+}
+
+.planningResultItem:last-child {
+  border-bottom: none;
+}
+
+.planningResultItem:hover {
+  background: var(--bg-subtle);
+}
+
+.planningResultName {
+  font-weight: 600;
+  color: var(--text-main);
+  display: block;
+}
+
+.planningResultMeta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.btnPickPlanning {
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 4px;
+  border: 1px solid var(--primary);
+  background: var(--primary);
+  color: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btnPickPlanning:hover {
+  background: var(--primary-dark, #1d4ed8);
 }
 
 .modalTextarea {
@@ -315,11 +576,13 @@
   resize: vertical;
   font-family: inherit;
   outline: none;
+  background: var(--bg-card);
+  color: var(--text-main);
 }
 
 .modalTextarea:focus {
-  border-color: var(--danger);
-  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
 .modalError {
@@ -331,9 +594,27 @@
 .modalActions {
   display: flex;
   gap: 10px;
-  margin-top: 18px;
+  margin-top: 20px;
   justify-content: flex-end;
 }
+
+.btnSubmit {
+  padding: 8px 16px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.15s;
+}
+
+.btnSubmit:hover { background: var(--primary-dark, #1d4ed8); }
+.btnSubmit:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .btnCancelConfirm {
   padding: 8px 16px;

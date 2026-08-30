@@ -1,0 +1,111 @@
+================================================================================
+           PANDUAN PENGGUNAAN LAPORAN HASIL PELAKSANAAN KPI ANGGARAN
+                      PT SUMMIT ADYAWINSA INDONESIA (SAI)
+================================================================================
+
+Dokumen ini berisi panduan resmi mengenai fungsi, cara membaca, dan alur kerja
+fitur "Laporan Hasil Pelaksanaan KPI Anggaran" pada Smart Budget Monitoring System.
+
+--------------------------------------------------------------------------------
+1. TUJUAN & FUNGSI UTAMA HALAMAN
+--------------------------------------------------------------------------------
+Halaman "Laporan KPI Anggaran (SAI)" dirancang untuk memantau performa serapan
+anggaran bulanan departemen secara otomatis, akurat, dan sesuai dengan standar
+pelaporan KPI resmi PT Summit Adyawinsa Indonesia.
+
+Sistem ini membandingkan anggaran yang disetujui (Approved Plan) dengan realisasi
+pengeluaran faktual sepanjang tahun anggaran (Januari - Desember).
+
+
+--------------------------------------------------------------------------------
+2. DUA KATEGORI TEMA KPI ANGGARAN
+--------------------------------------------------------------------------------
+Pada bagian atas laporan, pengguna dapat memilih antara dua tema evaluasi:
+
+A. EXPENSES BUDGET USAGE - DEPT (OPEX)
+   - Batas Target KPI : <= 90%
+   - Karakteristik     : Biaya operasional rutin, pemeliharaan, tools habis pakai.
+   - Penilaian KPI    : 
+     * Sesuai Target (GOOD)    : Serapan biaya <= 90% dari pagu bulanan.
+     * Over Target (NOT GOOD) : Serapan biaya > 90% dari pagu bulanan.
+
+B. ASSET BUDGET USAGE DEPT. (CAPEX)
+   - Batas Target KPI : 100%
+   - Karakteristik     : Investasi aktiva tetap, mesin, alat ukur/inventory baru.
+   - Penilaian KPI    :
+     * Sesuai Target (GOOD)    : Penggunaan <= 100% dari pagu yang dialokasikan.
+     * Over Target (NOT GOOD) : Penggunaan > 100% (Over Budget).
+
+
+--------------------------------------------------------------------------------
+3. PILIHAN BASIS TERPAKAI: "PLANNING PR" VS "REALISASI FISIK GR"
+--------------------------------------------------------------------------------
+Sistem menyediakan tombol pengalih (toggle) basis data di bar atas:
+
+1. [Planning PR] (Basis Komitmen Awal)
+   - Menghitung pengeluaran berdasarkan Purchase Requisition (PR) yang telah
+     diajukan dan disetujui di sistem.
+   - Fungsi: Mengetahui komitmen anggaran lebih awal sebelum barang/faktur datang,
+     sehingga departemen dapat mengantisipasi potensi over-budget sejak dini.
+
+2. [Realisasi Fisik GR] (Basis Faktual Dokumen)
+   - Menghitung pengeluaran berdasarkan Goods Receipt (GR) resmi dari gudang/purchasing.
+   - Fungsi: Memberikan angka realisasi riil barang yang sudah diterima di pabrik.
+
+
+--------------------------------------------------------------------------------
+4. CARA MEMBACA GRAFIK (BAGIAN 1: TARGET VS AKTUAL)
+--------------------------------------------------------------------------------
+- Sumbu X (Bawah) : Nama bulan (Jan, Feb, Mar, Apr, Mei, Jun, Jul, Agus, Sep, Okt, Nov, Des).
+- Sumbu Y (Kiri)  : Persentase serapan (0% - 100%).
+- Garis Biru      : Garis batas Target KPI (90% untuk OPEX / 100% untuk CAPEX).
+- Garis Hitam     : Realisasi persentase penggunaan aktual pada bulan tersebut.
+
+Indikator Kinerja di Kanan Atas:
+* [GOOD (Sesuai Target)]    : Rata-rata total serapan berada di bawah/sama dengan batas target KPI.
+* [NOT GOOD (Over Target)] : Total serapan telah melampaui batas toleransi target KPI.
+
+
+--------------------------------------------------------------------------------
+5. CARA MEMBACA TABEL MATRIKS 12 BULAN (BAGIAN 2)
+--------------------------------------------------------------------------------
+Tabel menyajikan 5 baris metrik terstruktur per bulan:
+
+1. Target (%)
+   - Menampilkan target persentase KPI (90% atau 100%).
+
+2. Expenses / Asset Budget Usage (IDR)
+   - Total nominal biaya yang telah digunakan pada bulan terkait (sesuai basis PR / GR).
+
+3. Expenses / Asset Budget Approved in a month (IDR)
+   - Total nominal pagu anggaran yang telah disetujui dalam perencanaan tahunan.
+
+4. % Budget Usage (%)
+   - Persentase realisasi per bulan: (Usage IDR / Approved IDR) * 100%.
+   - Warna Hijau : Realisasi dalam batas aman KPI (<= 90% atau <= 100%).
+   - Warna Merah : Realisasi melebihi batas target KPI (> 90% atau > 100%).
+
+5. Evaluasi Target KPI
+   - Simbol Centang Hijau (CheckCircle2) : Memenuhi target KPI pada bulan tersebut.
+   - Simbol Segitiga Merah (AlertTriangle) : Melebihi target KPI (perlu evaluasi Purchasing).
+
+
+--------------------------------------------------------------------------------
+6. FITUR INTEGRASI LAINNYA DI DASHBOARD
+--------------------------------------------------------------------------------
+- Penggantian Periode Tahun: Gunakan dropdown periode di pojok kanan atas untuk
+  melihat riwayat KPI tahun sebelumnya (misal 2024, 2025) atau tahun aktif (2026).
+- Export Laporan Excel Resmi: Klik tombol "Export Excel" untuk mengunduh laporan
+  lengkap dalam format spreadsheet berstandar PT Summit Adyawinsa Indonesia.
+- Export PDF: Klik tombol "Export PDF" untuk mencetak dokumen dashboard siap rapat.
+- Dark & Light Mode: Tampilan otomatis menyesuaikan tema gelap atau terang dengan
+  tingkat kontras optimal.
+
+
+--------------------------------------------------------------------------------
+7. KONTAK DUKUNGAN SISTEM
+--------------------------------------------------------------------------------
+Jika ditemukan ketidaksesuaian data PR atau butuh pendaftaran master kategori baru:
+- Unit Penanggung Jawab : Quality Engineering & Purchasing PT Summit Adyawinsa Indonesia
+- Administrator Sistem  : Tim IT / Administrator Budget SAI
+================================================================================

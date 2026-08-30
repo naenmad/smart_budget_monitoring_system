@@ -145,6 +145,158 @@ class PrService:
         }, 200
 
     @staticmethod
+    def edit_status(pr_id: int, user_id: int, status_type: str, planning_detail_id: int = None, alasan: str = None):
+        """
+        Koreksi status PR secara komprehensif:
+        - status_type: 'PLANNING', 'OOP', 'NEED_MAPPING', 'CANCELLED', 'RESTORE'
+        """
+        from datetime import datetime
+        from models.planning_detail import PlanningDetail
+        from models.mapping_log import MappingLog
+        from services.budget_monitoring_service import BudgetMonitoringService
+        from services.mapping.advanced_mapping_service import AdvancedMappingService
+
+        pr = db.session.get(PrPoData, pr_id)
+        if not pr:
+            return {"success": False, "message": "PR tidak ditemukan"}, 404
+
+        old_planning_detail_id = pr.planning_detail_id
+        status_type = (status_type or "").upper()
+
+        if status_type == "CANCELLED":
+            return PrService.cancel_pr(pr_id, user_id, alasan)
+
+        if status_type == "RESTORE":
+            # Pulihkan PR dari status pembatalan
+            pr.dibatalkan_oleh = None
+            pr.dibatalkan_at = None
+            pr.alasan_pembatalan = None
+            pr.status_ai = "NEED_MAPPING"
+            pr.budget_status = None
+            pr.perlu_review = True
+            pr.direview_oleh = user_id
+            pr.direview_at = datetime.utcnow()
+            db.session.commit()
+
+            # Jalankan ulang mapping
+            AdvancedMappingService.run_mapping(pr)
+            return {
+                "success": True,
+                "message": "PR berhasil dipulihkan ke antrean aktif dan di-mapping ulang",
+                "data": pr.to_dict()
+            }, 200
+
+        if status_type == "OOP":
+            pr.planning_detail_id = None
+            pr.status_ai = "DONE"
+            pr.budget_status = "OOP"
+            pr.perlu_review = False
+            pr.dibatalkan_oleh = None
+            pr.dibatalkan_at = None
+            pr.alasan_pembatalan = None
+            pr.direview_oleh = user_id
+            pr.direview_at = datetime.utcnow()
+
+            new_log = MappingLog(
+                pr_po_data_id=pr.id,
+                method="MANUAL",
+                planning_detail_hasil_id=None,
+                confidence_score=None,
+                rank_no=None,
+                is_selected=True,
+                processing_time=0.0
+            )
+            db.session.add(new_log)
+
+            if old_planning_detail_id:
+                BudgetMonitoringService.recalculate_planning_status(old_planning_detail_id)
+
+            db.session.commit()
+            return {
+                "success": True,
+                "message": "Status PR berhasil diubah menjadi OOP (Out of Plan)",
+                "data": pr.to_dict()
+            }, 200
+
+        if status_type == "PLANNING":
+            if not planning_detail_id:
+                return {"success": False, "message": "planning_detail_id wajib dipilih untuk status Planning"}, 400
+
+            detail = db.session.get(PlanningDetail, planning_detail_id)
+            if not detail:
+                return {"success": False, "message": "Item Planning Detail tidak ditemukan"}, 404
+
+            if pr.kategori_id != detail.kategori_id:
+                pr.kategori_id_koreksi = detail.kategori_id
+            pr.kategori_id = detail.kategori_id
+            pr.planning_detail_id = detail.id
+            pr.status_ai = "DONE"
+            pr.perlu_review = False
+            pr.dibatalkan_oleh = None
+            pr.dibatalkan_at = None
+            pr.alasan_pembatalan = None
+            pr.direview_oleh = user_id
+            pr.direview_at = datetime.utcnow()
+
+            new_log = MappingLog(
+                pr_po_data_id=pr.id,
+                method="MANUAL",
+                planning_detail_hasil_id=detail.id,
+                confidence_score=None,
+                rank_no=None,
+                is_selected=True,
+                processing_time=0.0
+            )
+            db.session.add(new_log)
+
+            BudgetMonitoringService.recalculate_planning_status(detail.id)
+            if old_planning_detail_id and old_planning_detail_id != detail.id:
+                BudgetMonitoringService.recalculate_planning_status(old_planning_detail_id)
+
+            BudgetMonitoringService.calculate_budget_consumption(pr)
+            db.session.commit()
+
+            return {
+                "success": True,
+                "message": f"Status PR berhasil diubah dan ditautkan ke '{detail.item}'",
+                "data": pr.to_dict()
+            }, 200
+
+        if status_type in ["NEED_MAPPING", "PENDING"]:
+            pr.planning_detail_id = None
+            pr.status_ai = "NEED_MAPPING"
+            pr.budget_status = None
+            pr.perlu_review = True
+            pr.dibatalkan_oleh = None
+            pr.dibatalkan_at = None
+            pr.alasan_pembatalan = None
+            pr.direview_oleh = user_id
+            pr.direview_at = datetime.utcnow()
+
+            new_log = MappingLog(
+                pr_po_data_id=pr.id,
+                method="MANUAL",
+                planning_detail_hasil_id=None,
+                confidence_score=None,
+                rank_no=None,
+                is_selected=False,
+                processing_time=0.0
+            )
+            db.session.add(new_log)
+
+            if old_planning_detail_id:
+                BudgetMonitoringService.recalculate_planning_status(old_planning_detail_id)
+
+            db.session.commit()
+            return {
+                "success": True,
+                "message": "PR berhasil dikembalikan ke antrean Review Mapping",
+                "data": pr.to_dict()
+            }, 200
+
+        return {"success": False, "message": f"Tipe status '{status_type}' tidak valid"}, 400
+
+    @staticmethod
     def get_summary_by_upload(upload_id: int):
         """Ringkasan status AI per upload."""
         from sqlalchemy import func

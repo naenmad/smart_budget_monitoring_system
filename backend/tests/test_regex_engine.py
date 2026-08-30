@@ -30,11 +30,11 @@ class TestRegexEngine(unittest.TestCase):
         self.assertEqual(regex_predict("PEMBELIAN TOOL BOX"), "I-1")
 
     def test_regex_predict_repair_bypass(self):
-        # Even if inventory keyword exists, if it's repair/service, it should bypass (return None)
-        self.assertIsNone(regex_predict("REPAIR KUNCI SHOCK"))
-        self.assertIsNone(regex_predict("SERVICE PEMOTONG KERTAS"))
-        self.assertIsNone(regex_predict("PERBAIKAN TOOL SET"))
-        self.assertIsNone(regex_predict("BENERIN TOOLBOX"))
+        # Even if inventory keyword exists, if it's repair/service, it should classify as E-1
+        self.assertEqual(regex_predict("REPAIR KUNCI SHOCK"), "E-1")
+        self.assertEqual(regex_predict("SERVICE PEMOTONG KERTAS"), "E-1")
+        self.assertEqual(regex_predict("PERBAIKAN TOOL SET"), "E-1")
+        self.assertEqual(regex_predict("BENERIN TOOLBOX"), "E-1")
 
     def test_regex_predict_no_match(self):
         self.assertIsNone(regex_predict("BELI BARANG RANDOM"))

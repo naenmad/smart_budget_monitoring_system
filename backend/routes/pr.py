@@ -251,6 +251,64 @@ def cancel_pr(pr_id):
 
 
 # ------------------------------------------------------------------
+# Edit / Koreksi Status PR
+# POST/PUT /api/v1/pr/<pr_id>/status
+# Body: { "user_id": 1, "status_type": "PLANNING|OOP|NEED_MAPPING|CANCELLED|RESTORE", "planning_detail_id": 123, "alasan": "..." }
+# ------------------------------------------------------------------
+@pr_bp.route("/<int:pr_id>/status", methods=["PUT", "POST"])
+def edit_status(pr_id):
+    """Koreksi / Perbarui Status PR (PLANNING, OOP, NEED_MAPPING, CANCELLED, RESTORE)
+    ---
+    tags:
+      - PR / PO Tracking & Stages
+    security:
+      - Bearer: []
+    parameters:
+      - name: pr_id
+        in: path
+        type: integer
+        required: true
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - status_type
+          properties:
+            status_type:
+              type: string
+              enum: [PLANNING, OOP, NEED_MAPPING, CANCELLED, RESTORE]
+            planning_detail_id:
+              type: integer
+            alasan:
+              type: string
+            user_id:
+              type: integer
+    responses:
+      200:
+        description: Status PR berhasil diperbarui
+    """
+    data = request.get_json() or {}
+    status_type = data.get("status_type")
+    planning_detail_id = data.get("planning_detail_id")
+    alasan = data.get("alasan")
+    user_id = data.get("user_id", 1)
+
+    if not status_type:
+        return jsonify({"success": False, "message": "status_type wajib diisi"}), 400
+
+    result, status = PrService.edit_status(
+        pr_id=pr_id,
+        user_id=user_id,
+        status_type=status_type,
+        planning_detail_id=planning_detail_id,
+        alasan=alasan
+    )
+    return jsonify(result), status
+
+
+# ------------------------------------------------------------------
 # Ringkasan status AI per upload
 # GET /api/v1/pr/summary/<upload_id>
 # ------------------------------------------------------------------

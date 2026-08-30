@@ -1,14 +1,30 @@
+import toast from 'react-hot-toast'
 import { useState, useEffect } from 'react'
 import { prApi } from '../api/prApi'
+import { mappingApi } from '../api/mappingApi'
 import { kategoriApi } from '../api/kategoriApi'
 import { useAuth } from '../context/AuthContext'
-import { XCircle, AlertTriangle } from 'lucide-react'
+import { 
+  XCircle, 
+  AlertTriangle, 
+  Edit3, 
+  Search, 
+  Check, 
+  Loader2, 
+  X, 
+  Database, 
+  RotateCcw, 
+  CheckCircle2, 
+  Sliders
+} from 'lucide-react'
 import styles from './PrResult.module.css'
 
 const STATUS_CONFIG = {
   PLANNING: { bg: '#dcfce7', color: '#166534', label: 'PLANNING' },
+  ON_PLAN: { bg: '#dcfce7', color: '#166534', label: 'PLANNING' },
   OVER_PLAN: { bg: '#fef9c3', color: '#854d0e', label: 'OVER BUDGET' },
   OOP: { bg: '#fee2e2', color: '#991b1b', label: 'OOP' },
+  NEED_MAPPING: { bg: '#fef3c7', color: '#92400e', label: 'PERLU REVIEW' },
   CANCELLED: { bg: '#f1f5f9', color: '#64748b', label: 'DIBATALKAN' },
 }
 
@@ -27,8 +43,19 @@ export default function PrResult() {
   const [searchItem, setSearchItem] = useState('')
   const [filterStatus, setFilterStatus] = useState('DONE')
 
-  // Cancel modal state
-  const [cancelTarget, setCancelTarget] = useState(null)   // PR object yang akan dibatalkan
+  // Edit status modal state
+  const [editTarget, setEditTarget] = useState(null)
+  const [statusType, setStatusType] = useState('PLANNING')
+  const [selectedPlanDetail, setSelectedPlanDetail] = useState(null)
+  const [planSearchTerm, setPlanSearchTerm] = useState('')
+  const [planSearchResults, setPlanSearchResults] = useState([])
+  const [planSearchLoading, setPlanSearchLoading] = useState(false)
+  const [editAlasan, setEditAlasan] = useState('')
+  const [savingStatus, setSavingStatus] = useState(false)
+  const [editError, setEditError] = useState('')
+
+  // Cancel modal state (quick cancel)
+  const [cancelTarget, setCancelTarget] = useState(null)
   const [alasan, setAlasan] = useState('')
   const [cancelling, setCancelling] = useState(false)
   const [cancelError, setCancelError] = useState('')
@@ -37,7 +64,9 @@ export default function PrResult() {
     kategoriApi.getAll().then(d => setKategoris(d.data || [])).catch(() => { })
   }, [])
 
-  useEffect(() => { fetchData() }, [page, perPage, filterKategori, searchItem, filterStatus])
+  useEffect(() => { 
+    fetchData() 
+  }, [page, perPage, filterKategori, searchItem, filterStatus])
 
   async function fetchData() {
     setLoading(true)
@@ -52,8 +81,11 @@ export default function PrResult() {
       setPrList(d.data || [])
       setTotal(d.total || 0)
       setTotalPages(d.pages || 1)
-    } catch { }
-    finally { setLoading(false) }
+    } catch (err) {
+      console.error(err)
+    } finally { 
+      setLoading(false) 
+    }
   }
 
   function fmt(n) {
@@ -74,6 +106,103 @@ export default function PrResult() {
     return <span style={{ background: cfg.bg, color: cfg.color, borderRadius: 4, padding: '3px 10px', fontSize: 12, fontWeight: 700 }}>{cfg.label}</span>
   }
 
+  // ── Open Edit Status Modal ──
+  function openEditModal(pr) {
+    setEditTarget(pr)
+    setEditError('')
+    setPlanSearchTerm('')
+    setPlanSearchResults([])
+    setEditAlasan(pr.alasan_pembatalan || '')
+
+    if (pr.status_ai === 'CANCELLED') {
+      setStatusType('RESTORE')
+      setSelectedPlanDetail(null)
+    } else if (pr.budget_status === 'OOP') {
+      setStatusType('OOP')
+      setSelectedPlanDetail(null)
+    } else if (pr.perlu_review || pr.status_ai === 'NEED_MAPPING') {
+      setStatusType('NEED_MAPPING')
+      setSelectedPlanDetail(null)
+    } else {
+      setStatusType('PLANNING')
+      if (pr.planning_detail_id) {
+        setSelectedPlanDetail({
+          id: pr.planning_detail_id,
+          item: pr.planning_item || pr.planning_detail?.item || 'Item Anggaran Terpilih',
+          month: pr.planning_detail?.month || '',
+          planning_amount: pr.planning_detail?.planning_amount || 0,
+          remarks: pr.planning_detail?.remarks || ''
+        })
+      } else {
+        setSelectedPlanDetail(null)
+      }
+    }
+  }
+
+  function closeEditModal() {
+    setEditTarget(null)
+    setEditError('')
+    setSelectedPlanDetail(null)
+    setPlanSearchTerm('')
+    setPlanSearchResults([])
+  }
+
+  async function handleSearchPlanning(term) {
+    setPlanSearchTerm(term)
+    if (term.length < 2) {
+      setPlanSearchResults([])
+      return
+    }
+    setPlanSearchLoading(true)
+    try {
+      const res = await mappingApi.searchPlanningDetail(editTarget.id, term)
+      setPlanSearchResults(res.data?.data || [])
+    } catch (err) {
+      console.error('Gagal cari planning:', err)
+    } finally {
+      setPlanSearchLoading(false)
+    }
+  }
+
+  async function handleSaveStatus() {
+    if (!editTarget) return
+    setEditError('')
+
+    if (statusType === 'PLANNING' && !selectedPlanDetail?.id) {
+      setEditError('Pilih salah satu item Planning terlebih dahulu.')
+      return
+    }
+
+    if (statusType === 'CANCELLED' && !editAlasan.trim()) {
+      setEditError('Alasan pembatalan wajib diisi.')
+      return
+    }
+
+    setSavingStatus(true)
+    try {
+      const payload = {
+        user_id: user?.id || 1,
+        status_type: statusType,
+        planning_detail_id: statusType === 'PLANNING' ? selectedPlanDetail.id : null,
+        alasan: statusType === 'CANCELLED' ? editAlasan.trim() : null
+      }
+
+      const res = await prApi.editStatus(editTarget.id, payload)
+      if (res.data?.success) {
+        toast.success(res.data.message || 'Status PR berhasil diperbarui!')
+        closeEditModal()
+        fetchData()
+      } else {
+        setEditError(res.data?.message || 'Gagal memperbarui status')
+      }
+    } catch (err) {
+      setEditError(err.response?.data?.message || 'Gagal memperbarui status PR')
+    } finally {
+      setSavingStatus(false)
+    }
+  }
+
+  // ── Quick Cancel Modal handlers ──
   function openCancelModal(pr) {
     setCancelTarget(pr)
     setAlasan('')
@@ -94,6 +223,7 @@ export default function PrResult() {
     try {
       const res = await prApi.cancelPr(cancelTarget.id, user?.id, alasan.trim())
       if (res.data?.success) {
+        toast.success('PR berhasil dibatalkan')
         closeCancelModal()
         fetchData()
       } else {
@@ -110,7 +240,7 @@ export default function PrResult() {
     <div className={styles.page}>
       <h2 className={styles.title}>Result Matching</h2>
       <p className={styles.subtitle}>
-        Hasil klasifikasi PR: <strong>PLANNING</strong> / <strong>OVER BUDGET</strong> / <strong>OOP</strong>
+        Hasil klasifikasi dan monitoring anggaran PR: <strong>PLANNING</strong> / <strong>OVER BUDGET</strong> / <strong>OOP</strong>
       </p>
 
       {/* Filters */}
@@ -174,22 +304,32 @@ export default function PrResult() {
                       <StatusBadge pr={pr} />
                     </td>
                     <td className={styles.td}>
-                      {pr.status_ai !== 'CANCELLED' &&
-                        !['PARTIAL_RECEIVED', 'GOODS_RECEIVED', 'COMPLETED'].includes(pr.procurement_status) && (
-                          <button
-                            className={styles.btnCancel}
-                            onClick={() => openCancelModal(pr)}
-                            title="Batalkan PR ini"
-                          >
-                            Batalkan
-                          </button>
+                      <div className={styles.actionGroup}>
+                        <button
+                          className={styles.btnEditStatus}
+                          onClick={() => openEditModal(pr)}
+                          title="Koreksi / Edit Status PR ini"
+                        >
+                          <Edit3 size={12} /> Edit Status
+                        </button>
+
+                        {pr.status_ai !== 'CANCELLED' &&
+                          !['PARTIAL_RECEIVED', 'GOODS_RECEIVED', 'COMPLETED'].includes(pr.procurement_status) && (
+                            <button
+                              className={styles.btnCancel}
+                              onClick={() => openCancelModal(pr)}
+                              title="Batalkan PR ini"
+                            >
+                              Batalkan
+                            </button>
+                          )}
+                        {pr.status_ai === 'CANCELLED' && (
+                          <span className={styles.cancelledNote} title={pr.alasan_pembatalan}>
+                            <XCircle size={13} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+                            Dibatalkan
+                          </span>
                         )}
-                      {pr.status_ai === 'CANCELLED' && (
-                        <span className={styles.cancelledNote} title={pr.alasan_pembatalan}>
-                          <XCircle size={13} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
-                          Dibatalkan
-                        </span>
-                      )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -226,7 +366,275 @@ export default function PrResult() {
         </>
       )}
 
-      {/* ── Modal Konfirmasi Pembatalan PR ── */}
+      {/* ── Modal Edit / Koreksi Status PR ── */}
+      {editTarget && (
+        <div className={styles.overlay} onClick={closeEditModal}>
+          <div className={`${styles.modal} ${styles.modalLarge}`} onClick={e => e.stopPropagation()}>
+            <div className={styles.modalHeaderRow}>
+              <h3 className={styles.modalTitle}>
+                <Sliders size={18} color="var(--primary)" />
+                Koreksi & Edit Status PR
+              </h3>
+              <button className={styles.modalCloseBtn} onClick={closeEditModal} title="Tutup Modal">
+                <X size={18} />
+              </button>
+            </div>
+
+            <p className={styles.modalDesc}>
+              Perbarui status penyerapan anggaran atau hubungkan PR ke item planning yang benar.
+            </p>
+
+            {/* Target PR Summary Info */}
+            <div className={styles.modalPrInfo}>
+              <div className={styles.modalPrHeaderLine}>
+                <span className={styles.modalPrDoc}>{editTarget.pr_doc_num || '-'}</span>
+                <StatusBadge pr={editTarget} />
+              </div>
+              <div style={{ fontWeight: 600 }}>{editTarget.description}</div>
+              <div className={styles.modalPrMeta}>
+                <span>Kategori: <strong>{editTarget.kategori_kode || 'Tanpa Kategori'}</strong></span>
+                <span>Total: <strong>{fmt(editTarget.total_price)}</strong></span>
+                {editTarget.supplier_name && <span>Vendor: {editTarget.supplier_name}</span>}
+              </div>
+            </div>
+
+            <label className={styles.modalLabel}>Pilih Status Baru:</label>
+
+            {/* Status Option Cards */}
+            <div className={styles.statusOptionGrid}>
+              {/* Option 1: PLANNING */}
+              <div 
+                className={`${styles.statusCard} ${statusType === 'PLANNING' ? styles.statusCardActive : ''}`}
+                onClick={() => setStatusType('PLANNING')}
+              >
+                <input 
+                  type="radio" 
+                  name="statusOption" 
+                  checked={statusType === 'PLANNING'} 
+                  onChange={() => setStatusType('PLANNING')}
+                  className={styles.statusRadio} 
+                />
+                <div className={styles.statusCardContent}>
+                  <div className={styles.statusCardTitleRow}>
+                    <span className={styles.statusCardTitle}>Planning (Sesuai Rencana Anggaran)</span>
+                    <span style={{ background: '#dcfce7', color: '#166534', borderRadius: 4, padding: '2px 8px', fontSize: 11, fontWeight: 700 }}>PLANNING</span>
+                  </div>
+                  <div className={styles.statusCardDesc}>
+                    Tautkan pengadaan ini ke salah satu item di Master Planning Budget tahunan.
+                  </div>
+                </div>
+              </div>
+
+              {/* Option 2: OOP */}
+              <div 
+                className={`${styles.statusCard} ${statusType === 'OOP' ? styles.statusCardActive : ''}`}
+                onClick={() => setStatusType('OOP')}
+              >
+                <input 
+                  type="radio" 
+                  name="statusOption" 
+                  checked={statusType === 'OOP'} 
+                  onChange={() => setStatusType('OOP')}
+                  className={styles.statusRadio} 
+                />
+                <div className={styles.statusCardContent}>
+                  <div className={styles.statusCardTitleRow}>
+                    <span className={styles.statusCardTitle}>OOP (Out of Plan / Belanja Tambahan)</span>
+                    <span style={{ background: '#fee2e2', color: '#991b1b', borderRadius: 4, padding: '2px 8px', fontSize: 11, fontWeight: 700 }}>OOP</span>
+                  </div>
+                  <div className={styles.statusCardDesc}>
+                    Pengadaan darurat atau tidak tercatat pada rencana anggaran awal departemen.
+                  </div>
+                </div>
+              </div>
+
+              {/* Option 3: NEED_MAPPING */}
+              <div 
+                className={`${styles.statusCard} ${statusType === 'NEED_MAPPING' ? styles.statusCardActive : ''}`}
+                onClick={() => setStatusType('NEED_MAPPING')}
+              >
+                <input 
+                  type="radio" 
+                  name="statusOption" 
+                  checked={statusType === 'NEED_MAPPING'} 
+                  onChange={() => setStatusType('NEED_MAPPING')}
+                  className={styles.statusRadio} 
+                />
+                <div className={styles.statusCardContent}>
+                  <div className={styles.statusCardTitleRow}>
+                    <span className={styles.statusCardTitle}>Kembalikan ke Review Mapping</span>
+                    <span style={{ background: '#fef3c7', color: '#92400e', borderRadius: 4, padding: '2px 8px', fontSize: 11, fontWeight: 700 }}>NEED REVIEW</span>
+                  </div>
+                  <div className={styles.statusCardDesc}>
+                    Kirim kembali item ke antrean Review Mapping agar dapat dicocokkan ulang oleh AI.
+                  </div>
+                </div>
+              </div>
+
+              {/* Option 4: RESTORE (If cancelled) or CANCELLED */}
+              {editTarget.status_ai === 'CANCELLED' ? (
+                <div 
+                  className={`${styles.statusCard} ${statusType === 'RESTORE' ? styles.statusCardActive : ''}`}
+                  onClick={() => setStatusType('RESTORE')}
+                >
+                  <input 
+                    type="radio" 
+                    name="statusOption" 
+                    checked={statusType === 'RESTORE'} 
+                    onChange={() => setStatusType('RESTORE')}
+                    className={styles.statusRadio} 
+                  />
+                  <div className={styles.statusCardContent}>
+                    <div className={styles.statusCardTitleRow}>
+                      <span className={styles.statusCardTitle}>Pulihkan / Aktifkan Kembali PR</span>
+                      <span style={{ background: '#dbeafe', color: '#1e40af', borderRadius: 4, padding: '2px 8px', fontSize: 11, fontWeight: 700 }}>RESTORE</span>
+                    </div>
+                    <div className={styles.statusCardDesc}>
+                      Batalkan status pembatalan dan aktifkan kembali pengadaan ke dalam sistem.
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div 
+                  className={`${styles.statusCard} ${statusType === 'CANCELLED' ? styles.statusCardActive : ''}`}
+                  onClick={() => setStatusType('CANCELLED')}
+                >
+                  <input 
+                    type="radio" 
+                    name="statusOption" 
+                    checked={statusType === 'CANCELLED'} 
+                    onChange={() => setStatusType('CANCELLED')}
+                    className={styles.statusRadio} 
+                  />
+                  <div className={styles.statusCardContent}>
+                    <div className={styles.statusCardTitleRow}>
+                      <span className={styles.statusCardTitle}>Batalkan PR</span>
+                      <span style={{ background: '#f1f5f9', color: '#64748b', borderRadius: 4, padding: '2px 8px', fontSize: 11, fontWeight: 700 }}>CANCELLED</span>
+                    </div>
+                    <div className={styles.statusCardDesc}>
+                      Batalkan pengadaan dan lepaskan dari seluruh alokasi anggaran.
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Planning Item Picker (Displayed when PLANNING is selected) */}
+            {statusType === 'PLANNING' && (
+              <div className={styles.planningPickerSection}>
+                <label className={styles.modalLabel}>Item Planning Terpilih:</label>
+                {selectedPlanDetail ? (
+                  <div className={styles.selectedPlanningCard}>
+                    <div className={styles.selectedPlanningInfo}>
+                      <span className={styles.selectedPlanningName}>{selectedPlanDetail.item}</span>
+                      <span className={styles.selectedPlanningMeta}>
+                        Bulan: {selectedPlanDetail.month || '-'} &middot; Pagu: {fmt(selectedPlanDetail.planning_amount)}
+                        {selectedPlanDetail.remarks ? ` · ${selectedPlanDetail.remarks}` : ''}
+                      </span>
+                    </div>
+                    <span style={{ color: '#16a34a', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600 }}>
+                      <Check size={14} /> Terpilih
+                    </span>
+                  </div>
+                ) : (
+                  <p style={{ fontSize: 12.5, color: '#e11d48', margin: '0 0 10px' }}>
+                    Belum ada item planning yang dipilih. Cari dan pilih dari database di bawah.
+                  </p>
+                )}
+
+                <div className={styles.planningSearchWrap}>
+                  <input
+                    type="text"
+                    placeholder="Cari nama item anggaran atau remarks (min. 2 huruf)..."
+                    value={planSearchTerm}
+                    onChange={e => handleSearchPlanning(e.target.value)}
+                    className={styles.planningSearchInput}
+                  />
+                  <Search size={14} className={styles.planningSearchIcon} />
+                </div>
+
+                {planSearchLoading && (
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: '6px 0', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Loader2 size={13} className="animate-spin" /> Mencari di master budget...
+                  </div>
+                )}
+
+                {!planSearchLoading && planSearchResults.length > 0 && (
+                  <div className={styles.planningResultList}>
+                    {planSearchResults.map(item => (
+                      <div key={item.id} className={styles.planningResultItem}>
+                        <div>
+                          <span className={styles.planningResultName}>{item.item}</span>
+                          <span className={styles.planningResultMeta}>
+                            {item.month} &middot; {fmt(item.planning_amount)} &middot; {item.kategori_kode || ''}
+                            {item.remarks ? ` · ${item.remarks}` : ''}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          className={styles.btnPickPlanning}
+                          onClick={() => {
+                            setSelectedPlanDetail(item)
+                            setPlanSearchResults([])
+                            setPlanSearchTerm('')
+                          }}
+                        >
+                          Pilih
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Cancellation Reason (Displayed when CANCELLED is selected) */}
+            {statusType === 'CANCELLED' && (
+              <div style={{ marginBottom: 14 }}>
+                <label className={styles.modalLabel}>Alasan Pembatalan *</label>
+                <textarea
+                  className={styles.modalTextarea}
+                  rows={2}
+                  placeholder="Masukkan alasan pembatalan PR..."
+                  value={editAlasan}
+                  onChange={e => setEditAlasan(e.target.value)}
+                />
+              </div>
+            )}
+
+            {editError && <p className={styles.modalError}>{editError}</p>}
+
+            <div className={styles.modalActions}>
+              <button 
+                className={styles.btnSubmit}
+                onClick={handleSaveStatus}
+                disabled={savingStatus}
+              >
+                {savingStatus ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    Menyimpan...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 size={14} />
+                    Simpan Perubahan
+                  </>
+                )}
+              </button>
+              <button 
+                className={styles.btnModalClose} 
+                onClick={closeEditModal}
+                disabled={savingStatus}
+              >
+                Batal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal Konfirmasi Pembatalan PR Cepat ── */}
       {cancelTarget && (
         <div className={styles.overlay} onClick={closeCancelModal}>
           <div className={styles.modal} onClick={e => e.stopPropagation()}>
@@ -271,3 +679,4 @@ export default function PrResult() {
     </div>
   )
 }
+

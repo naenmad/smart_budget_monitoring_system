@@ -45,4 +45,8 @@ export const prApi = {
   // Batalkan PR langsung (bukan cancel Planning)
   cancelPr: (id, userId, alasan = '') =>
     api.post(`/pr/${id}/cancel`, { user_id: userId, alasan }),
+
+  // Edit / Koreksi Status PR (PLANNING, OOP, NEED_MAPPING, CANCELLED, RESTORE)
+  editStatus: (id, data) =>
+    api.post(`/pr/${id}/status`, data),
 }
