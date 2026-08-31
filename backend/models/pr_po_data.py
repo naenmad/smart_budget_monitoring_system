@@ -320,8 +320,8 @@ class PrPoData(db.Model):
             "planning_pagu": float(self.planning_detail.planning_amount) if self.planning_detail and self.planning_detail.planning_amount else None,
             "planning_month": self.planning_detail.month if self.planning_detail else None,
             "planning_remarks": self.planning_detail.remarks if self.planning_detail else None,
-            "planning_total_consumed": sum(float(p.total_price or 0) for p in self.planning_detail.pr_po_data if p.status_ai != 'CANCELLED') if self.planning_detail and self.planning_detail.pr_po_data else (float(self.total_price or 0) if self.total_price else 0.0),
-            "planning_remaining": (float(self.planning_detail.planning_amount or 0) - sum(float(p.total_price or 0) for p in self.planning_detail.pr_po_data if p.status_ai != 'CANCELLED')) if self.planning_detail and self.planning_detail.pr_po_data else None,
+            "planning_total_consumed": sum(float(p.total_price or 0) for p in self.planning_detail.pr_po_data_list if p.status_ai != 'CANCELLED') if self.planning_detail and hasattr(self.planning_detail, 'pr_po_data_list') else (float(self.total_price or 0) if self.total_price else 0.0),
+            "planning_remaining": (float(self.planning_detail.planning_amount or 0) - sum(float(p.total_price or 0) for p in self.planning_detail.pr_po_data_list if p.status_ai != 'CANCELLED')) if self.planning_detail and hasattr(self.planning_detail, 'pr_po_data_list') else None,
             "planning_detail": {
                 "id": self.planning_detail.id,
                 "item": self.planning_detail.item,
