@@ -268,36 +268,44 @@
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.55);
-  backdrop-filter: blur(4px);
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(5px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 9999;
   padding: 16px;
+  padding-top: calc(env(safe-area-inset-top, 0px) + 24px);
 }
 
 .modal {
   background: var(--bg-card);
   border-radius: var(--radius-md);
-  padding: 24px;
+  padding: 20px 24px 24px;
   width: 100%;
   max-width: 500px;
   box-shadow: var(--shadow-lg);
   max-height: 90vh;
   overflow-y: auto;
+  position: relative;
 }
 
 .modalLarge {
-  max-width: 620px;
+  max-width: 640px;
 }
 
 .modalHeaderRow {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
+  position: sticky;
+  top: -20px;
+  background: var(--bg-card);
+  z-index: 10;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .modalTitle {
@@ -311,21 +319,24 @@
 }
 
 .modalCloseBtn {
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  color: var(--text-body);
   cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.15s;
+  flex-shrink: 0;
 }
 
 .modalCloseBtn:hover {
-  color: var(--text-main);
-  background: var(--bg-subtle);
+  background: var(--danger-light);
+  color: var(--danger);
+  border-color: var(--danger-border);
 }
 
 .modalDesc {

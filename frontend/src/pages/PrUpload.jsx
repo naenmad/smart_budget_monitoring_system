@@ -19,6 +19,7 @@ import {
   Sparkles 
 } from 'lucide-react'
 import styles from './PrUpload.module.css'
+import ExcelViewer from '../components/ExcelViewer'
 
 const CURRENT_YEAR = new Date().getFullYear()
 const YEAR_OPTIONS = Array.from({ length: 6 }, (_, i) => String(CURRENT_YEAR - 2 + i))
@@ -387,6 +388,11 @@ export default function PrUpload() {
           </div>
         </div>
       </div>
+
+      {/* ── EMBEDDED EXCEL PREVIEW ── */}
+      {file && (
+        <ExcelViewer file={file} filename={file.name} />
+      )}
 
       {/* ── ROUNDTRIP ASSURANCE BANNER ── */}
       <div className={styles.fullWidthCard}>

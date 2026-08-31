@@ -1,0 +1,223 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  margin-top: 1.5rem;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  background: var(--bg-subtle);
+  border-bottom: 1px solid var(--border-color);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.excelIcon {
+  color: #107c41; /* Microsoft Excel Green */
+}
+
+.fileTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.fileMeta {
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.searchBox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 4px 10px;
+}
+
+.searchInput {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 12px;
+  color: var(--text-main);
+  width: 140px;
+}
+
+.sheetTabsBar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 14px 0;
+  background: var(--bg-subtle);
+  border-bottom: 1px solid var(--border-color);
+  overflow-x: auto;
+}
+
+.sheetTab {
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.sheetTab:hover {
+  color: var(--text-main);
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.sheetTabActive {
+  background: var(--bg-card);
+  color: #107c41;
+  border-color: var(--border-color);
+  border-bottom: 1px solid var(--bg-card);
+  margin-bottom: -1px;
+}
+
+.tableWrapper {
+  overflow: auto;
+  max-height: 480px;
+  position: relative;
+  background: var(--bg-card);
+}
+
+.gridTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.gridTable th {
+  position: sticky;
+  top: 0;
+  background: #f1f5f9;
+  color: #334155;
+  font-weight: 700;
+  padding: 8px 12px;
+  text-align: left;
+  border-right: 1px solid #cbd5e1;
+  border-bottom: 2px solid #94a3b8;
+  white-space: nowrap;
+  z-index: 2;
+}
+
+:global([data-theme="dark"]) .gridTable th {
+  background: #1e293b;
+  color: #e2e8f0;
+  border-right-color: #334155;
+  border-bottom-color: #475569;
+}
+
+.rowNumberTh,
+.rowNumberTd {
+  width: 40px;
+  text-align: center !important;
+  background: #f8fafc !important;
+  color: #64748b !important;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+  user-select: none;
+  border-right: 1px solid #cbd5e1 !important;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+
+:global([data-theme="dark"]) .rowNumberTh,
+:global([data-theme="dark"]) .rowNumberTd {
+  background: #0f172a !important;
+  color: #64748b !important;
+  border-right-color: #334155 !important;
+}
+
+.gridTable td {
+  padding: 6px 12px;
+  border-right: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+  color: var(--text-main);
+}
+
+.gridTable tr:nth-child(even) td {
+  background: rgba(0, 0, 0, 0.015);
+}
+
+:global([data-theme="dark"]) .gridTable tr:nth-child(even) td {
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.gridTable tr:hover td {
+  background: rgba(59, 130, 246, 0.05) !important;
+}
+
+.emptyState {
+  padding: 40px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+  background: var(--bg-subtle);
+  border-top: 1px solid var(--border-color);
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.paginationBtns {
+  display: flex;
+  gap: 6px;
+}
+
+.pageBtn {
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-main);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.pageBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

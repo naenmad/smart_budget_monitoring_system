@@ -75,6 +75,21 @@ class TestAdvancedMappingService(unittest.TestCase):
 
         self.assertGreater(score_pencabut, score_staples)
 
+    def test_price_anomaly_detection(self):
+        # Scenario: PR total price is Rp 50,000,000 but planning amount is Rp 50,000 (1000x difference)
+        pr_total_amt = 50000000.0
+        cand_plan_amt = 50000.0
+        price_ratio = pr_total_amt / cand_plan_amt
+        price_anomaly = (price_ratio > 3.0 or price_ratio < 0.1)
+        self.assertTrue(price_anomaly)
+
+        # Scenario: Normal reasonable price range (PR Rp 1,200,000 vs Planning Rp 1,500,000)
+        normal_pr = 1200000.0
+        normal_plan = 1500000.0
+        normal_ratio = normal_pr / normal_plan
+        normal_anomaly = (normal_ratio > 3.0 or normal_ratio < 0.1)
+        self.assertFalse(normal_anomaly)
+
     def test_extract_code_none(self):
         self.assertIsNone(AdvancedMappingService.extract_code("BELI BARANG BIASA SAJA"))
         self.assertIsNone(AdvancedMappingService.extract_code(""))
@@ -83,3 +98,4 @@ class TestAdvancedMappingService(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

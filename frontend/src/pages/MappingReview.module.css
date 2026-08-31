@@ -486,6 +486,38 @@
     margin-top: 2px;
 }
 
+.priceAnomalyBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: #b91c1c;
+    background: #fee2e2;
+    border: 1px solid #fecaca;
+    padding: 1px 6px;
+    border-radius: 4px;
+}
+
+.aiExplainPill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: #1e40af;
+    background: #eff6ff;
+    border: 1px solid #dbeafe;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-top: 3px;
+    width: fit-content;
+}
+
+.aiExplainIcon {
+    color: #3b82f6;
+    flex-shrink: 0;
+}
+
 .candidateRight {
     display: flex;
     align-items: center;

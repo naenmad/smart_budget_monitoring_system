@@ -9,14 +9,12 @@ import {
   CheckCircle2, 
   Loader2, 
   FileSpreadsheet, 
-  Info, 
-  Check, 
   ShieldCheck, 
   Layers, 
-  ArrowRight,
   Sparkles
 } from 'lucide-react'
 import styles from './PlanningUpload.module.css'
+import ExcelViewer from '../components/ExcelViewer'
 
 const CURRENT_YEAR = new Date().getFullYear()
 const YEAR_OPTIONS = Array.from({ length: 6 }, (_, i) => String(CURRENT_YEAR - 2 + i))
@@ -68,7 +66,7 @@ export default function PlanningUpload() {
           } else {
             resolve({ valid: true })
           }
-        } catch (err) {
+        } catch (_) {
           resolve({ valid: false, message: 'Gagal membaca struktur file Excel' })
         }
       }
@@ -100,7 +98,7 @@ export default function PlanningUpload() {
           setUploadLoading(false)
           toast.error('Gagal memproses file di background')
         }
-      } catch (err) {
+      } catch (_) {
         clearInterval(pollingRef.current)
         setUploadLoading(false)
         toast.error('Gagal mengecek status upload')
@@ -381,6 +379,11 @@ export default function PlanningUpload() {
           </div>
         </div>
       </div>
+
+      {/* ── EMBEDDED EXCEL PREVIEW ── */}
+      {file && (
+        <ExcelViewer file={file} filename={file.name} />
+      )}
 
       {/* ── ROUNDTRIP ASSURANCE BANNER ── */}
       <div className={styles.fullWidthCard}>

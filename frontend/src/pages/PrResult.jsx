@@ -129,10 +129,10 @@ export default function PrResult() {
       if (pr.planning_detail_id) {
         setSelectedPlanDetail({
           id: pr.planning_detail_id,
-          item: pr.planning_item || pr.planning_detail?.item || 'Item Anggaran Terpilih',
-          month: pr.planning_detail?.month || '',
-          planning_amount: pr.planning_detail?.planning_amount || 0,
-          remarks: pr.planning_detail?.remarks || ''
+          item: pr.planning_item || pr.planning_detail?.item || 'Item Anggaran Terhubung',
+          month: pr.planning_month || pr.planning_detail?.month || '-',
+          planning_amount: pr.planning_pagu || pr.planning_detail?.planning_amount || 0,
+          remarks: pr.planning_remarks || pr.planning_detail?.remarks || ''
         })
       } else {
         setSelectedPlanDetail(null)

@@ -262,7 +262,11 @@ class AdvancedMappingService:
                     seen_items.add(norm)
                     candidate_pool[pd.id] = pd
 
-        # Scoring kandidat dengan fuzzy match + perlakuan khusus code & preventive
+        from ai.synonym_normalizer import SynonymNormalizer
+
+        norm_desc = SynonymNormalizer.normalize_text(clean_desc)
+
+        # Scoring kandidat dengan fuzzy match + perlakuan khusus code, preventive, synonym, & price check
         scored_candidates = []
         for pd_id, pd in candidate_pool.items():
             cand_item = pd.item or ""
@@ -270,77 +274,143 @@ class AdvancedMappingService:
             cand_code = AdvancedMappingService.extract_code(cand_item)
             is_prev = ('preventive' in cand_item.lower() or 'preventive' in cand_remarks.lower()) and (pd.month == month)
 
-            # Hitung skor kemiripan terhadap 'item' dan 'remarks' menggunakan Hybrid Scoring
-            # (0.4 * token_set_ratio + 0.6 * token_sort_ratio) agar membedakan item spesifik (e.g. Pencabut Staples vs Staples) secara akurat
+            # 1. Lexical Hybrid Matching
             set_item = fuzz.token_set_ratio(clean_desc, cand_item, processor=default_process)
             sort_item = fuzz.token_sort_ratio(clean_desc, cand_item, processor=default_process)
-            score_item = 0.4 * set_item + 0.6 * sort_item
+            lexical_item_score = 0.4 * set_item + 0.6 * sort_item
 
             if cand_remarks:
                 set_remarks = fuzz.token_set_ratio(clean_desc, cand_remarks, processor=default_process)
                 sort_remarks = fuzz.token_sort_ratio(clean_desc, cand_remarks, processor=default_process)
-                score_remarks = 0.4 * set_remarks + 0.6 * sort_remarks
+                lexical_remarks_score = 0.4 * set_remarks + 0.6 * sort_remarks
             else:
-                score_remarks = 0.0
+                lexical_remarks_score = 0.0
+
+            # 2. Domain & Synonym Hybrid Matching
+            norm_item = SynonymNormalizer.normalize_text(cand_item)
+            norm_remarks = SynonymNormalizer.normalize_text(cand_remarks)
+
+            set_syn_item = fuzz.token_set_ratio(norm_desc, norm_item, processor=default_process)
+            sort_syn_item = fuzz.token_sort_ratio(norm_desc, norm_item, processor=default_process)
+            syn_item_score = 0.4 * set_syn_item + 0.6 * sort_syn_item
+
+            if norm_remarks:
+                set_syn_rem = fuzz.token_set_ratio(norm_desc, norm_remarks, processor=default_process)
+                sort_syn_rem = fuzz.token_sort_ratio(norm_desc, norm_remarks, processor=default_process)
+                syn_remarks_score = 0.4 * set_syn_rem + 0.6 * sort_syn_rem
+            else:
+                syn_remarks_score = 0.0
+
+            score_item = max(lexical_item_score, syn_item_score)
+            score_remarks = max(lexical_remarks_score, syn_remarks_score)
 
             base_score = max(score_item, score_remarks)
             final_score = base_score
 
+            code_match_status = "N/A"
             if pr_reg_num:
                 # PR memiliki kode alat/part
                 if cand_code == pr_reg_num:
                     final_score = 100.0
+                    code_match_status = "MATCH_100"
                 elif cand_code and cand_code != pr_reg_num:
                     # Penalti karena beda kode alat
                     final_score = min(final_score, 40.0)
+                    code_match_status = "MISMATCH"
             else:
                 # PR TIDAK memiliki kode (non-instrument / tools / preventive consumables)
                 if is_prev:
-                    if score_remarks >= 60.0:
-                        # Jika deskripsi PR cocok dengan catatan remarks perencanaan preventive bulan ini
+                    if score_remarks >= 60.0 or syn_remarks_score >= 60.0:
                         final_score = max(final_score, 95.0)
                     elif any(k in clean_desc.lower() for k in ['preventive', 'prev', 'perawatan', 'pemeliharaan']):
                         final_score = max(final_score, 90.0)
                     else:
-                        # Tawaran dasar otomatis untuk preventive di bulan yang bersangkutan
                         final_score = max(final_score, 75.0)
                 elif cand_code:
                     # Jika kandidat adalah alat ukur kalibrasi berkode, beri penalti agar tidak mendominasi barang non-kode
                     final_score = min(final_score, 45.0)
+                    code_match_status = "CANDIDATE_HAS_CODE"
 
-            scored_candidates.append((cand_item, final_score, pd.id, is_prev))
+            # 3. Financial Sanity Check & Price Anomaly Detection
+            pr_total_amt = float(pr.total_price or 0.0)
+            cand_plan_amt = float(pd.planning_amount or 0.0)
+            price_anomaly = False
+            price_status = "SAFE"
+
+            if pr_total_amt > 0 and cand_plan_amt > 0:
+                price_ratio = pr_total_amt / cand_plan_amt
+                if price_ratio > 3.0:
+                    price_anomaly = True
+                    price_status = "WARNING_EXCEEDS_BUDGET"
+                elif price_ratio < 0.1:
+                    price_anomaly = True
+                    price_status = "WARNING_SCALE_MISMATCH"
+                else:
+                    price_status = "SAFE"
+
+            # 4. Formulate Explainability Reason Breakdown
+            explain_points = []
+            if code_match_status == "MATCH_100":
+                explain_points.append(f"No. Registrasi / Part Number Cocok Sempurna ({pr_reg_num})")
+            elif code_match_status == "MISMATCH":
+                explain_points.append(f"Part Number Berbeda ({pr_reg_num} vs {cand_code})")
+
+            if syn_item_score > lexical_item_score + 10.0:
+                explain_points.append(f"Cocok via Kamus Sinonim & Istilah Teknik ({syn_item_score:.1f}%)")
+            else:
+                explain_points.append(f"Kemiripan Teks Leksikal ({lexical_item_score:.1f}%)")
+
+            if price_status == "SAFE" and pr_total_amt > 0 and cand_plan_amt > 0:
+                explain_points.append("Kesesuaian Nominal Wajar")
+            elif price_status == "WARNING_EXCEEDS_BUDGET":
+                explain_points.append(f"Peringatan: Nominal PR ({pr_total_amt:,.0f}) > 300% Pagu ({cand_plan_amt:,.0f})")
+            elif price_status == "WARNING_SCALE_MISMATCH":
+                explain_points.append(f"Peringatan: Perbedaan skala harga ekstrem")
+
+            explain_summary = " · ".join(explain_points)
+
+            candidate_metadata = {
+                "item_name": cand_item,
+                "score": final_score,
+                "detail_id": pd.id,
+                "is_prev": is_prev,
+                "lexical_score": lexical_item_score,
+                "synonym_score": syn_item_score,
+                "price_status": price_status,
+                "price_anomaly": price_anomaly,
+                "code_match_status": code_match_status,
+                "explanation_summary": explain_summary
+            }
+
+            scored_candidates.append(candidate_metadata)
 
         # Urutkan berdasarkan skor tertinggi
-        scored_candidates.sort(key=lambda x: x[1], reverse=True)
+        scored_candidates.sort(key=lambda x: x["score"], reverse=True)
 
         # Ambil Top-5 kandidat unik
         top_candidates = []
         seen_detail_ids = set()
-        for item_name, score, detail_id, is_p in scored_candidates:
-            if detail_id not in seen_detail_ids:
-                seen_detail_ids.add(detail_id)
-                top_candidates.append((item_name, score, detail_id, is_p))
+        for cand in scored_candidates:
+            if cand["detail_id"] not in seen_detail_ids:
+                seen_detail_ids.add(cand["detail_id"])
+                top_candidates.append(cand)
             if len(top_candidates) >= 5:
                 break
 
         # Jaminan: Jika PR tidak memiliki kode dan ada item Preventive di bulan ini,
         # pastikan item Preventive tersebut selalu ada di dalam Top-5 rekomendasi!
         if not pr_reg_num and prev_detail_in_month:
-            has_prev_in_top = any(t[2] == prev_detail_in_month.id for t in top_candidates)
+            has_prev_in_top = any(t["detail_id"] == prev_detail_in_month.id for t in top_candidates)
             if not has_prev_in_top:
-                prev_entry = next((s for s in scored_candidates if s[2] == prev_detail_in_month.id), None)
+                prev_entry = next((s for s in scored_candidates if s["detail_id"] == prev_detail_in_month.id), None)
                 if prev_entry:
                     if len(top_candidates) >= 5:
                         top_candidates[-1] = prev_entry
                     else:
                         top_candidates.append(prev_entry)
-                    top_candidates.sort(key=lambda x: x[1], reverse=True)
+                    top_candidates.sort(key=lambda x: x["score"], reverse=True)
 
-        final_results = [(t[0], t[1], t[2]) for t in top_candidates]
-
-        print(f"DEBUG [PR#{pr.id}] Top candidates count: {len(final_results)}, top score: {final_results[0][1] if final_results else 0}")
-
-        if not final_results:
+        if not top_candidates:
             pr.status_ai = "DONE"
             pr.budget_status = "OOP"
             pr.perlu_review = False
@@ -359,19 +429,30 @@ class AdvancedMappingService:
         except (ValueError, TypeError):
             threshold = 85.0
 
-        top_candidate = final_results[0]
-        top_name, top_score, top_detail_id = top_candidate
+        top_candidate = top_candidates[0]
+        top_name = top_candidate["item_name"]
+        top_score = top_candidate["score"]
+        top_detail_id = top_candidate["detail_id"]
+        top_price_anomaly = top_candidate["price_anomaly"]
 
         # Verifikasi apakah ada perbedaan kode part
         cand_detail = db.session.get(PlanningDetail, top_detail_id) if top_detail_id else None
         top_cand_reg = AdvancedMappingService.extract_code(cand_detail.item) if cand_detail else None
         code_mismatch = (pr_reg_num is not None and top_cand_reg is not None and pr_reg_num != top_cand_reg)
 
-        is_auto_approved = (top_score >= threshold and not code_mismatch and cand_detail is not None)
+        # Auto-Approval Safety Guard:
+        # Score >= threshold AND NO code mismatch AND NO price anomaly
+        is_auto_approved = (
+            top_score >= threshold and 
+            not code_mismatch and 
+            not top_price_anomaly and 
+            cand_detail is not None
+        )
 
         rank = 1
-        for res in final_results:
-            item_name, score, detail_id = res
+        for cand in top_candidates:
+            score = cand["score"]
+            detail_id = cand["detail_id"]
             conf = score / 100.0
             is_this_selected = (is_auto_approved and rank == 1)
             log = MappingLog(
@@ -395,23 +476,30 @@ class AdvancedMappingService:
             # Recalculate status realisasi anggaran
             BudgetMonitoringService.recalculate_planning_status(top_detail_id)
             db.session.commit()
-            print(f"[Auto-Approval] PR#{pr.id} ({description[:40]}) auto-mapped to #{top_detail_id} ({top_score:.1f}% >= {threshold:.0f}%)")
+            print(f"[Auto-Approval] PR#{pr.id} ({description[:40]}) auto-mapped to #{top_detail_id} ({top_score:.1f}% >= {threshold:.0f}%) | {top_candidate['explanation_summary']}")
             return {
                 "success": True,
                 "message": f"Auto-Approved via Fuzzy ({top_score:.1f}% >= {threshold:.0f}%)",
                 "status": "DONE",
                 "auto_approved": True,
-                "confidence_score": top_score / 100.0
+                "confidence_score": top_score / 100.0,
+                "explanation": top_candidate["explanation_summary"]
             }
         else:
             pr.status_ai = "NEED_MAPPING"
             db.session.commit()
+            if top_price_anomaly:
+                msg = f"Mapped via Fuzzy (Score {top_score:.1f}% >= {threshold:.0f}%, but Price Anomaly detected, Needs Review)"
+            else:
+                msg = f"Mapped via Fuzzy (Top score {top_score:.1f}% < {threshold:.0f}%, Needs Review)"
+
             return {
                 "success": True,
-                "message": f"Mapped via Fuzzy (Top score {top_score:.1f}% < {threshold:.0f}%, Needs Review)",
+                "message": msg,
                 "status": "NEED_MAPPING",
                 "auto_approved": False,
-                "confidence_score": top_score / 100.0
+                "confidence_score": top_score / 100.0,
+                "explanation": top_candidate["explanation_summary"]
             }
 
 

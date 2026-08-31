@@ -33,13 +33,13 @@ def _save_auto_learning_rule(pr, detail):
                         keyword=clean_keyword,
                         planning_item=detail.item,
                         kategori_id=detail.kategori_id,
-                        priority=2,
+                        priority=1,
                         is_active=True
                     )
                     db.session.add(new_rule)
-                    print(f"[Auto-Learning] Saved new rule: '{clean_keyword}' -> '{detail.item}'")
+                    print(f"[Active-Learning] Saved permanent rule: '{clean_keyword}' -> '{detail.item}'")
     except Exception as e:
-        print(f"[Auto-Learning] Error saving rule: {e}")
+        print(f"[Active-Learning] Error saving rule: {e}")
 
 @mapping_bp.route("/pending", methods=["GET"])
 def get_pending_mapping():
@@ -64,7 +64,6 @@ def get_pending_mapping():
       200:
         description: Daftar PR NEED_MAPPING beserta kandidat fuzzy matching Top-5
     """
-    # Ambil pagination dari query string
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 20, type=int)
     keyword = request.args.get('keyword', '').strip()
@@ -80,27 +79,64 @@ def get_pending_mapping():
     
     results = []
     for pr in pagination.items:
-        # Cari kandidat fuzzy match dari mapping_log
         logs = MappingLog.query.filter_by(pr_po_data_id=pr.id, method="FUZZY_MATCH").order_by(MappingLog.rank_no.asc()).all()
         candidates = []
+        pr_total_amt = float(pr.total_price or 0.0)
+
         for log in logs:
             detail = db.session.get(PlanningDetail, log.planning_detail_hasil_id) if log.planning_detail_hasil_id else None
             
             pr_code = AdvancedMappingService.extract_code(pr.description)
             candidate_code = AdvancedMappingService.extract_code(detail.item) if detail else None
+            code_mismatch = (pr_code is not None and candidate_code is not None and pr_code != candidate_code)
             
+            # Price Anomaly & Sanity Check
+            cand_plan_amt = float(detail.planning_amount or 0.0) if detail else 0.0
+            price_status = "SAFE"
+            price_anomaly = False
+            if pr_total_amt > 0 and cand_plan_amt > 0:
+                price_ratio = pr_total_amt / cand_plan_amt
+                if price_ratio > 3.0:
+                    price_anomaly = True
+                    price_status = "WARNING_EXCEEDS_BUDGET"
+                elif price_ratio < 0.1:
+                    price_anomaly = True
+                    price_status = "WARNING_SCALE_MISMATCH"
+
+            # Explainability Reason
+            explain_points = []
+            if pr_code and candidate_code and pr_code == candidate_code:
+                explain_points.append(f"No. Registrasi Cocok ({pr_code})")
+            elif code_mismatch:
+                explain_points.append(f"Part Number Berbeda ({pr_code} vs {candidate_code})")
+
+            conf_pct = (float(log.confidence_score) * 100.0) if log.confidence_score else 0.0
+            explain_points.append(f"Kemiripan AI: {conf_pct:.1f}%")
+
+            if price_status == "SAFE" and pr_total_amt > 0 and cand_plan_amt > 0:
+                explain_points.append("Nominal Wajar")
+            elif price_status == "WARNING_EXCEEDS_BUDGET":
+                explain_points.append("Peringatan: Nominal PR melampaui toleransi pagu")
+            elif price_status == "WARNING_SCALE_MISMATCH":
+                explain_points.append("Peringatan: Skala harga berbeda signifikan")
+
+            explain_summary = " · ".join(explain_points)
+
             candidates.append({
                 "log_id": log.id,
                 "planning_detail_id": log.planning_detail_hasil_id,
                 "confidence_score": float(log.confidence_score) if log.confidence_score else None,
                 "rank_no": log.rank_no,
                 "planning_item": detail.item if detail else None,
-                "planning_amount": float(detail.planning_amount) if detail else None,
+                "planning_amount": cand_plan_amt,
                 "month": detail.month if detail else None,
                 "remarks": detail.remarks if detail else None,
-                "code_mismatch": pr_code is not None and candidate_code is not None and pr_code != candidate_code,
+                "code_mismatch": code_mismatch,
                 "pr_code": pr_code,
-                "candidate_code": candidate_code
+                "candidate_code": candidate_code,
+                "price_status": price_status,
+                "price_anomaly": price_anomaly,
+                "explanation_summary": explain_summary
             })
             
         pr_dict = pr.to_dict()
@@ -627,6 +663,16 @@ def get_mapping_graph():
     budget_status = request.args.get("budget_status", "").strip()
     search = request.args.get("search", "").strip()
 
+    # Normalisasi nama bulan (ID -> EN)
+    MONTH_MAP = {
+        "JAN": "Jan", "FEB": "Feb", "MAR": "Mar", "APR": "Apr",
+        "MEI": "May", "MAY": "May", "JUN": "Jun", "JUL": "Jul",
+        "AGT": "Aug", "AGU": "Aug", "AGUS": "Aug", "AUG": "Aug",
+        "SEP": "Sep", "OKT": "Oct", "OCT": "Oct", "NOV": "Nov",
+        "DES": "Dec", "DEC": "Dec"
+    }
+    normalized_month = MONTH_MAP.get(month.upper(), month) if month and month.upper() != "ALL" else ""
+
     # 1. Cari Header Planning
     header = PlanningHeader.query.filter(
         PlanningHeader.periode == periode,
@@ -637,8 +683,8 @@ def get_mapping_graph():
     pd_query = PlanningDetail.query
     if header:
         pd_query = pd_query.filter(PlanningDetail.planning_header_id == header.id)
-    if month and month.upper() != "ALL":
-        pd_query = pd_query.filter(PlanningDetail.month == month)
+    if normalized_month:
+        pd_query = pd_query.filter(PlanningDetail.month == normalized_month)
     if kategori_id:
         pd_query = pd_query.filter(PlanningDetail.kategori_id == kategori_id)
     if search:
@@ -680,7 +726,7 @@ def get_mapping_graph():
 
         if pr_periode and pr_periode != periode:
             continue
-        if month and month.upper() != "ALL" and pr_month and pr_month != month:
+        if normalized_month and pr_month and pr_month != normalized_month:
             continue
 
         if pr.planning_detail_id in planning_ids or pr.budget_status == "OOP" or pr.status_ai == "NEED_MAPPING":
@@ -742,7 +788,7 @@ def get_mapping_graph():
             "doc_num": pr.pr_doc_num,
             "description": pr.description,
             "type": "pr",
-            "kategori_kode": kat.kode if kat else (pr.kategori_kode or "-"),
+            "kategori_kode": kat.kode if kat else (pr.kategori.kode if pr.kategori else "-"),
             "kategori_nama": kat.nama if kat else "",
             "supplier_name": pr.supplier_name or "-",
             "amount": pr_price,

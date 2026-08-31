@@ -40,7 +40,7 @@ export default function MappingReview() {
   const [total, setTotal] = useState(0)
   const [threshold, setThreshold] = useState(85)
   const [autoLearning, setAutoLearning] = useState(true)
-  const [isSavingSettings, setIsSavingSettings] = useState(false)
+  const [, setIsSavingSettings] = useState(false)
   const [isAutoApproving, setIsAutoApproving] = useState(false)
   const [isPanelOpen, setIsPanelOpen] = useState(true)
 
@@ -51,10 +51,12 @@ export default function MappingReview() {
       fetchData()
     }, 400)  // debounce 400ms
     return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keyword])
 
   useEffect(() => { 
     fetchData() 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page])
 
   useEffect(() => {
@@ -84,7 +86,7 @@ export default function MappingReview() {
         auto_learning: learnToSave
       })
       toast.success('Pengaturan otomatisasi disimpan', { id: 'save_settings' })
-    } catch (err) {
+    } catch (_) {
       toast.error('Gagal menyimpan pengaturan', { id: 'save_settings' })
     } finally {
       setIsSavingSettings(false)
@@ -581,13 +583,27 @@ export default function MappingReview() {
                         <div className={styles.candidateLeft}>
                           <span className={styles.rankBadge}>#{cand.rank_no}</span>
                           <div className={styles.candidateInfo}>
-                            <span className={styles.candidateName}>
-                              {cand.planning_item}
-                            </span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                              <span className={styles.candidateName}>
+                                {cand.planning_item}
+                              </span>
+                              {cand.price_anomaly && (
+                                <span className={styles.priceAnomalyBadge} title="Nominal PR menyimpang dari pagu perencanaan">
+                                  <AlertTriangle size={11} />
+                                  {cand.price_status === 'WARNING_EXCEEDS_BUDGET' ? 'Pagu Terlampaui (>300%)' : 'Anomali Skala Harga'}
+                                </span>
+                              )}
+                            </div>
                             <span className={styles.candidateMonth}>
                               {cand.month} &middot; Anggaran: {fmt(cand.planning_amount)}
                               {cand.remarks ? ` · Catatan: ${cand.remarks}` : ''}
                             </span>
+                            {cand.explanation_summary && (
+                              <div className={styles.aiExplainPill}>
+                                <Sparkles size={11} className={styles.aiExplainIcon} />
+                                <span>{cand.explanation_summary}</span>
+                              </div>
+                            )}
                             {cand.code_mismatch && (
                               <span className={styles.codeMismatchWarn}>
                                 <AlertTriangle size={12} />
@@ -604,8 +620,9 @@ export default function MappingReview() {
                             className={styles.btnConfirm}
                             onClick={() => handleConfirm(pr.id, cand)}
                             disabled={processingId === pr.id}
+                            title="Konfirmasi mapping ini dan latih AI secara permanen (Active Learning)"
                           >
-                            {processingId === pr.id ? 'Menyimpan...' : 'Pilih Ini'}
+                            {processingId === pr.id ? 'Menyimpan...' : 'Pilih & Latih AI'}
                           </button>
                         </div>
                       </div>
