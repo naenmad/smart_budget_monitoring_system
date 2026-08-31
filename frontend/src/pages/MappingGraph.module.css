@@ -206,32 +206,41 @@
   color: var(--primary);
 }
 
-/* ── Floating Tooltip — used as s.tooltip ── */
+/* ── Floating Tooltip — Theme-Adaptive & High Contrast in Light/Dark ── */
 .tooltip {
   position: fixed;
   pointer-events: none;
-  background: rgba(15, 23, 42, 0.92);
-  color: #fff;
+  background: var(--bg-card, #ffffff);
+  color: var(--text-main, #0f172a);
+  border: 1px solid var(--border-color, #e2e8f0);
   padding: 10px 14px;
   border-radius: 8px;
   font-size: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  z-index: 50;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+  z-index: 60;
   max-width: 320px;
   line-height: 1.45;
 }
 
-/* ── Detail Drawer ── */
+/* ── Right-Side Detail Inspector Panel ── */
 .drawer {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  bottom: 14px;
+  width: 360px;
+  max-width: calc(100% - 28px);
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 18px 20px;
-  box-shadow: var(--shadow-sm);
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.12);
   display: flex;
   flex-direction: column;
   gap: 14px;
+  z-index: 25;
+  overflow-y: auto;
+  animation: slideRightIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .drawerHeader {
@@ -244,7 +253,7 @@
 
 .drawerTitle {
   margin: 0;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--text-main);
 }
@@ -256,6 +265,10 @@
   color: var(--text-muted);
   padding: 4px;
   border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
 }
 
 .drawerClose:hover {
@@ -307,13 +320,22 @@
   font-family: 'JetBrains Mono', monospace;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+@keyframes slideRightIn {
+  from {
+    opacity: 0;
+    transform: translateX(25px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @media (max-width: 768px) {
   .canvasWrapper {
-    height: 480px;
+    height: 520px;
+  }
+  .drawer {
+    width: calc(100% - 28px);
   }
 }

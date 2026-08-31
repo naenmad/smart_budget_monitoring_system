@@ -120,14 +120,14 @@ export default function MappingGraph() {
     // 1. MODE "SEMUA BULAN" (ALL) -> 12 CLUSTER BULAN INSTAN TANPA LAG
     // ─────────────────────────────────────────────────────────────
     if (currentMonth === 'All') {
-      camera.current = { x: width / 2, y: height / 2, zoom: 0.88 }
+      camera.current = { x: width / 2, y: height / 2, zoom: 0.95 }
 
       const centerNode = {
         id: 'center-year',
         type: 'center_year',
         label: `Tahun ${periode}`,
-        sub: 'Master Budget 2026',
-        radius: 46,
+        sub: 'Master Budget',
+        radius: 58,
         x: 0,
         y: 0,
         vx: 0,
@@ -173,9 +173,10 @@ export default function MappingGraph() {
       const builtNodes = [centerNode]
       const builtLinks = []
 
+      // Orbit distance 205px ensures 12 bubbles (radius 46) never overlap each other
       monthList.forEach((m, idx) => {
         const angle = (idx / monthList.length) * Math.PI * 2
-        const dist = 140
+        const dist = 205
         const isOver = m.overCount > 0 || (m.pagu > 0 && m.consumed > m.pagu)
 
         const monthNode = {
@@ -189,7 +190,7 @@ export default function MappingGraph() {
           pagu: m.pagu,
           consumed: m.consumed,
           status: isOver ? 'OVER_PLAN' : (m.planCount > 0 ? 'ON_PLAN' : 'EMPTY'),
-          radius: 36,
+          radius: 46,
           x: Math.cos(angle) * dist,
           y: Math.sin(angle) * dist,
           vx: 0,
@@ -203,115 +204,207 @@ export default function MappingGraph() {
           target: monthNode.id,
           type: 'cluster_link',
           status: monthNode.status,
-          distance: 120,
+          distance: 180,
           strength: 0.15
         })
       })
 
       simNodes.current = builtNodes
       simLinks.current = builtLinks
-      alphaRef.current = 0.6
+      alphaRef.current = 0
       needsRenderRef.current = true
       return
     }
 
     // ─────────────────────────────────────────────────────────────
-    // 2. MODE 1 BULAN SPESIFIK -> RINCIAN KATEGORI, PLAN, & PR
+    // 2. MODE 1 BULAN SPESIFIK -> RINCIAN KATEGORI, PLAN, & PR (ANTI-COLLISION FIXED)
     // ─────────────────────────────────────────────────────────────
-    const nodeCount = apiNodes ? apiNodes.length : 0
-    const initialZoom = nodeCount > 60 ? 0.72 : 0.88
-    camera.current = { x: width / 2, y: height / 2, zoom: initialZoom }
+    camera.current = { x: width / 2, y: height / 2, zoom: 1.05 }
 
-    const categoriesMap = {}
+    const catBuckets = {}
     const nodeMap = {}
 
-    // Group categories
+    // Find all categories
     apiNodes.forEach(n => {
       const cat = n.kategori_kode || 'GEN'
-      if (!categoriesMap[cat] && cat !== 'UNKNOWN' && cat !== 'OOP' && cat !== 'PENDING') {
-        categoriesMap[cat] = {
-          id: `cat-${cat}`,
-          label: `Kategori ${cat}`,
-          type: 'category',
-          category: cat,
-          radius: 30,
-          x: (Math.random() - 0.5) * 50,
-          y: (Math.random() - 0.5) * 50,
-          vx: 0,
-          vy: 0,
-          fixed: false
+      if (!catBuckets[cat]) {
+        catBuckets[cat] = {
+          code: cat,
+          catNode: {
+            id: `cat-${cat}`,
+            label: `Kategori ${cat}`,
+            type: 'category',
+            category: cat,
+            radius: 46,
+            x: 0,
+            y: 0,
+            vx: 0,
+            vy: 0,
+            fixed: false
+          },
+          planNodes: [],
+          prNodes: [],
+          poolNodes: []
         }
       }
     })
 
-    const builtNodes = Object.values(categoriesMap)
-    const catKeys = Object.keys(categoriesMap)
-    
-    // Position categories in circle
-    catKeys.forEach((catKey, idx) => {
-      const angle = (idx / (catKeys.length || 1)) * Math.PI * 2
-      categoriesMap[catKey].x = Math.cos(angle) * 150
-      categoriesMap[catKey].y = Math.sin(angle) * 150
-    })
-
-    // Add nodes clustered near their categories
-    apiNodes.forEach((n, i) => {
-      const catObj = categoriesMap[n.kategori_kode]
-      const baseCenterX = catObj ? catObj.x : 0
-      const baseCenterY = catObj ? catObj.y : 0
-
-      const angle = (i / (apiNodes.length || 1)) * Math.PI * 2
-      const dist = n.type === 'plan' ? 55 + (i % 4) * 20 : 110 + (i % 6) * 22
-
-      let radius = 15
-      if (n.type === 'plan') radius = 22
-      if (n.type === 'pool_oop' || n.type === 'pool_unmapped') radius = 26
-
-      const nodeObj = {
-        ...n,
-        radius,
-        x: baseCenterX + Math.cos(angle) * dist + (Math.random() - 0.5) * 20,
-        y: baseCenterY + Math.sin(angle) * dist + (Math.random() - 0.5) * 20,
-        vx: 0,
-        vy: 0
+    // Index PRs connected to plans
+    const planPrMap = {}
+    apiLinks.forEach(l => {
+      if (l.source.startsWith('plan-') || l.target.startsWith('plan-')) {
+        const planId = l.source.startsWith('plan-') ? l.source : l.target
+        const prId = l.source.startsWith('plan-') ? l.target : l.source
+        if (!planPrMap[planId]) planPrMap[planId] = []
+        planPrMap[planId].push(prId)
       }
-      builtNodes.push(nodeObj)
-      nodeMap[n.id] = nodeObj
     })
 
-    builtNodes.forEach(bn => {
-      nodeMap[bn.id] = bn
+    // Sort nodes into category buckets
+    apiNodes.forEach(n => {
+      const cat = n.kategori_kode || 'GEN'
+      const bucket = catBuckets[cat] || catBuckets['GEN']
+      if (n.type === 'plan') {
+        bucket.planNodes.push({
+          ...n,
+          radius: 34,
+          vx: 0,
+          vy: 0,
+          fixed: false
+        })
+      } else if (n.type === 'pool_oop' || n.type === 'pool_unmapped') {
+        bucket.poolNodes.push({
+          ...n,
+          radius: 36,
+          vx: 0,
+          vy: 0,
+          fixed: false
+        })
+      } else if (n.type === 'pr') {
+        bucket.prNodes.push({
+          ...n,
+          radius: 20,
+          vx: 0,
+          vy: 0,
+          fixed: false
+        })
+      }
     })
 
+    // Calculate fixed positions deterministically
+    const catKeys = Object.keys(catBuckets)
+    const catCount = catKeys.length || 1
+    const builtNodes = []
     const builtLinks = []
 
-    // Connect Plan to Category
-    builtNodes.forEach(n => {
-      if (n.type === 'plan' && n.kategori_kode && categoriesMap[n.kategori_kode]) {
+    const orbitRadius = catCount === 1 ? 0 : Math.max(180, catCount * 75)
+
+    catKeys.forEach((catKey, catIdx) => {
+      const catAngle = (catIdx / catCount) * Math.PI * 2
+      const bucket = catBuckets[catKey]
+      const catX = catCount === 1 ? 0 : Math.cos(catAngle) * orbitRadius
+      const catY = catCount === 1 ? 0 : Math.sin(catAngle) * orbitRadius
+
+      bucket.catNode.x = catX
+      bucket.catNode.y = catY
+      builtNodes.push(bucket.catNode)
+      nodeMap[bucket.catNode.id] = bucket.catNode
+
+      // Place Plan Nodes in an arc/ring around their Category hub
+      const totalPlans = bucket.planNodes.length
+      bucket.planNodes.forEach((planNode, planIdx) => {
+        const planAngle = catAngle + ((planIdx - (totalPlans - 1) / 2) * (Math.PI * 2 / Math.max(totalPlans, 3)))
+        const planDist = 130
+        planNode.x = catX + Math.cos(planAngle) * planDist
+        planNode.y = catY + Math.sin(planAngle) * planDist
+        builtNodes.push(planNode)
+        nodeMap[planNode.id] = planNode
+
         builtLinks.push({
-          source: categoriesMap[n.kategori_kode].id,
-          target: n.id,
+          source: bucket.catNode.id,
+          target: planNode.id,
           type: 'cat_link',
-          distance: 90,
-          strength: 0.08
+          distance: 110,
+          strength: 0.12
         })
+
+        // Place PR Nodes around this Plan node
+        const prIds = planPrMap[planNode.id] || []
+        const attachedPrs = bucket.prNodes.filter(pr => prIds.includes(pr.id))
+        const totalPrs = attachedPrs.length
+
+        attachedPrs.forEach((prNode, prIdx) => {
+          const prAngle = planAngle + ((prIdx - (totalPrs - 1) / 2) * 0.8)
+          const prDist = 80
+          prNode.x = planNode.x + Math.cos(prAngle) * prDist
+          prNode.y = planNode.y + Math.sin(prAngle) * prDist
+          builtNodes.push(prNode)
+          nodeMap[prNode.id] = prNode
+
+          builtLinks.push({
+            source: planNode.id,
+            target: prNode.id,
+            type: 'pr_link',
+            status: prNode.status,
+            distance: 70,
+            strength: 0.16
+          })
+        })
+      })
+
+      // Place pool nodes (OOP / Pending) if any
+      bucket.poolNodes.forEach((poolNode, poolIdx) => {
+        const poolAngle = catAngle + Math.PI + (poolIdx * 0.7)
+        poolNode.x = catX + Math.cos(poolAngle) * 115
+        poolNode.y = catY + Math.sin(poolAngle) * 115
+        builtNodes.push(poolNode)
+        nodeMap[poolNode.id] = poolNode
+      })
+    })
+
+    // Add any remaining unconnected PR nodes
+    apiNodes.forEach(n => {
+      if (!nodeMap[n.id]) {
+        const fallbackNode = {
+          ...n,
+          radius: 20,
+          x: (Math.random() - 0.5) * 220,
+          y: (Math.random() - 0.5) * 220,
+          vx: 0,
+          vy: 0,
+          fixed: false
+        }
+        builtNodes.push(fallbackNode)
+        nodeMap[n.id] = fallbackNode
       }
     })
 
-    // Connect PR to Plan
-    apiLinks.forEach(l => {
-      if (nodeMap[l.source] && nodeMap[l.target]) {
-        builtLinks.push({
-          ...l,
-          distance: 70,
-          strength: 0.12
-        })
+    // ── Instant Anti-Collision Relaxation Pass (Guarantees NO overlapping bubbles) ──
+    for (let iter = 0; iter < 18; iter++) {
+      for (let i = 0; i < builtNodes.length; i++) {
+        const n1 = builtNodes[i]
+        for (let j = i + 1; j < builtNodes.length; j++) {
+          const n2 = builtNodes[j]
+          const dx = n2.x - n1.x
+          const dy = n2.y - n1.y
+          const dist = Math.hypot(dx, dy) || 0.1
+          const minDist = n1.radius + n2.radius + 18 // minimum 18px gap
+          if (dist < minDist) {
+            const overlap = (minDist - dist) / 2
+            const nx = (dx / dist) * overlap
+            const ny = (dy / dist) * overlap
+            n1.x -= nx
+            n1.y -= ny
+            n2.x += nx
+            n2.y += ny
+          }
+        }
       }
-    })
+    }
 
     simNodes.current = builtNodes
     simLinks.current = builtLinks
-    alphaRef.current = 1.0
+    alphaRef.current = 0 // Zero shifting physics
     needsRenderRef.current = true
   }
 
@@ -409,7 +502,7 @@ export default function MappingGraph() {
       n.y += n.vy
     }
 
-    alphaRef.current *= 0.93
+    alphaRef.current *= 0.88
     needsRenderRef.current = true
     return true
   }, [])
@@ -534,20 +627,15 @@ export default function MappingGraph() {
       const r = n.radius
 
       ctx.save()
-      ctx.globalAlpha = isDimmed ? 0.2 : 1.0
-
-      if (isHovered || isMatchSearch) {
-        ctx.shadowColor = isMatchSearch ? '#eab308' : '#3b82f6'
-        ctx.shadowBlur = 16
-      }
+      ctx.globalAlpha = isDimmed ? 0.25 : 1.0
 
       ctx.beginPath()
       ctx.arc(n.x, n.y, r, 0, Math.PI * 2)
 
       if (n.type === 'center_year') {
-        ctx.fillStyle = '#1e293b'
+        ctx.fillStyle = '#0f172a'
         ctx.fill()
-        ctx.lineWidth = 3
+        ctx.lineWidth = isHovered ? 4.5 : 3.5
         ctx.strokeStyle = '#3b82f6'
         ctx.stroke()
       } else if (n.type === 'month_cluster') {
@@ -562,7 +650,7 @@ export default function MappingGraph() {
           ctx.strokeStyle = '#cbd5e1'
         }
         ctx.fill()
-        ctx.lineWidth = isHovered ? 3.5 : 2
+        ctx.lineWidth = isHovered ? 4 : 2.5
         ctx.stroke()
 
         // Progress ring around month bubble
@@ -571,14 +659,25 @@ export default function MappingGraph() {
           ctx.beginPath()
           ctx.arc(n.x, n.y, r + 4, -Math.PI / 2, -Math.PI / 2 + (Math.PI * 2 * pct))
           ctx.strokeStyle = n.status === 'OVER_PLAN' ? '#ef4444' : '#10b981'
-          ctx.lineWidth = 3
+          ctx.lineWidth = 3.5
           ctx.stroke()
         }
+
+        // Highlight ring on hover
+        if (isHovered || isMatchSearch) {
+          ctx.beginPath()
+          ctx.arc(n.x, n.y, r + 7, 0, Math.PI * 2)
+          ctx.strokeStyle = isMatchSearch ? '#eab308' : '#2563eb'
+          ctx.lineWidth = 2
+          ctx.setLineDash([3, 3])
+          ctx.stroke()
+          ctx.setLineDash([])
+        }
       } else if (n.type === 'category') {
-        ctx.fillStyle = '#6366f1'
+        ctx.fillStyle = '#4f46e5'
         ctx.fill()
-        ctx.lineWidth = 3
-        ctx.strokeStyle = '#a5b4fc'
+        ctx.lineWidth = isHovered ? 4 : 2.5
+        ctx.strokeStyle = '#c7d2fe'
         ctx.stroke()
       } else if (n.type === 'plan') {
         if (n.status === 'OVER_PLAN') {
@@ -592,7 +691,7 @@ export default function MappingGraph() {
           ctx.strokeStyle = '#94a3b8'
         }
         ctx.fill()
-        ctx.lineWidth = isHovered ? 3 : 2
+        ctx.lineWidth = isHovered ? 3.5 : 2
         ctx.stroke()
 
         if (n.pagu > 0) {
@@ -607,13 +706,13 @@ export default function MappingGraph() {
         ctx.fillStyle = '#fff7ed'
         ctx.strokeStyle = '#f97316'
         ctx.fill()
-        ctx.lineWidth = 2.5
+        ctx.lineWidth = 3
         ctx.stroke()
       } else if (n.type === 'pool_unmapped') {
         ctx.fillStyle = '#fefce8'
         ctx.strokeStyle = '#eab308'
         ctx.fill()
-        ctx.lineWidth = 2.5
+        ctx.lineWidth = 3
         ctx.stroke()
       } else {
         // PR Node
@@ -623,7 +722,7 @@ export default function MappingGraph() {
         else ctx.fillStyle = '#eab308'
 
         ctx.fill()
-        ctx.lineWidth = isHovered ? 3 : 1.5
+        ctx.lineWidth = isHovered ? 3.5 : 1.8
         ctx.strokeStyle = '#ffffff'
         ctx.stroke()
       }
@@ -635,58 +734,58 @@ export default function MappingGraph() {
       ctx.globalAlpha = isDimmed ? 0.25 : 1.0
 
       if (n.type === 'center_year') {
-        ctx.font = 'bold 13px Inter, sans-serif'
+        ctx.font = 'bold 15px Inter, sans-serif'
         ctx.fillStyle = '#ffffff'
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
-        ctx.fillText(n.label, n.x, n.y - 4)
+        ctx.fillText(n.label, n.x, n.y - 6)
 
-        ctx.font = '500 9px Inter, sans-serif'
+        ctx.font = '600 11px Inter, sans-serif'
         ctx.fillStyle = '#94a3b8'
-        ctx.fillText('12 Cluster', n.x, n.y + 10)
+        ctx.fillText('12 Bulan', n.x, n.y + 11)
       } else if (n.type === 'month_cluster') {
-        ctx.font = 'bold 11px Inter, sans-serif'
-        ctx.fillStyle = n.status === 'OVER_PLAN' ? '#991b1b' : (n.planCount > 0 ? '#166534' : '#475569')
+        ctx.font = 'bold 13px Inter, sans-serif'
+        ctx.fillStyle = n.status === 'OVER_PLAN' ? '#991b1b' : (n.planCount > 0 ? '#166534' : '#334155')
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
-        ctx.fillText(n.label, n.x, n.y - 4)
+        ctx.fillText(n.label, n.x, n.y - 6)
 
-        ctx.font = '600 9px Inter, sans-serif'
+        ctx.font = '600 10.5px Inter, sans-serif'
         ctx.fillStyle = '#64748b'
         ctx.fillText(`${n.prCount} PR · ${n.planCount} Plan`, n.x, n.y + 9)
 
         if (isHovered) {
-          ctx.font = 'bold 9px Inter, sans-serif'
+          ctx.font = 'bold 10px Inter, sans-serif'
           ctx.fillStyle = '#2563eb'
-          ctx.fillText('🔍 Klik Buka Bulan', n.x, n.y + r + 13)
+          ctx.fillText('Klik untuk Rincian', n.x, n.y + r + 14)
         }
       } else if (n.type === 'category') {
-        ctx.font = 'bold 11px Inter, sans-serif'
+        ctx.font = 'bold 13px Inter, sans-serif'
         ctx.fillStyle = '#ffffff'
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
         ctx.fillText(n.category || 'CAT', n.x, n.y)
       } else if (n.type === 'plan') {
-        ctx.font = 'bold 10px Inter, sans-serif'
-        ctx.fillStyle = n.status === 'OVER_PLAN' ? '#991b1b' : (n.status === 'ON_PLAN' ? '#166534' : '#475569')
+        ctx.font = 'bold 11px Inter, sans-serif'
+        ctx.fillStyle = n.status === 'OVER_PLAN' ? '#991b1b' : (n.status === 'ON_PLAN' ? '#166534' : '#334155')
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
-        ctx.fillText(n.month || 'PLAN', n.x, n.y - 2)
+        ctx.fillText(n.month || 'PLAN', n.x, n.y - 3)
 
-        ctx.font = '500 9px Inter, sans-serif'
+        ctx.font = '500 9.5px Inter, sans-serif'
         ctx.fillStyle = '#64748b'
-        const labelText = n.label.length > 14 ? n.label.substring(0, 12) + '...' : n.label
-        ctx.fillText(labelText, n.x, n.y + r + 11)
+        const labelText = n.label.length > 15 ? n.label.substring(0, 13) + '...' : n.label
+        ctx.fillText(labelText, n.x, n.y + r + 12)
       } else if (n.type === 'pr') {
-        if (zoom > 0.75 || isHovered || isConnected) {
-          ctx.font = '500 8.5px Inter, sans-serif'
+        if (zoom > 0.7 || isHovered || isConnected) {
+          ctx.font = '500 9px Inter, sans-serif'
           ctx.fillStyle = '#334155'
           ctx.textAlign = 'center'
-          const labelText = n.label.length > 13 ? n.label.substring(0, 11) + '..' : n.label
-          ctx.fillText(labelText, n.x, n.y + r + 9)
+          const labelText = n.label.length > 14 ? n.label.substring(0, 12) + '..' : n.label
+          ctx.fillText(labelText, n.x, n.y + r + 10)
         }
       } else {
-        ctx.font = 'bold 9.5px Inter, sans-serif'
+        ctx.font = 'bold 11px Inter, sans-serif'
         ctx.fillStyle = n.type === 'pool_oop' ? '#9a3412' : '#854d0e'
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
@@ -783,7 +882,7 @@ export default function MappingGraph() {
           <div>Realisasi: <strong>${formatRp(node.consumed)}</strong></div>
         </div>
         <div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border-color);color:#2563eb;font-weight:700;font-size:11px;">
-          👉 Klik bubble untuk membuka rincian PR & Planning
+          Klik bubble untuk membuka rincian PR & Planning
         </div>
       `
     } else if (node.type === 'category') {
@@ -822,7 +921,6 @@ export default function MappingGraph() {
       draggedNode.current = node
       node.vx = 0
       node.vy = 0
-      alphaRef.current = Math.max(alphaRef.current, 0.3)
       needsRenderRef.current = true
     } else {
       isDraggingCanvas.current = true
@@ -838,7 +936,6 @@ export default function MappingGraph() {
       draggedNode.current.y = worldY
       draggedNode.current.vx = 0
       draggedNode.current.vy = 0
-      alphaRef.current = Math.max(alphaRef.current, 0.3)
       needsRenderRef.current = true
     } else if (isDraggingCanvas.current) {
       camera.current.x = rawX - dragStart.current.x
@@ -864,11 +961,6 @@ export default function MappingGraph() {
     const { worldX, worldY } = getCanvasCoords(e)
     const node = findNodeAt(worldX, worldY)
     if (node) {
-      if (node.type === 'month_cluster') {
-        // DRILL-DOWN INTO CLICKED MONTH
-        setMonth(node.monthKey)
-        return
-      }
       setSelectedNode(node)
       needsRenderRef.current = true
     }
@@ -901,7 +993,7 @@ export default function MappingGraph() {
     const canvas = canvasRef.current
     const width = canvas ? canvas.clientWidth : 900
     const height = canvas ? canvas.clientHeight : 650
-    camera.current = { x: width / 2, y: height / 2, zoom: month === 'All' ? 0.88 : 0.8 }
+    camera.current = { x: width / 2, y: height / 2, zoom: month === 'All' ? 1.0 : 0.95 }
     needsRenderRef.current = true
   }
 
@@ -1053,7 +1145,7 @@ export default function MappingGraph() {
             zIndex: 10
           }}>
             <Sparkles size={15} color="#2563eb" />
-            <span>💡 Mode Peta Ringkas: <strong>Klik bubble bulan mana saja</strong> untuk membuka rincian keterhubungan di dalamnya.</span>
+            <span>Mode Navigasi: <strong>Klik bubble bulan mana saja</strong> untuk membuka rincian keterhubungan di dalamnya.</span>
           </div>
         )}
 
@@ -1070,129 +1162,168 @@ export default function MappingGraph() {
 
         {/* Direct DOM Tooltip */}
         <div ref={tooltipRef} className={s.tooltip} style={{ display: 'none' }} />
-      </div>
 
-      {/* ── Slide-over Node Detail Inspector ── */}
-      {selectedNode && (
-        <div className={s.drawer}>
-          <div className={s.drawerHeader}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              {selectedNode.type === 'month_cluster' && <Calendar size={18} color="var(--primary)" />}
-              {selectedNode.type === 'plan' && <Layers size={18} color="#10b981" />}
-              {selectedNode.type === 'pr' && <FileText size={18} color="#2563eb" />}
-              <h3 className={s.drawerTitle}>
-                {selectedNode.type === 'month_cluster' && `Cluster Bulan ${selectedNode.label}`}
-                {selectedNode.type === 'plan' && 'Detail Planning Item'}
-                {selectedNode.type === 'pr' && 'Detail Purchase Requisition'}
-                {selectedNode.type === 'category' && selectedNode.label}
-              </h3>
+        {/* ── Slide-over Right Side Node Detail Inspector ── */}
+        {selectedNode && (
+          <div className={s.drawer}>
+            <div className={s.drawerHeader}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {selectedNode.type === 'month_cluster' && <Calendar size={18} color="var(--primary)" />}
+                {selectedNode.type === 'plan' && <Layers size={18} color="#10b981" />}
+                {selectedNode.type === 'pr' && <FileText size={18} color="#2563eb" />}
+                {selectedNode.type === 'category' && <Layers size={18} color="#6366f1" />}
+                <h3 className={s.drawerTitle}>
+                  {selectedNode.type === 'month_cluster' && `Cluster Bulan ${selectedNode.label}`}
+                  {selectedNode.type === 'plan' && 'Detail Planning Item'}
+                  {selectedNode.type === 'pr' && 'Detail Purchase Requisition'}
+                  {selectedNode.type === 'category' && selectedNode.label}
+                  {selectedNode.type === 'pool_oop' && 'Out of Plan (OOP)'}
+                  {selectedNode.type === 'pool_unmapped' && 'Pending Review Pool'}
+                  {selectedNode.type === 'center_year' && selectedNode.label}
+                </h3>
+              </div>
+              <button onClick={() => setSelectedNode(null)} className={s.drawerClose} title="Tutup Detail">
+                <X size={16} />
+              </button>
             </div>
-            <button onClick={() => setSelectedNode(null)} className={s.drawerClose}>
-              <X size={16} />
-            </button>
+
+            <div className={s.drawerBody}>
+              {selectedNode.type === 'month_cluster' && (
+                <div className={s.drawerSection}>
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Bulan Terpilih</div>
+                    <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--text-main)' }}>{selectedNode.label} {periode}</div>
+                  </div>
+                  <div className={s.drawerGrid}>
+                    <div className={s.drawerItem}>
+                      <span className={s.drawerLabel}>Dokumen PR</span>
+                      <span className={s.drawerVal}>{selectedNode.prCount} Dokumen</span>
+                    </div>
+                    <div className={s.drawerItem}>
+                      <span className={s.drawerLabel}>Item Planning</span>
+                      <span className={s.drawerVal}>{selectedNode.planCount} Item</span>
+                    </div>
+                    <div className={s.drawerItem}>
+                      <span className={s.drawerLabel}>Total Pagu</span>
+                      <span className={s.drawerVal}>{formatRp(selectedNode.pagu)}</span>
+                    </div>
+                    <div className={s.drawerItem}>
+                      <span className={s.drawerLabel}>Realisasi</span>
+                      <span className={s.drawerVal} style={{ color: selectedNode.status === 'OVER_PLAN' ? '#ef4444' : '#10b981' }}>
+                        {formatRp(selectedNode.consumed)}
+                      </span>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      setMonth(selectedNode.monthKey)
+                      setSelectedNode(null)
+                    }}
+                    className={s.backBtn}
+                    style={{ width: '100%', marginTop: 14, justifyContent: 'center' }}
+                  >
+                    <span>Buka Graf Rincian {selectedNode.label}</span>
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              )}
+
+              {selectedNode.type === 'category' && (
+                <div className={s.drawerSection}>
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Kategori Anggaran</div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-main)' }}>{selectedNode.label}</div>
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                    Hub kategori anggaran yang menghubungkan seluruh item planning dalam kelompok ini pada bulan {activeMonthLabel}.
+                  </div>
+                </div>
+              )}
+
+              {selectedNode.type === 'plan' && (
+                <div className={s.drawerSection}>
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Nama Item Planning ({selectedNode.month})</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-main)' }}>{selectedNode.label}</div>
+                    {selectedNode.remarks && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{selectedNode.remarks}</div>}
+                  </div>
+                  <div className={s.drawerGrid}>
+                    <div className={s.drawerItem}>
+                      <span className={s.drawerLabel}>Pagu Anggaran</span>
+                      <span className={s.drawerVal}>{formatRp(selectedNode.pagu)}</span>
+                    </div>
+                    <div className={s.drawerItem}>
+                      <span className={s.drawerLabel}>Total Terpakai</span>
+                      <span className={s.drawerVal} style={{ color: selectedNode.status === 'OVER_PLAN' ? '#ef4444' : '#10b981' }}>
+                        {formatRp(selectedNode.consumed)}
+                      </span>
+                    </div>
+                    <div className={s.drawerItem}>
+                      <span className={s.drawerLabel}>Sisa Saldo</span>
+                      <span className={s.drawerVal}>{formatRp(selectedNode.remaining)}</span>
+                    </div>
+                    <div className={s.drawerItem}>
+                      <span className={s.drawerLabel}>Persentase</span>
+                      <span className={s.drawerVal}>{selectedNode.consumption_pct}%</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {selectedNode.type === 'pr' && (
+                <div className={s.drawerSection}>
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Nomor PR Doc</div>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-main)', fontFamily: 'JetBrains Mono' }}>
+                      {selectedNode.doc_num}
+                    </div>
+                    <div style={{ fontSize: 13, color: 'var(--text-main)', marginTop: 4 }}>{selectedNode.description}</div>
+                  </div>
+                  <div className={s.drawerGrid}>
+                    <div className={s.drawerItem}>
+                      <span className={s.drawerLabel}>Nominal PR</span>
+                      <span className={s.drawerVal}>{formatRp(selectedNode.amount)}</span>
+                    </div>
+                    <div className={s.drawerItem}>
+                      <span className={s.drawerLabel}>Vendor / Supplier</span>
+                      <span className={s.drawerVal}>{selectedNode.supplier_name || '-'}</span>
+                    </div>
+                    <div className={s.drawerItem}>
+                      <span className={s.drawerLabel}>Metode Mapping</span>
+                      <span className={s.drawerVal}>{selectedNode.method || 'Manual'}</span>
+                    </div>
+                    <div className={s.drawerItem}>
+                      <span className={s.drawerLabel}>Status Budget</span>
+                      <span className={s.drawerVal} style={{ color: selectedNode.status === 'OVER_PLAN' ? '#ef4444' : '#10b981' }}>
+                        {selectedNode.status || 'MAPPED'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {selectedNode.type === 'center_year' && (
+                <div className={s.drawerSection}>
+                  <div style={{ marginBottom: 12 }}>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Pusat Anggaran</div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-main)' }}>Tahun Anggaran {periode}</div>
+                  </div>
+                  <div className={s.drawerGrid}>
+                    <div className={s.drawerItem}>
+                      <span className={s.drawerLabel}>Total Pagu</span>
+                      <span className={s.drawerVal}>{formatRp(metrics.total_planned || 0)}</span>
+                    </div>
+                    <div className={s.drawerItem}>
+                      <span className={s.drawerLabel}>Total Realisasi</span>
+                      <span className={s.drawerVal} style={{ color: '#10b981' }}>{formatRp(metrics.total_consumed || 0)}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-
-          <div className={s.drawerBody}>
-            {selectedNode.type === 'month_cluster' && (
-              <div className={s.drawerSection}>
-                <div style={{ marginBottom: 12 }}>
-                  <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Bulan Terpilih</div>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-main)' }}>{selectedNode.label} {periode}</div>
-                </div>
-                <div className={s.drawerGrid}>
-                  <div className={s.drawerItem}>
-                    <span className={s.drawerLabel}>Dokumen PR</span>
-                    <span className={s.drawerVal}>{selectedNode.prCount} Dokumen</span>
-                  </div>
-                  <div className={s.drawerItem}>
-                    <span className={s.drawerLabel}>Item Planning</span>
-                    <span className={s.drawerVal}>{selectedNode.planCount} Item</span>
-                  </div>
-                  <div className={s.drawerItem}>
-                    <span className={s.drawerLabel}>Total Pagu</span>
-                    <span className={s.drawerVal}>{formatRp(selectedNode.pagu)}</span>
-                  </div>
-                  <div className={s.drawerItem}>
-                    <span className={s.drawerLabel}>Realisasi</span>
-                    <span className={s.drawerVal} style={{ color: '#10b981' }}>{formatRp(selectedNode.consumed)}</span>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => {
-                    setMonth(selectedNode.monthKey)
-                    setSelectedNode(null)
-                  }}
-                  className={s.backBtn}
-                  style={{ width: '100%', marginTop: 16, justifyContent: 'center' }}
-                >
-                  <span>Buka Graf Rincian {selectedNode.label}</span>
-                  <ChevronRight size={16} />
-                </button>
-              </div>
-            )}
-
-            {selectedNode.type === 'plan' && (
-              <div className={s.drawerSection}>
-                <div style={{ marginBottom: 12 }}>
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Nama Item Planning ({selectedNode.month})</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-main)' }}>{selectedNode.label}</div>
-                  {selectedNode.remarks && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{selectedNode.remarks}</div>}
-                </div>
-                <div className={s.drawerGrid}>
-                  <div className={s.drawerItem}>
-                    <span className={s.drawerLabel}>Pagu Anggaran</span>
-                    <span className={s.drawerVal}>{formatRp(selectedNode.pagu)}</span>
-                  </div>
-                  <div className={s.drawerItem}>
-                    <span className={s.drawerLabel}>Total Terpakai</span>
-                    <span className={s.drawerVal} style={{ color: selectedNode.status === 'OVER_PLAN' ? '#ef4444' : '#10b981' }}>
-                      {formatRp(selectedNode.consumed)}
-                    </span>
-                  </div>
-                  <div className={s.drawerItem}>
-                    <span className={s.drawerLabel}>Sisa Saldo</span>
-                    <span className={s.drawerVal}>{formatRp(selectedNode.remaining)}</span>
-                  </div>
-                  <div className={s.drawerItem}>
-                    <span className={s.drawerLabel}>Persentase</span>
-                    <span className={s.drawerVal}>{selectedNode.consumption_pct}%</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {selectedNode.type === 'pr' && (
-              <div className={s.drawerSection}>
-                <div style={{ marginBottom: 12 }}>
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Nomor PR Doc</div>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-main)', fontFamily: 'JetBrains Mono' }}>
-                    {selectedNode.doc_num}
-                  </div>
-                  <div style={{ fontSize: 13, color: 'var(--text-main)', marginTop: 4 }}>{selectedNode.description}</div>
-                </div>
-                <div className={s.drawerGrid}>
-                  <div className={s.drawerItem}>
-                    <span className={s.drawerLabel}>Nominal PR</span>
-                    <span className={s.drawerVal}>{formatRp(selectedNode.amount)}</span>
-                  </div>
-                  <div className={s.drawerItem}>
-                    <span className={s.drawerLabel}>Vendor</span>
-                    <span className={s.drawerVal}>{selectedNode.supplier_name}</span>
-                  </div>
-                  <div className={s.drawerItem}>
-                    <span className={s.drawerLabel}>Metode Mapping</span>
-                    <span className={s.drawerVal}>{selectedNode.method}</span>
-                  </div>
-                  <div className={s.drawerItem}>
-                    <span className={s.drawerLabel}>Status</span>
-                    <span className={s.drawerVal}>{selectedNode.status}</span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }
