@@ -61,6 +61,20 @@ class TestAdvancedMappingService(unittest.TestCase):
         self.assertIsNone(AdvancedMappingService.extract_code("RING PLATE SIZE M4x8x0.8"))
         self.assertIsNone(AdvancedMappingService.extract_code("Roda PU Merah No Brand SIZE 5 INCH FIX"))
 
+    def test_hybrid_scoring_specificity(self):
+        from rapidfuzz import fuzz
+        from rapidfuzz.utils import default_process
+        desc = "Deli Pencabut Isi Staples"
+        cand_staples_item = "Staples"
+        cand_pencabut_item = "Pencabut Staples"
+
+        score_staples = 0.4 * fuzz.token_set_ratio(desc, cand_staples_item, processor=default_process) + \
+                        0.6 * fuzz.token_sort_ratio(desc, cand_staples_item, processor=default_process)
+        score_pencabut = 0.4 * fuzz.token_set_ratio(desc, cand_pencabut_item, processor=default_process) + \
+                         0.6 * fuzz.token_sort_ratio(desc, cand_pencabut_item, processor=default_process)
+
+        self.assertGreater(score_pencabut, score_staples)
+
     def test_extract_code_none(self):
         self.assertIsNone(AdvancedMappingService.extract_code("BELI BARANG BIASA SAJA"))
         self.assertIsNone(AdvancedMappingService.extract_code(""))

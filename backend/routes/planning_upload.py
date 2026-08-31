@@ -1,13 +1,45 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, send_file
 from services.planning.planning_upload_service import PlanningUploadService
 from services.planning.planning_header_service import PlanningHeaderService
 from services.planning.planning_detail_service import PlanningDetailService
+from services.excel.excel_export_service import ExcelExportService
 from models.planning_header import PlanningHeader
 from models.planning_detail import PlanningDetail
 from utils.auth import role_required
 from utils.db import db
 
 planning_bp = Blueprint("planning", __name__)
+
+
+# ------------------------------------------------------------------
+# Download Planning Budget Excel Report
+# GET /api/v1/planning/export?periode=2026
+# ------------------------------------------------------------------
+@planning_bp.route("/export", methods=["GET"])
+def export_planning_excel():
+    """Download File Excel Planning Budget dengan Format Executive Summary & Detail Data
+    ---
+    tags:
+      - Budget & Planning
+    parameters:
+      - name: periode
+        in: query
+        type: string
+        default: "2026"
+    responses:
+      200:
+        description: File Excel Planning Budget
+    """
+    periode = request.args.get("periode", "2026").strip()
+    excel_stream = ExcelExportService.generate_planning_excel(periode)
+    filename = f"Planning_Budget_{periode}.xlsx"
+
+    return send_file(
+        excel_stream,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        as_attachment=True,
+        download_name=filename
+    )
 
 
 # ------------------------------------------------------------------

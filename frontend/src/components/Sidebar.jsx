@@ -47,7 +47,7 @@ const MENU_CONFIG = [
   { 
     group: 'Planning & Budget', 
     items: [
-      { to: '/planning/upload', label: 'Upload Planning', roles: ['admin'], icon: UploadCloud },
+      { to: '/planning/upload', label: 'Kelola File Planning', roles: ['admin'], icon: UploadCloud },
       { to: '/planning/list', label: 'Planning List', roles: ['admin', 'manager'], icon: CalendarDays },
       { to: '/budget', label: 'Budget Monitoring', roles: ['admin'], icon: PieChart }
     ]
@@ -55,10 +55,11 @@ const MENU_CONFIG = [
   { 
     group: 'Purchase Requisition', 
     items: [
-      { to: '/pr/upload', label: 'Upload PR', roles: ['admin'], icon: FileSpreadsheet },
+      { to: '/pr/upload', label: 'Kelola File PR', roles: ['admin'], icon: FileSpreadsheet },
       { to: '/pr/history', label: 'PR History', roles: ['admin', 'manager'], icon: History },
       { to: '/pr/result', label: 'Result Matching', roles: ['admin', 'manager'], icon: Layers },
-      { to: '/pr/mapping-review', label: 'Mapping Review', roles: ['admin', 'manager'], icon: CheckSquare }
+      { to: '/pr/mapping-review', label: 'Mapping Review', roles: ['admin', 'manager'], icon: CheckSquare },
+      { to: '/mapping/graph', label: 'Graf Keterhubungan', roles: ['admin', 'manager'], icon: Network }
     ]
   },
   { 

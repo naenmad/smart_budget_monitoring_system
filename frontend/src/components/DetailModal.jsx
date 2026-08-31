@@ -7,6 +7,7 @@ import s from './DetailModal.module.css'
 import { prPoDataApi } from '../api/prPoDataApi'
 import { formatRp } from '../utils/format'
 import { X, Loader2 } from 'lucide-react'
+import ScrollableCell from './ScrollableCell'
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des']
 
@@ -156,8 +157,8 @@ export default function DetailModal({ type, periode, summaryItems, onClose }) {
                                     <tbody>
                                         {transactions.map((t, i) => (
                                             <tr key={i}>
-                                                <td className={s.truncate}>
-                                                    {t.item}
+                                                <td>
+                                                    <ScrollableCell text={t.item} maxWidth={320} />
                                                 </td>
                                                 <td className={s.center}>
                                                     <span className={`${s.badge} ${BADGE_MAP[t.code] || ''}`}>{t.code}</span>

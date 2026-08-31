@@ -30,4 +30,11 @@ export const planningApi = {
 
   getCancelled: (params = {}) =>
     api.get('/planning/cancelled', { params }),
+
+  // Download Planning Excel Report
+  downloadExcel: (periode = '2026') =>
+    api.get('/planning/export', {
+      params: { periode },
+      responseType: 'blob'
+    }),
 }

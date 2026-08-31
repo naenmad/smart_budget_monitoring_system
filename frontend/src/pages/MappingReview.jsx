@@ -37,7 +37,7 @@ export default function MappingReview() {
   const [searchResults, setSearchResults] = useState([])
   const [searchLoading, setSearchLoading] = useState(false)
 
-  // --- state auto-mapping & threshold settings ---
+  const [total, setTotal] = useState(0)
   const [threshold, setThreshold] = useState(85)
   const [autoLearning, setAutoLearning] = useState(true)
   const [isSavingSettings, setIsSavingSettings] = useState(false)
@@ -112,14 +112,40 @@ export default function MappingReview() {
     setLoading(true)
     try {
       const res = await mappingApi.getPending({ page, per_page: 20, keyword })
-      setItems(res.data?.data || [])
-      setTotalPages(res.data?.pages || 1)
+      const pendingItems = res.data?.data || []
+      const totalCount = res.data?.total || 0
+      const pagesCount = res.data?.pages || 1
+
+      // Jika page saat ini melebihi total halaman yang tersedia (misal setelah item dihabiskan)
+      if (page > pagesCount && pagesCount >= 1 && totalCount > 0) {
+        setPage(pagesCount)
+        return
+      }
+
+      setItems(pendingItems)
+      setTotal(totalCount)
+      setTotalPages(pagesCount)
       setSelectedIds([]) // clear selection when data changes
     } catch (err) {
       console.error(err)
     } finally {
       setLoading(false)
     }
+  }
+
+  // Fungsi saat 1 item selesai di-review: hapus dari list lokal dan otomatis fetch antrian baru jika page habis
+  function handleItemCompleted(prId) {
+    setItems(prev => {
+      const updated = prev.filter(p => p.id !== prId)
+      // Jika semua item di halaman ini sudah selesai di-review, otomatis muat halaman/item selanjutnya
+      if (updated.length === 0) {
+        setTimeout(() => {
+          fetchData()
+        }, 150)
+      }
+      return updated
+    })
+    setTotal(prev => Math.max(0, prev - 1))
   }
 
   async function handleConfirm(prId, candidate) {
@@ -133,7 +159,7 @@ export default function MappingReview() {
       }
       const res = await mappingApi.confirmMapping(prId, payload)
       if (res.data?.success) {
-        setItems(prev => prev.filter(p => p.id !== prId))
+        handleItemCompleted(prId)
         toast.success('Mapping berhasil dikonfirmasi')
       }
     } catch (err) {
@@ -151,7 +177,7 @@ export default function MappingReview() {
       const payload = { is_oop: true }
       const res = await mappingApi.confirmMapping(prId, payload)
       if (res.data?.success) {
-        setItems(prev => prev.filter(p => p.id !== prId))
+        handleItemCompleted(prId)
         toast.success('Item ditandai sebagai OOP')
       }
     } catch (err) {
@@ -259,7 +285,7 @@ export default function MappingReview() {
       const payload = { planning_detail_id: planningDetailId, rank_no: null }
       const res = await mappingApi.confirmMapping(searchModalPr.id, payload)
       if (res.data?.success) {
-        setItems(prev => prev.filter(p => p.id !== searchModalPr.id))
+        handleItemCompleted(searchModalPr.id)
         closeSearchModal()
         toast.success('Mapping manual berhasil disimpan')
       }
@@ -296,6 +322,7 @@ export default function MappingReview() {
           <h2 className={styles.title}>Review Mapping & Validasi</h2>
           <p className={styles.subtitle}>
             Menunggu konfirmasi manual (Need Mapping) karena kecocokan fuzzy tidak 100%.
+            {total > 0 && <span> &middot; Tersisa <strong>{total}</strong> item antrean.</span>}
           </p>
         </div>
         <div className={styles.searchWrapper}>
@@ -464,7 +491,9 @@ export default function MappingReview() {
           {items.length === 0 && (
             <div className={`card ${styles.emptyState}`}>
               <CheckCheck size={20} style={{ display: 'inline', marginRight: 8, verticalAlign: 'middle', color: '#16a34a' }} />
-              Semua item sudah di-mapping! Tidak ada antrian review.
+              {total === 0
+                ? 'Semua item sudah di-mapping! Tidak ada antrian review.'
+                : 'Memuat antrean item selanjutnya...'}
             </div>
           )}
 

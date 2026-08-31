@@ -5,6 +5,7 @@ import { kategoriApi } from '../api/kategoriApi'
 import { useAuth } from '../context/AuthContext'
 import ReviewModal from '../components/ReviewModal'
 import { AlertTriangle, Search, Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
+import ScrollableCell from '../components/ScrollableCell'
 
 const BADGE_CLS = {
   'E-1': s.badgeE1, 'E-9': s.badgeE9,
@@ -291,8 +292,12 @@ export default function Classification() {
                   <tr key={r.id || i}>
                     <td style={{ color: '#73726c' }}>{(page - 1) * perPage + i + 1}</td>
                     <td className={s.cellMono}>{r.pr_doc_num || '—'}</td>
-                    <td className={s.cellTruncate} title={r.description}>{r.description || '—'}</td>
-                    <td className={s.cellTruncate} title={r.comment_text}>{r.comment_text || '—'}</td>
+                    <td>
+                      <ScrollableCell text={r.description} maxWidth={280} />
+                    </td>
+                    <td>
+                      <ScrollableCell text={r.comment_text} maxWidth={240} />
+                    </td>
                     <td className={s.cellRight}>{fmt(total)}</td>
                     <td className={s.cellCenter}>
                       <span className={`${s.badge} ${BADGE_CLS[budgetCode] || s.badgeUnk}`}>

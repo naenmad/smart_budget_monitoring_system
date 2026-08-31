@@ -4,6 +4,7 @@ import { prApi } from '../api/prApi'
 import { mappingApi } from '../api/mappingApi'
 import { kategoriApi } from '../api/kategoriApi'
 import { useAuth } from '../context/AuthContext'
+import ScrollableCell from '../components/ScrollableCell'
 import { 
   XCircle, 
   AlertTriangle, 
@@ -293,8 +294,8 @@ export default function PrResult() {
                     <td className={`${styles.td} ${styles.tdCode}`}>
                       {pr.pr_doc_num || '-'}
                     </td>
-                    <td className={`${styles.td} ${styles.tdDesc}`} title={pr.description}>
-                      {pr.description || '-'}
+                    <td className={styles.td}>
+                      <ScrollableCell text={pr.description} maxWidth={320} />
                     </td>
                     <td className={styles.td}>{pr.kategori_kode || pr.kategori_id || '-'}</td>
                     <td className={styles.td}>{pr.supplier_name || '-'}</td>

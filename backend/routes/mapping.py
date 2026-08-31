@@ -587,3 +587,249 @@ def auto_confirm_by_threshold():
         "approved_count": approved_count,
         "threshold": threshold
     }), 200
+
+
+# -------------------------------------------------------------
+# Visualisasi Graph Relasi PR <-> Planning Budget
+# GET /api/v1/mapping/graph
+# -------------------------------------------------------------
+@mapping_bp.route("/graph", methods=["GET"])
+def get_mapping_graph():
+    """Mendapatkan Dataset Graf Relasi Traceability Master Planning & PR/PO Realization
+    ---
+    tags:
+      - Item Mapping & Threshold
+    parameters:
+      - name: periode
+        in: query
+        type: string
+        default: "2026"
+      - name: month
+        in: query
+        type: string
+      - name: kategori_id
+        in: query
+        type: integer
+      - name: budget_status
+        in: query
+        type: string
+        enum: [ON_PLAN, OVER_PLAN, OOP, NEED_MAPPING, ALL]
+      - name: search
+        in: query
+        type: string
+    responses:
+      200:
+        description: Data nodes, links, dan metrik graf
+    """
+    periode = request.args.get("periode", "2026").strip()
+    month = request.args.get("month", "").strip()
+    kategori_id = request.args.get("kategori_id", type=int)
+    budget_status = request.args.get("budget_status", "").strip()
+    search = request.args.get("search", "").strip()
+
+    # 1. Cari Header Planning
+    header = PlanningHeader.query.filter(
+        PlanningHeader.periode == periode,
+        PlanningHeader.status.in_(["SUCCESS", "SUCCES"])
+    ).first()
+
+    # Query Planning Detail
+    pd_query = PlanningDetail.query
+    if header:
+        pd_query = pd_query.filter(PlanningDetail.planning_header_id == header.id)
+    if month and month.upper() != "ALL":
+        pd_query = pd_query.filter(PlanningDetail.month == month)
+    if kategori_id:
+        pd_query = pd_query.filter(PlanningDetail.kategori_id == kategori_id)
+    if search:
+        pd_query = pd_query.filter(
+            (PlanningDetail.item.ilike(f"%{search}%")) |
+            (PlanningDetail.remarks.ilike(f"%{search}%"))
+        )
+    pd_query = pd_query.filter(PlanningDetail.status_realisasi != "CANCELLED")
+    planning_details = pd_query.all()
+
+    planning_dict = {pd.id: pd for pd in planning_details}
+    planning_ids = set(planning_dict.keys())
+
+    # Query PR
+    pr_query = PrPoData.query.filter(PrPoData.status_ai != "CANCELLED")
+    if search:
+        pr_query = pr_query.filter(
+            (PrPoData.pr_doc_num.ilike(f"%{search}%")) |
+            (PrPoData.description.ilike(f"%{search}%")) |
+            (PrPoData.supplier_name.ilike(f"%{search}%"))
+        )
+    if kategori_id:
+        pr_query = pr_query.filter(PrPoData.kategori_id == kategori_id)
+
+    if budget_status and budget_status.upper() != "ALL":
+        if budget_status == "NEED_MAPPING":
+            pr_query = pr_query.filter(PrPoData.status_ai == "NEED_MAPPING")
+        elif budget_status == "OOP":
+            pr_query = pr_query.filter(PrPoData.budget_status == "OOP")
+        elif budget_status in ["ON_PLAN", "OVER_PLAN"]:
+            pr_query = pr_query.filter(PrPoData.budget_status == budget_status)
+
+    all_prs = pr_query.all()
+
+    filtered_prs = []
+    for pr in all_prs:
+        pr_month = AdvancedMappingService.extract_month(pr.request_date, pr.pr_doc_num)
+        pr_periode = AdvancedMappingService.extract_periode(pr.pr_doc_num)
+
+        if pr_periode and pr_periode != periode:
+            continue
+        if month and month.upper() != "ALL" and pr_month and pr_month != month:
+            continue
+
+        if pr.planning_detail_id in planning_ids or pr.budget_status == "OOP" or pr.status_ai == "NEED_MAPPING":
+            filtered_prs.append(pr)
+        elif not planning_ids and (pr.budget_status == "OOP" or pr.status_ai == "NEED_MAPPING"):
+            filtered_prs.append(pr)
+
+    nodes = []
+    links = []
+
+    from models.kategori import Kategori
+    kategoris = {k.id: k for k in Kategori.query.all()}
+
+    consumption_map = {}
+    for pr in filtered_prs:
+        if pr.planning_detail_id:
+            consumption_map[pr.planning_detail_id] = consumption_map.get(pr.planning_detail_id, 0.0) + float(pr.total_price or 0.0)
+
+    # Planning Nodes
+    for pd in planning_details:
+        kat = kategoris.get(pd.kategori_id)
+        consumed = consumption_map.get(pd.id, 0.0)
+        pagu = float(pd.planning_amount or 0.0)
+        pct = (consumed / pagu * 100) if pagu > 0 else 0.0
+
+        status_label = "ON_PLAN"
+        if consumed > pagu:
+            status_label = "OVER_PLAN"
+        elif consumed == 0:
+            status_label = "UNUSED"
+
+        nodes.append({
+            "id": f"plan-{pd.id}",
+            "numeric_id": pd.id,
+            "label": pd.item,
+            "type": "plan",
+            "kategori_kode": kat.kode if kat else "UNKNOWN",
+            "kategori_nama": kat.nama if kat else "",
+            "month": pd.month,
+            "pagu": pagu,
+            "consumed": consumed,
+            "remaining": max(0.0, pagu - consumed),
+            "consumption_pct": round(pct, 1),
+            "status": status_label,
+            "remarks": pd.remarks or ""
+        })
+
+    # PR Nodes
+    for pr in filtered_prs:
+        kat = kategoris.get(pr.kategori_id)
+        pr_price = float(pr.total_price or 0.0)
+        pr_status = pr.budget_status or pr.status_ai
+
+        pr_node_id = f"pr-{pr.id}"
+        nodes.append({
+            "id": pr_node_id,
+            "numeric_id": pr.id,
+            "label": pr.description or pr.pr_doc_num,
+            "doc_num": pr.pr_doc_num,
+            "description": pr.description,
+            "type": "pr",
+            "kategori_kode": kat.kode if kat else (pr.kategori_kode or "-"),
+            "kategori_nama": kat.nama if kat else "",
+            "supplier_name": pr.supplier_name or "-",
+            "amount": pr_price,
+            "status": pr_status,
+            "method": pr.metode_klasifikasi or "AI",
+            "planning_detail_id": pr.planning_detail_id
+        })
+
+        if pr.planning_detail_id and pr.planning_detail_id in planning_dict:
+            links.append({
+                "source": f"plan-{pr.planning_detail_id}",
+                "target": pr_node_id,
+                "amount": pr_price,
+                "status": pr.budget_status or "ON_PLAN",
+                "method": pr.metode_klasifikasi or "AI"
+            })
+        elif pr.budget_status == "OOP":
+            links.append({
+                "source": "pool-oop",
+                "target": pr_node_id,
+                "amount": pr_price,
+                "status": "OOP",
+                "method": "MANUAL"
+            })
+        elif pr.status_ai == "NEED_MAPPING":
+            links.append({
+                "source": "pool-unmapped",
+                "target": pr_node_id,
+                "amount": pr_price,
+                "status": "NEED_MAPPING",
+                "method": "AI"
+            })
+
+    has_oop = any(l["source"] == "pool-oop" for l in links)
+    has_unmapped = any(l["source"] == "pool-unmapped" for l in links)
+
+    if has_oop:
+        total_oop_amt = sum(l["amount"] for l in links if l["source"] == "pool-oop")
+        nodes.append({
+            "id": "pool-oop",
+            "label": "OOP (Out of Plan Pool)",
+            "type": "pool_oop",
+            "kategori_kode": "OOP",
+            "pagu": 0.0,
+            "consumed": total_oop_amt,
+            "status": "OOP",
+            "remarks": "Belanja tidak terencana dalam pagu"
+        })
+
+    if has_unmapped:
+        total_unmapped_amt = sum(l["amount"] for l in links if l["source"] == "pool-unmapped")
+        nodes.append({
+            "id": "pool-unmapped",
+            "label": "Antrean Review (Need Mapping)",
+            "type": "pool_unmapped",
+            "kategori_kode": "PENDING",
+            "pagu": 0.0,
+            "consumed": total_unmapped_amt,
+            "status": "NEED_MAPPING",
+            "remarks": "Menunggu konfirmasi kandidat AI"
+        })
+
+    total_planned = sum(float(pd.planning_amount or 0.0) for pd in planning_details)
+    total_consumed = sum(float(pr.total_price or 0.0) for pr in filtered_prs if pr.planning_detail_id)
+    total_oop = sum(float(pr.total_price or 0.0) for pr in filtered_prs if pr.budget_status == "OOP")
+    total_unmapped = sum(float(pr.total_price or 0.0) for pr in filtered_prs if pr.status_ai == "NEED_MAPPING")
+
+    on_plan_count = sum(1 for pr in filtered_prs if pr.budget_status == "ON_PLAN")
+    over_plan_count = sum(1 for pr in filtered_prs if pr.budget_status == "OVER_PLAN")
+    oop_count = sum(1 for pr in filtered_prs if pr.budget_status == "OOP")
+    unmapped_count = sum(1 for pr in filtered_prs if pr.status_ai == "NEED_MAPPING")
+
+    return jsonify({
+        "success": True,
+        "nodes": nodes,
+        "links": links,
+        "metrics": {
+            "total_planned": total_planned,
+            "total_consumed": total_consumed,
+            "total_oop": total_oop,
+            "total_unmapped": total_unmapped,
+            "planning_count": len(planning_details),
+            "pr_count": len(filtered_prs),
+            "on_plan_count": on_plan_count,
+            "over_plan_count": over_plan_count,
+            "oop_count": oop_count,
+            "unmapped_count": unmapped_count,
+            "matched_ratio": round((on_plan_count + over_plan_count) / len(filtered_prs) * 100, 1) if filtered_prs else 0.0
+        }
+    }), 200

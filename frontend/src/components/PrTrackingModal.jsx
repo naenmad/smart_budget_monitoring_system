@@ -4,6 +4,7 @@ import { prApi } from '../api/prApi'
 import { formatRp } from '../utils/format'
 import { X, Loader2 } from 'lucide-react'
 import s from './PrStatusModal.module.css'
+import ScrollableCell from './ScrollableCell'
 
 export default function PrTrackingModal({ stage, onClose }) {
   const [page, setPage] = useState(1)
@@ -64,7 +65,9 @@ export default function PrTrackingModal({ stage, onClose }) {
                       <td className={s.monospace} style={{ fontWeight: 600 }}>{pr.pr_doc_num || '-'}</td>
                       <td className={s.monospace} style={{ fontWeight: 600 }}>{pr.po_doc_num || '-'}</td>
                       <td className={s.monospace} style={{ fontWeight: 600 }}>{pr.gr_legal_number || '-'}</td>
-                      <td className={s.truncate} title={pr.description}>{pr.description || '-'}</td>
+                      <td>
+                        <ScrollableCell text={pr.description} maxWidth={340} />
+                      </td>
                       <td className={s.right}>{formatRp(pr.total_price)}</td>
                       <td>{pr.supplier_name || '-'}</td>
                     </tr>

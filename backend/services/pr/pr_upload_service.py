@@ -132,6 +132,50 @@ class PrUploadService:
         }, 202
 
     @staticmethod
+    def _read_pr_df(file_path):
+        excel_file = pd.ExcelFile(file_path)
+        sheet_name = None
+        for name in ["PR to Invoice Tracking", "Results", "Sheet1"]:
+            if name in excel_file.sheet_names:
+                sheet_name = name
+                break
+        if not sheet_name:
+            sheet_name = excel_file.sheet_names[0]
+
+        df = pd.read_excel(file_path, sheet_name=sheet_name)
+        df.columns = [
+            str(col).strip().lower().replace(" ", "_").replace("-", "_").replace("(", "").replace(")", "").replace("/", "_")
+            for col in df.columns
+        ]
+
+        excel_to_internal_map = {
+            "pr_docnum": "pr_doc_num",
+            "po_docnum": "po_doc_num",
+            "item_description": "description",
+            "pr_qty": "qty",
+            "u_m": "uom",
+            "uom": "uom",
+            "name": "supplier_name",
+            "commenttext": "comment_text",
+            "comment___remarks": "comment_text",
+            "comment_remarks": "comment_text",
+            "pr_approval_status": "pr_status",
+            "po_approval_status": "po_status",
+            "est._unit_price_idr": "unit_price",
+            "est_unit_price_idr": "unit_price",
+            "po_unit_price_idr": "unit_price",
+            "total_est._pr_amount_idr": "total_price",
+            "total_est_pr_amount_idr": "total_price",
+            "total_po_amount_idr": "total_price"
+        }
+        df.rename(columns=excel_to_internal_map, inplace=True)
+
+        if "description" in df.columns:
+            df = df[df["description"].notna() & (~df["description"].astype(str).str.upper().str.contains("TOTAL PROCUREMENT"))]
+
+        return df
+
+    @staticmethod
     def _process_excel_background(app, file_path, upload_id, periode):
         with app.app_context():
             history = UploadHistory.query.get(upload_id)
@@ -140,24 +184,7 @@ class PrUploadService:
 
             try:
                 # --- Read Excel ---
-                df = pd.read_excel(file_path)
-                df.columns = [
-                    str(col).strip().lower().replace(" ", "_").replace("-", "_")
-                    for col in df.columns
-                ]
-
-                # Map specific excel columns to our expected internal columns
-                excel_to_internal_map = {
-                    "pr_docnum": "pr_doc_num",
-                    "po_docnum": "po_doc_num",
-                    "pr_qty": "qty",
-                    "u/m": "uom",
-                    "name": "supplier_name",
-                    "commenttext": "comment_text",
-                    "pr_approval_status": "pr_status",
-                    "po_approval_status": "po_status"
-                }
-                df.rename(columns=excel_to_internal_map, inplace=True)
+                df = PrUploadService._read_pr_df(file_path)
 
                 # Hitung total_price jika tidak ada
                 if "total_price" not in df.columns:

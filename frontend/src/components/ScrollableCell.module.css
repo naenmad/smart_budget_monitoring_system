@@ -1,0 +1,61 @@
+.cellWrapper {
+  display: inline-flex;
+  flex-direction: column;
+  position: relative;
+  cursor: pointer;
+  vertical-align: middle;
+  transition: all 0.2s ease;
+}
+
+.scrollContainer {
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.4) transparent;
+  scroll-behavior: auto;
+  border-radius: 4px;
+  padding: 2px 4px;
+  transition: background-color 0.15s ease;
+}
+
+.scrollContainer:hover {
+  background-color: rgba(37, 99, 235, 0.04);
+}
+
+.scrollContainer::-webkit-scrollbar {
+  height: 3px;
+}
+
+.scrollContainer::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.5);
+  border-radius: 4px;
+}
+
+.scrollContainer::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.8);
+}
+
+.textContent {
+  display: inline-block;
+}
+
+.expanded {
+  white-space: normal;
+  word-break: break-word;
+  overflow-x: visible;
+  line-height: 1.45;
+  background-color: var(--bg-subtle, #f8fafc);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 6px;
+  padding: 6px 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.expandBadge {
+  font-size: 10px;
+  color: var(--primary, #2563eb);
+  font-weight: 600;
+  margin-top: 2px;
+  align-self: flex-end;
+}

@@ -1,9 +1,41 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, send_file
 from services.pr.pr_upload_service import PrUploadService
 from services.pr.pr_service import PrService
 from services.pipeline_service import PipelineService
+from services.excel.excel_export_service import ExcelExportService
 
 pr_bp = Blueprint("pr", __name__)
+
+
+# ------------------------------------------------------------------
+# Download PR Procurement Excel Report
+# GET /api/v1/pr/export?periode=2026
+# ------------------------------------------------------------------
+@pr_bp.route("/export", methods=["GET"])
+def export_pr_excel():
+    """Download File Excel PR Procurement Report dengan Format Executive Summary & Detail Data
+    ---
+    tags:
+      - Purchase Requisition
+    parameters:
+      - name: periode
+        in: query
+        type: string
+        default: "2026"
+    responses:
+      200:
+        description: File Excel PR Procurement Report
+    """
+    periode = request.args.get("periode", "2026").strip()
+    excel_stream = ExcelExportService.generate_pr_excel(periode)
+    filename = f"Procurement_PR_Report_{periode}.xlsx"
+
+    return send_file(
+        excel_stream,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        as_attachment=True,
+        download_name=filename
+    )
 
 
 # ------------------------------------------------------------------

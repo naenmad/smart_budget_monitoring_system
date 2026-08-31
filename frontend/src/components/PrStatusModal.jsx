@@ -4,6 +4,7 @@ import { prPoDataApi } from '../api/prPoDataApi'
 import { mappingApi } from '../api/mappingApi'
 import { formatRp } from '../utils/format'
 import { FileText, X, Loader2, Undo2 } from 'lucide-react'
+import ScrollableCell from './ScrollableCell'
 
 export default function PrStatusModal({ status, onClose }) {
     const [prList, setPrList] = useState([])
@@ -156,7 +157,9 @@ export default function PrStatusModal({ status, onClose }) {
                                     {prList.map((pr, i) => (
                                         <tr key={pr.id}>
                                             <td className={s.monospace}>{pr.pr_doc_num || '-'}</td>
-                                            <td className={s.truncate}>{pr.description || '-'}</td>
+                                            <td>
+                                                <ScrollableCell text={pr.description} maxWidth={360} />
+                                            </td>
                                             <td className={s.center}>{pr.supplier_name || '-'}</td>
                                             <td className={s.right}>{formatRp(pr.total_price)}</td>
                                             <td className={s.center}>{pr.kategori_kode || '-'}</td>

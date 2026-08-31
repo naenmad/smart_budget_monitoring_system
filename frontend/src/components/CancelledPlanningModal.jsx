@@ -3,6 +3,7 @@ import s from './PrStatusModal.module.css' // reuse styling yang sudah ada, kons
 import { planningApi } from '../api/planningApi'
 import { formatRp } from '../utils/format'
 import { X, Loader2 } from 'lucide-react'
+import ScrollableCell from './ScrollableCell'
 
 export default function CancelledPlanningModal({ periode, onClose }) {
     const [items, setItems] = useState([])
@@ -65,10 +66,14 @@ export default function CancelledPlanningModal({ periode, onClose }) {
                                     {items.map((d) => (
                                         <tr key={d.id}>
                                             <td>{d.month}</td>
-                                            <td className={s.truncate}>{d.item}</td>
+                                            <td>
+                                                <ScrollableCell text={d.item} maxWidth={320} />
+                                            </td>
                                             <td className={s.center}>{d.kategori_kode || d.kategori_id || '-'}</td>
                                             <td className={s.right}>{formatRp(d.planning_amount)}</td>
-                                            <td className={s.truncate}>{d.remarks || '-'}</td>
+                                            <td>
+                                                <ScrollableCell text={d.remarks || '-'} maxWidth={260} />
+                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>

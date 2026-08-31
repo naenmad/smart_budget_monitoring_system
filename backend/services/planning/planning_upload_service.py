@@ -56,23 +56,77 @@ class PlanningUploadService:
         )
         file.save(file_path)
 
-        df = pd.read_excel(file_path)
+    @staticmethod
+    def _read_planning_df(file_path):
+        excel_file = pd.ExcelFile(file_path)
+        sheet_name = None
+        for name in ["Budget Planning Detail", "Planning", "Sheet1"]:
+            if name in excel_file.sheet_names:
+                sheet_name = name
+                break
+        if not sheet_name:
+            sheet_name = excel_file.sheet_names[0]
 
-        df.columns =[
-            str(col).strip().lower().replace(" ", "_").replace("-", "_")
+        df = pd.read_excel(file_path, sheet_name=sheet_name)
+        df.columns = [
+            str(col).strip().lower().replace(" ", "_").replace("-", "_").replace("(", "").replace(")", "")
             for col in df.columns
         ]
-        required_columns =[
-            "month",
-            "form",
-            "item",
-            "planning_amount",
-            "remarks"
-        ]
-        missing_columns = [
-            column for column in required_columns
-            if column not in df.columns
-        ]
+
+        # Column aliases mapping
+        col_aliases = {
+            "item_description": "item",
+            "planning_amount_idr": "planning_amount",
+            "remarks_actual_item": "remarks",
+            "category": "form"
+        }
+        df.rename(columns=col_aliases, inplace=True)
+
+        # Filter out total row if present
+        if "item" in df.columns:
+            df = df[df["item"].notna() & (~df["item"].astype(str).str.upper().str.contains("TOTAL BUDGET"))]
+        elif "form" in df.columns:
+            df = df[df["form"].notna() & (~df["form"].astype(str).str.upper().str.contains("TOTAL"))]
+
+        return df
+
+    @staticmethod
+    def upload_planning(file, periode, user_id):
+        if not file:
+            return {
+                "success": False,
+                "message": "file wajib diisi"
+            }, 400
+
+        filename = secure_filename(file.filename)
+        if filename == "":
+            return {
+                "success": False,
+                "message": "nama file wajib diisi"
+            }, 400
+
+        allowed_extension = {"xls", "xlsx"}
+        ext = filename.rsplit(".", 1)[-1].lower()
+        if ext not in allowed_extension:
+            return {
+                "success": False,
+                "message": "extensi file tidak didukung"
+            }, 400
+
+        PlanningUploadService.ensure_upload_folder()
+        file_path = os.path.join(PlanningUploadService.UPLOAD_FOLDER, filename)
+        file.save(file_path)
+
+        try:
+            df = PlanningUploadService._read_planning_df(file_path)
+        except Exception as read_err:
+            return {
+                "success": False,
+                "message": f"Gagal membaca file Excel: {str(read_err)}"
+            }, 400
+
+        required_columns = ["month", "form", "item", "planning_amount"]
+        missing_columns = [col for col in required_columns if col not in df.columns]
 
         if missing_columns:
             return {
@@ -80,21 +134,24 @@ class PlanningUploadService:
                 "message": "Missing required columns: " + ", ".join(missing_columns)
             }, 400
 
-        header_resp, status_code = PlanningHeaderService.create_planning_header({
-            "periode": periode,
-            "user_id": user_id,
-            "filename": filename
-        })
-        
-        if not header_resp.get("success"):
-            return header_resp, status_code
-
-        planning_header_id = header_resp["data"]["id"]
-        try:
-            db.session.commit()  # Ensure header is committed
-        except Exception as commit_err:
-            db.session.rollback()
-            return {"success": False, "message": f"Gagal menyimpan header planning: {str(commit_err)}"}, 500
+        # Cek apakah header periode sudah ada (Re-use existing header or create new)
+        existing_header = PlanningHeader.query.filter_by(periode=periode).first()
+        if existing_header:
+            existing_header.filename = filename
+            existing_header.user_id = user_id
+            existing_header.status = "UPLOADING"
+            planning_header_id = existing_header.id
+            db.session.commit()
+        else:
+            header_resp, status_code = PlanningHeaderService.create_planning_header({
+                "periode": periode,
+                "user_id": user_id,
+                "filename": filename
+            })
+            if not header_resp.get("success"):
+                return header_resp, status_code
+            planning_header_id = header_resp["data"]["id"]
+            db.session.commit()
 
         from flask import current_app
         import threading
@@ -121,31 +178,60 @@ class PlanningUploadService:
     def _process_excel_background(app, file_path, planning_header_id):
         with app.app_context():
             try:
-                df = pd.read_excel(file_path)
-                df.columns = [
-                    str(col).strip().lower().replace(" ", "_").replace("-", "_")
-                    for col in df.columns
-                ]
+                df = PlanningUploadService._read_planning_df(file_path)
+
+                # Pre-fetch existing planning details for UPSERT (anti-double)
+                existing_details = PlanningDetail.query.filter_by(planning_header_id=planning_header_id).all()
+                existing_map = {
+                    (str(d.month or "").strip().lower(), str(d.item or "").strip().lower()): d
+                    for d in existing_details
+                }
 
                 for _, row in df.iterrows():
-                    kategori = Kategori.query.filter_by(kode=row["form"]).first()
-                    kategori_id = kategori.id if kategori else None
+                    form_val = str(row.get("form", "")).strip()
+                    kategori = Kategori.query.filter(
+                        (Kategori.kode == form_val) | (Kategori.nama == form_val)
+                    ).first()
+                    kategori_id = kategori.id if kategori else 1
 
-                    detail_resp, detail_status = PlanningDetailService.create_planning_detail({
-                        "planning_header_id": planning_header_id,
-                        "kategori_id": kategori_id,
-                        "month": str(row["month"]).strip() if pd.notna(row["month"]) else None,
-                        "item": row["item"],
-                        "planning_amount": row["planning_amount"],
-                        "remarks": row["remarks"] if pd.notna(row["remarks"]) else ""
-                    })
+                    month_val = str(row.get("month", "")).strip() if pd.notna(row.get("month")) else None
+                    item_val = str(row.get("item", "")).strip()
+                    amount_raw = row.get("planning_amount", 0)
+                    try:
+                        plan_amount = float(amount_raw) if pd.notna(amount_raw) else 0.0
+                    except Exception:
+                        plan_amount = 0.0
 
-                    if not detail_resp.get("success"):
-                        raise Exception(detail_resp.get("message", "Error saving detail"))
+                    remarks_val = str(row.get("remarks", "")).strip() if pd.notna(row.get("remarks")) else ""
 
+                    if not item_val:
+                        continue
+
+                    # Check if already exists (UPSERT)
+                    key = (str(month_val or "").strip().lower(), item_val.lower())
+                    existing_detail = existing_map.get(key)
+
+                    if existing_detail:
+                        existing_detail.planning_amount = plan_amount
+                        existing_detail.remarks = remarks_val
+                        existing_detail.kategori_id = kategori_id
+                    else:
+                        new_detail = PlanningDetail(
+                            planning_header_id=planning_header_id,
+                            kategori_id=kategori_id,
+                            month=month_val,
+                            item=item_val,
+                            planning_amount=plan_amount,
+                            remarks=remarks_val
+                        )
+                        db.session.add(new_detail)
+                        existing_map[key] = new_detail
+
+                db.session.commit()
                 # Ubah status SUCCES dan commit
                 PlanningHeaderService.update_status(planning_header_id, "SUCCES", commit=True)
 
             except Exception as e:
                 db.session.rollback()
+                print(f"[PlanningUploadService] Error: {e}")
                 PlanningHeaderService.update_status(planning_header_id, "FAILED", commit=True)

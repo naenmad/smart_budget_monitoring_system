@@ -32,4 +32,8 @@ export const mappingApi = {
 
   autoConfirmByThreshold: () =>
     api.post('/mapping/auto_confirm_threshold'),
+
+  // Dataset Graf Relasi Traceability Master Planning & PR Realization
+  getGraphData: (params = {}) =>
+    api.get('/mapping/graph', { params }),
 }

@@ -23,6 +23,7 @@ const PrUpload = lazy(() => import('./pages/PrUpload'))
 const PrHistory = lazy(() => import('./pages/PrHistory'))
 const PrResult = lazy(() => import('./pages/PrResult'))
 const MappingReview = lazy(() => import('./pages/MappingReview'))
+const MappingGraph = lazy(() => import('./pages/MappingGraph'))
 
 function PageLoader() {
   return (
@@ -83,6 +84,7 @@ export default function App() {
                   <Route path="/pr/history" element={<ProtectedRoute><PrHistory /></ProtectedRoute>} />
                   <Route path="/pr/result" element={<ProtectedRoute><PrResult /></ProtectedRoute>} />
                   <Route path="/pr/mapping-review" element={<ProtectedRoute><MappingReview /></ProtectedRoute>} />
+                  <Route path="/mapping/graph" element={<ProtectedRoute><MappingGraph /></ProtectedRoute>} />
                 </Route>
 
                 {/* catch-all */}

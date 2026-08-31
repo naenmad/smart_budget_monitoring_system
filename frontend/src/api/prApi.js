@@ -49,4 +49,11 @@ export const prApi = {
   // Edit / Koreksi Status PR (PLANNING, OOP, NEED_MAPPING, CANCELLED, RESTORE)
   editStatus: (id, data) =>
     api.post(`/pr/${id}/status`, data),
+
+  // Download PR Procurement Excel Report
+  downloadExcel: (periode = '2026') =>
+    api.get('/pr/export', {
+      params: { periode },
+      responseType: 'blob'
+    }),
 }

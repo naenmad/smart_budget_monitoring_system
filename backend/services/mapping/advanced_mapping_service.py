@@ -270,9 +270,19 @@ class AdvancedMappingService:
             cand_code = AdvancedMappingService.extract_code(cand_item)
             is_prev = ('preventive' in cand_item.lower() or 'preventive' in cand_remarks.lower()) and (pd.month == month)
 
-            # Hitung skor kemiripan terhadap 'item' dan 'remarks'
-            score_item = fuzz.token_set_ratio(clean_desc, cand_item, processor=default_process)
-            score_remarks = fuzz.token_set_ratio(clean_desc, cand_remarks, processor=default_process) if cand_remarks else 0
+            # Hitung skor kemiripan terhadap 'item' dan 'remarks' menggunakan Hybrid Scoring
+            # (0.4 * token_set_ratio + 0.6 * token_sort_ratio) agar membedakan item spesifik (e.g. Pencabut Staples vs Staples) secara akurat
+            set_item = fuzz.token_set_ratio(clean_desc, cand_item, processor=default_process)
+            sort_item = fuzz.token_sort_ratio(clean_desc, cand_item, processor=default_process)
+            score_item = 0.4 * set_item + 0.6 * sort_item
+
+            if cand_remarks:
+                set_remarks = fuzz.token_set_ratio(clean_desc, cand_remarks, processor=default_process)
+                sort_remarks = fuzz.token_sort_ratio(clean_desc, cand_remarks, processor=default_process)
+                score_remarks = 0.4 * set_remarks + 0.6 * sort_remarks
+            else:
+                score_remarks = 0.0
+
             base_score = max(score_item, score_remarks)
             final_score = base_score
 
