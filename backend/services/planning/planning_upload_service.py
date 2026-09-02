@@ -6,6 +6,8 @@ from werkzeug.utils import secure_filename
 
 from services.planning.planning_header_service import PlanningHeaderService
 from services.planning.planning_detail_service import PlanningDetailService
+from models.planning_header import PlanningHeader
+from models.planning_detail import PlanningDetail
 from models.kategori import Kategori
 from utils.db import db
 
@@ -180,6 +182,32 @@ class PlanningUploadService:
             try:
                 df = PlanningUploadService._read_planning_df(file_path)
 
+                def get_clean_str(row, col):
+                    if col not in row:
+                        return ""
+                    val = row[col]
+                    if isinstance(val, pd.Series):
+                        non_na = val.dropna()
+                        val = non_na.iloc[0] if not non_na.empty else ""
+                    if val is None or pd.isna(val):
+                        return ""
+                    return str(val).strip()
+
+                def get_clean_float(row, col):
+                    if col not in row:
+                        return 0.0
+                    val = row[col]
+                    if isinstance(val, pd.Series):
+                        non_na = val.dropna()
+                        val = non_na.iloc[0] if not non_na.empty else 0.0
+                    if val is None or pd.isna(val):
+                        return 0.0
+                    try:
+                        clean_num = str(val).replace(",", "").strip()
+                        return float(clean_num)
+                    except Exception:
+                        return 0.0
+
                 # Pre-fetch existing planning details for UPSERT (anti-double)
                 existing_details = PlanningDetail.query.filter_by(planning_header_id=planning_header_id).all()
                 existing_map = {
@@ -188,21 +216,18 @@ class PlanningUploadService:
                 }
 
                 for _, row in df.iterrows():
-                    form_val = str(row.get("form", "")).strip()
-                    kategori = Kategori.query.filter(
-                        (Kategori.kode == form_val) | (Kategori.nama == form_val)
-                    ).first()
+                    form_val = get_clean_str(row, "form")
+                    kategori = None
+                    if form_val:
+                        kategori = Kategori.query.filter(
+                            (Kategori.kode == form_val) | (Kategori.nama == form_val)
+                        ).first()
                     kategori_id = kategori.id if kategori else 1
 
-                    month_val = str(row.get("month", "")).strip() if pd.notna(row.get("month")) else None
-                    item_val = str(row.get("item", "")).strip()
-                    amount_raw = row.get("planning_amount", 0)
-                    try:
-                        plan_amount = float(amount_raw) if pd.notna(amount_raw) else 0.0
-                    except Exception:
-                        plan_amount = 0.0
-
-                    remarks_val = str(row.get("remarks", "")).strip() if pd.notna(row.get("remarks")) else ""
+                    month_val = get_clean_str(row, "month") or None
+                    item_val = get_clean_str(row, "item")
+                    plan_amount = get_clean_float(row, "planning_amount")
+                    remarks_val = get_clean_str(row, "remarks")
 
                     if not item_val:
                         continue
@@ -232,6 +257,8 @@ class PlanningUploadService:
                 PlanningHeaderService.update_status(planning_header_id, "SUCCES", commit=True)
 
             except Exception as e:
+                import traceback
                 db.session.rollback()
                 print(f"[PlanningUploadService] Error: {e}")
+                traceback.print_exc()
                 PlanningHeaderService.update_status(planning_header_id, "FAILED", commit=True)

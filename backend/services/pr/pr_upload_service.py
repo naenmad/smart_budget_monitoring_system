@@ -204,10 +204,17 @@ class PrUploadService:
                 saved_count = 0
                 updated_count = 0
 
-                # --- Fungsi pembantu untuk konversi nilai ---
+                # --- Fungsi pembantu untuk konversi nilai yang aman dari Series/duplikasi kolom ---
                 def get_val(row, col):
-                    val = row.get(col)
-                    return val if pd.notna(val) else None
+                    if col not in row:
+                        return None
+                    val = row[col]
+                    if isinstance(val, pd.Series):
+                        non_na = val.dropna()
+                        val = non_na.iloc[0] if not non_na.empty else None
+                    if val is None or pd.isna(val):
+                        return None
+                    return val
 
                 def get_date_val(row, col):
                     val = get_val(row, col)
@@ -225,17 +232,23 @@ class PrUploadService:
                     if val is None:
                         return None
                     try:
-                        return Decimal(str(val))
+                        clean_num = str(val).replace(",", "").strip()
+                        return Decimal(clean_num)
                     except Exception:
                         return None
 
                 # --- Optimasi: Pre-fetch semua data yang sudah ada dalam 1 query ---
                 # Daripada query ke DB di setiap baris (N+1), kita ambil semua sekaligus
-                all_pr_nums = df["pr_doc_num"].dropna().unique().tolist()
-                all_pr_nums_str = [str(x) for x in all_pr_nums]
+                all_pr_nums = []
+                for _, r in df.iterrows():
+                    v = get_val(r, "pr_doc_num")
+                    if v is not None:
+                        all_pr_nums.append(str(v))
+
+                all_pr_nums_unique = list(set(all_pr_nums))
 
                 existing_records = PrPoData.query.filter(
-                    PrPoData.pr_doc_num.in_(all_pr_nums_str)
+                    PrPoData.pr_doc_num.in_(all_pr_nums_unique)
                 ).all()
 
                 # Buat dictionary (pr_doc_num, description) → record untuk lookup cepat
@@ -279,7 +292,7 @@ class PrUploadService:
                     else:
                         pr = PrPoData(
                             upload_id=upload_id,
-                            pr_doc_num=pr_doc_num_val,
+                            pr_doc_num=str(pr_doc_num_val),
                             po_doc_num=get("po_doc_num"),
                             requisition_id=get("requisition_id"),
                             request_date=get_date("request_date"),
@@ -317,6 +330,9 @@ class PrUploadService:
                 db.session.commit()
 
             except Exception as e:
+                import traceback
+                print(f"[PrUploadService] Background processing error: {e}")
+                traceback.print_exc()
                 db.session.rollback()
                 history.status = "FAILED"
                 try:
