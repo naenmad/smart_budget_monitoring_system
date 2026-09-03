@@ -21,6 +21,8 @@ import {
   KeyRound,
   Shield,
   User,
+  Receipt,
+  TrendingUp,
   X
 } from 'lucide-react'
 
@@ -63,6 +65,13 @@ const MENU_CONFIG = [
     ]
   },
   { 
+    group: 'Operasional QA', 
+    items: [
+      { to: '/entertaint-cost', label: 'Entertaint Cost', roles: ['admin', 'manager'], icon: Receipt },
+      { to: '/entertaint-analytics', label: 'Statistik & Analisis', roles: ['admin', 'manager'], icon: TrendingUp }
+    ]
+  },
+  { 
     group: 'Pengaturan', 
     items: [
       { to: '/users', label: 'Kelola Pengguna', roles: ['admin'], icon: UserCog }
@@ -80,6 +89,7 @@ export default function Sidebar({ mode = 'open', setMode, isMobileOpen, onMobile
     'Master Data': true,
     'Planning & Budget': true,
     'Purchase Requisition': true,
+    'Operasional QA': true,
     'Pengaturan': true
   })
 

@@ -28,6 +28,7 @@ from routes.planning_upload import planning_bp
 from routes.item_mapping import item_mapping_bp
 from routes.pr import pr_bp
 from routes.mapping import mapping_bp
+from routes.entertaint import entertaint_bp
 
 import os
 
@@ -108,6 +109,10 @@ app.register_blueprint(
 app.register_blueprint(
     mapping_bp,
     url_prefix="/api/v1/mapping"
+)
+app.register_blueprint(
+    entertaint_bp,
+    url_prefix="/api/v1/entertaint"
 )
 
 # --- Root & Health ---

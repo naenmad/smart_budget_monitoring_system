@@ -181,6 +181,78 @@ CREATE TABLE system_setting (
 	PRIMARY KEY (id)
 );
 
+CREATE TABLE entertaint_cost (
+	id BIGINT NOT NULL AUTO_INCREMENT,
+	tanggal DATE NOT NULL,
+	deskripsi TEXT NOT NULL,
+	total_amount NUMERIC(18, 2) NOT NULL DEFAULT 0.00,
+	status_pembayaran ENUM('BELUM_DIBAYAR', 'SUDAH_DIBAYAR') NOT NULL DEFAULT 'BELUM_DIBAYAR',
+	status_claim ENUM('OPEN', 'CLOSE') NOT NULL DEFAULT 'OPEN',
+	pic_entertaint VARCHAR(150),
+	customer VARCHAR(150),
+	place_of_occurrence VARCHAR(150),
+	customer_member TEXT,
+	sai_member TEXT,
+	tanggal_kasbon DATE,
+	total_kasbon NUMERIC(18, 2) DEFAULT 0.00,
+	status_kasbon VARCHAR(50) DEFAULT 'Belum Lunas',
+	tanggal_closing DATE,
+	keterangan TEXT,
+	part_no VARCHAR(100),
+	part_name VARCHAR(150),
+	problem TEXT,
+	problem_maker VARCHAR(100),
+	qty_problem INT,
+	struk_1 NUMERIC(18, 2) DEFAULT 0.00,
+	struk_2 NUMERIC(18, 2) DEFAULT 0.00,
+	struk_3 NUMERIC(18, 2) DEFAULT 0.00,
+	struk_4 NUMERIC(18, 2) DEFAULT 0.00,
+	created_by BIGINT,
+	created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+	updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+	PRIMARY KEY (id),
+	FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE SET NULL
+);
+
+CREATE TABLE entertaint_receipt (
+	id BIGINT NOT NULL AUTO_INCREMENT,
+	entertaint_cost_id BIGINT NOT NULL,
+	file_name VARCHAR(255) NOT NULL,
+	original_name VARCHAR(255) NOT NULL,
+	file_path VARCHAR(500) NOT NULL,
+	file_size INT NOT NULL DEFAULT 0,
+	mime_type VARCHAR(50) DEFAULT 'image/webp',
+	width INT,
+	height INT,
+	created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+	PRIMARY KEY (id),
+	FOREIGN KEY (entertaint_cost_id) REFERENCES entertaint_cost (id) ON DELETE CASCADE
+);
+
+CREATE TABLE entertaint_cashflow (
+	id BIGINT NOT NULL AUTO_INCREMENT,
+	doc_no VARCHAR(100),
+	tanggal DATE NOT NULL,
+	flow_type ENUM('IN', 'OUT') NOT NULL,
+	account_deskripsi TEXT NOT NULL,
+	uang_masuk NUMERIC(18, 2) DEFAULT 0.00,
+	uang_keluar NUMERIC(18, 2) DEFAULT 0.00,
+	balance NUMERIC(18, 2) DEFAULT 0.00,
+	status_entertaint VARCHAR(50) DEFAULT 'Open',
+	keterangan TEXT,
+	created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+	PRIMARY KEY (id)
+);
+
+CREATE TABLE entertaint_master_item (
+	id BIGINT NOT NULL AUTO_INCREMENT,
+	category ENUM('CUSTOMER', 'PIC', 'PLACE') NOT NULL,
+	name VARCHAR(150) NOT NULL,
+	is_active BOOLEAN DEFAULT TRUE,
+	created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+	PRIMARY KEY (id)
+);
+
 -- =============================================================
 -- DEFAULT INITIAL DATA SEED
 -- =============================================================

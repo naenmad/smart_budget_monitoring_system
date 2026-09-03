@@ -24,6 +24,8 @@ const PrHistory = lazy(() => import('./pages/PrHistory'))
 const PrResult = lazy(() => import('./pages/PrResult'))
 const MappingReview = lazy(() => import('./pages/MappingReview'))
 const MappingGraph = lazy(() => import('./pages/MappingGraph'))
+const EntertaintCost = lazy(() => import('./pages/EntertaintCost'))
+const EntertaintAnalytics = lazy(() => import('./pages/EntertaintAnalytics'))
 
 function PageLoader() {
   return (
@@ -85,6 +87,10 @@ export default function App() {
                   <Route path="/pr/result" element={<ProtectedRoute><PrResult /></ProtectedRoute>} />
                   <Route path="/pr/mapping-review" element={<ProtectedRoute><MappingReview /></ProtectedRoute>} />
                   <Route path="/mapping/graph" element={<ProtectedRoute><MappingGraph /></ProtectedRoute>} />
+
+                  {/* Operational QA / Expense Tracking */}
+                  <Route path="/entertaint-cost" element={<ProtectedRoute><EntertaintCost /></ProtectedRoute>} />
+                  <Route path="/entertaint-analytics" element={<ProtectedRoute><EntertaintAnalytics /></ProtectedRoute>} />
                 </Route>
 
                 {/* catch-all */}
