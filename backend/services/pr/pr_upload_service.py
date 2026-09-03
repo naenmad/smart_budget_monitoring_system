@@ -329,6 +329,15 @@ class PrUploadService:
                 # --- Satu commit di akhir ---
                 db.session.commit()
 
+                # --- Auto-Run AI Pipeline (Classification, Mapping, & Budget Monitoring) ---
+                try:
+                    from services.pipeline_service import PipelineService
+                    print(f"[PrUploadService] Auto-running AI Pipeline for upload_id={upload_id}, periode={periode}...")
+                    PipelineService.process_upload_batch(upload_id=upload_id, periode=periode or "2026")
+                    print(f"[PrUploadService] AI Pipeline completed for upload_id={upload_id}")
+                except Exception as pipe_err:
+                    print(f"[PrUploadService] Warning: Auto-pipeline error (data saved): {pipe_err}")
+
             except Exception as e:
                 import traceback
                 print(f"[PrUploadService] Background processing error: {e}")

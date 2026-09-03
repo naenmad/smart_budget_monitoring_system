@@ -2,11 +2,12 @@ import re
 
 # Stopwords umum pengadaan & bahasa (Indonesian & English) yang tidak memiliki nilai klasifikasi
 STOPWORDS = {
-    "dan", "atau", "ke", "di", "dari", "untuk", "pada", "yang", "dengan", "dg",
+    "dan", "atau", "ke", "di", "dari", "untuk", "pada", "yang", "dengan", "dg", "dgn",
     "adalah", "ini", "itu", "kami", "saya", "mohon", "tolong", "terima", "kasih",
-    "pt", "cv", "tbk", "corp", "inc", "co", "ltd",
+    "pt", "cv", "tbk", "corp", "inc", "co", "ltd", "ud",
     "no", "nomor", "tgl", "tanggal", "item", "barang", "po", "pr", "doc", "dokumen",
-    "the", "and", "or", "to", "in", "from", "for", "on", "with", "by", "of", "at"
+    "the", "and", "or", "to", "in", "from", "for", "on", "with", "by", "of", "at",
+    "satuan", "qty", "kuantiti", "amount", "total", "harga", "price", "pcs", "unit", "set"
 }
 
 # Normalisasi singkatan pengadaan manufaktur ke bentuk baku
@@ -20,10 +21,12 @@ ABBREVIATIONS = {
     "sp": "sparepart",
     "spare": "sparepart",
     "part": "sparepart",
+    "parts": "sparepart",
     "pemb": "pembelian",
     "pengg": "penggantian",
     "perb": "perbaikan",
     "inspek": "inspeksi",
+    "insp": "inspeksi",
     "cal": "kalibrasi",
     "calib": "kalibrasi",
     "meas": "measurement",
@@ -37,6 +40,26 @@ ABBREVIATIONS = {
     "elkt": "elektrik",
     "strg": "storage",
     "wh": "warehouse",
+    "whs": "warehouse",
+    "apd": "alat pelindung diri",
+    "atk": "alat tulis kantor",
+    "esd": "electrostatic discharge",
+    "assy": "assembly",
+    "pn": "part number",
+    "p/n": "part number",
+    "bld": "blade",
+    "hmi": "human machine interface",
+    "plc": "programmable logic controller",
+    "c/w": "complete with",
+    "sz": "size",
+    "uk": "ukuran",
+    "no.": "nomor",
+    "cyl": "cylinder",
+    "sol": "solenoid",
+    "vlv": "valve",
+    "pmp": "pump",
+    "comp": "compressor",
+    "fil": "filter",
 }
 
 

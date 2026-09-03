@@ -23,6 +23,9 @@ export const mappingApi = {
   bulkConfirm: (mappings) => 
     api.post('/mapping/bulk_confirm', { mappings }),
 
+  bulkApproveHighConfidence: (minConfidence = 85, periode = '2026') =>
+    api.post('/mapping/bulk-approve', { min_confidence: minConfidence, periode }),
+
   // Pengaturan Otomatisasi Mapping
   getSettings: () =>
     api.get('/mapping/settings'),

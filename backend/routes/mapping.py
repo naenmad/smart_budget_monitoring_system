@@ -293,6 +293,83 @@ def confirm_mapping(pr_id):
         "message": "Mapping berhasil dikonfirmasi dan budget dihitung",
         "data": pr.to_dict()
     }), 200
+
+@mapping_bp.route("/bulk-approve", methods=["POST"])
+@role_required("admin")
+def bulk_approve_high_confidence():
+    """Menyetujui secara massal semua rekomendasi mapping AI yang memiliki confidence score tinggi (default >= 85%)
+    ---
+    tags:
+      - Item Mapping & Threshold
+    security:
+      - Bearer: []
+    parameters:
+      - in: body
+        name: body
+        schema:
+          type: object
+          properties:
+            min_confidence:
+              type: number
+              default: 85.0
+            periode:
+              type: string
+              default: "2026"
+    responses:
+      200:
+        description: Berhasil menyetujui rekomendasi massal
+    """
+    data = request.get_json(silent=True) or {}
+    min_confidence = float(data.get("min_confidence", 85.0))
+    # Threshold scale: jika input 85 -> ubah ke 0.85 untuk compare dengan confidence_score (0.0 - 1.0)
+    conf_threshold = min_confidence / 100.0 if min_confidence > 1.0 else min_confidence
+
+    pending_prs = PrPoData.query.filter(
+        PrPoData.status_ai == "NEED_MAPPING"
+    ).all()
+
+    approved_count = 0
+    approved_pr_ids = []
+
+    for pr in pending_prs:
+        # Ambil top candidate log (rank_no = 1) dengan confidence >= threshold
+        top_log = MappingLog.query.filter(
+            MappingLog.pr_po_data_id == pr.id,
+            MappingLog.rank_no == 1,
+            MappingLog.planning_detail_hasil_id.isnot(None),
+            MappingLog.confidence_score >= conf_threshold
+        ).first()
+
+        if top_log and top_log.planning_detail_hasil_id:
+            detail = db.session.get(PlanningDetail, top_log.planning_detail_hasil_id)
+            if detail:
+                pr.kategori_id = detail.kategori_id
+                pr.planning_detail_id = detail.id
+                pr.status_ai = "DONE"
+                pr.perlu_review = False
+                top_log.is_selected = True
+
+                _recalculate_planning_status(detail.id)
+                _save_auto_learning_rule(pr, detail)
+                
+                approved_count += 1
+                approved_pr_ids.append(pr.id)
+
+    db.session.commit()
+
+    # Recalculate budget consumption for all newly approved PRs
+    for pr_id in approved_pr_ids:
+        pr_obj = db.session.get(PrPoData, pr_id)
+        if pr_obj:
+            BudgetMonitoringService.calculate_budget_consumption(pr_obj)
+
+    return jsonify({
+        "success": True,
+        "message": f"Berhasil menyetujui {approved_count} item mapping dengan confidence >= {min_confidence:.0f}%",
+        "approved_count": approved_count,
+        "approved_ids": approved_pr_ids
+    }), 200
+
 @mapping_bp.route("/planning_detail/search", methods=["GET"])
 def search_planning_detail():
     """

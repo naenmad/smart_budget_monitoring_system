@@ -82,6 +82,29 @@ class PipelineService:
             return {"success": False, "status": "FAILED", "message": str(e)}
 
     @staticmethod
+    def process_upload_batch(upload_id: int, periode: str = "2026") -> dict:
+        """
+        Menjalankan pipeline otomatis untuk seluruh PR dalam satu batch upload_id tertentu.
+        """
+        prs = PrPoData.query.filter_by(upload_id=upload_id).all()
+        results = {"success": 0, "failed": 0, "need_mapping": 0}
+        
+        for pr in prs:
+            try:
+                res = PipelineService.process_waiting_pr(pr.id, periode)
+                if res.get("status") == "NEED_MAPPING":
+                    results["need_mapping"] += 1
+                elif res.get("success"):
+                    results["success"] += 1
+                else:
+                    results["failed"] += 1
+            except Exception as e:
+                logger.error(f"Error processing PR ID {pr.id} in upload batch {upload_id}: {e}")
+                results["failed"] += 1
+                
+        return {"success": True, "message": f"Upload batch {upload_id} pipeline selesai", "results": results}
+
+    @staticmethod
     def process_all_waiting(periode: str) -> dict:
         """
         Menjalankan pipeline untuk semua PR berstatus WAITING atau PROCESSING untuk periode tertentu.
