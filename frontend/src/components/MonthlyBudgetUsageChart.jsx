@@ -5,7 +5,7 @@ import {
 } from 'recharts'
 import s from './MonthlyBudgetUsageChart.module.css'
 import { formatRp } from '../utils/format'
-import { TrendingUp, FileText, CheckCircle2 } from 'lucide-react'
+import { TrendingUp } from 'lucide-react'
 
 const COLORS = {
     plan: '#94a3b8',      // Slate gray for planned budget
@@ -62,7 +62,7 @@ const CustomTooltip = ({ active, payload, label, activeTab }) => {
     return null
 }
 
-export default function MonthlyBudgetUsageChart({ title = 'Monitoring Penggunaan Budget Bulanan', monthlyData = [] }) {
+export default function MonthlyBudgetUsageChart({ title = 'Monitoring Penggunaan Budget Bulanan', monthlyData = [], onMonthClick }) {
     const [activeTab, setActiveTab] = useState('total') // 'total' | 'capex' | 'opex'
 
     // Format chart data based on active tab
@@ -175,7 +175,17 @@ export default function MonthlyBudgetUsageChart({ title = 'Monitoring Penggunaan
 
                             return (
                                 <tr key={row.month}>
-                                    <td><strong>{row.month}</strong></td>
+                                    <td>
+                                        <button
+                                            type="button"
+                                            className={s.monthLinkBtn}
+                                            onClick={() => onMonthClick?.(row.month)}
+                                            title={`Klik untuk lihat rincian barang bulan ${row.month}`}
+                                        >
+                                            <span>{row.month}</span>
+                                            <span className={s.monthLinkIcon}>↗</span>
+                                        </button>
+                                    </td>
                                     <td>{formatRp(row.plan)}</td>
                                     <td style={{ color: COLORS.actual_pr, fontWeight: 600 }}>{formatRp(row.actual_pr)}</td>
                                     <td style={{ color: COLORS.actual_gr, fontWeight: 600 }}>{formatRp(row.actual_gr)}</td>

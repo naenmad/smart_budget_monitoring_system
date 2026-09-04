@@ -17,7 +17,8 @@ import {
   ChevronDown,
   ChevronUp,
   BrainCircuit,
-  Info
+  Info,
+  RotateCcw
 } from 'lucide-react'
 import styles from './MappingReview.module.css'
 
@@ -43,6 +44,11 @@ export default function MappingReview() {
   const [, setIsSavingSettings] = useState(false)
   const [isAutoApproving, setIsAutoApproving] = useState(false)
   const [isPanelOpen, setIsPanelOpen] = useState(true)
+
+  // --- state modal debug reset ---
+  const [showResetModal, setShowResetModal] = useState(false)
+  const [resetMode, setResetMode] = useState('rerun_ai')
+  const [isResetting, setIsResetting] = useState(false)
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -107,6 +113,22 @@ export default function MappingReview() {
       toast.error(err.response?.data?.message || 'Gagal menjalankan auto-approval')
     } finally {
       setIsAutoApproving(false)
+    }
+  }
+
+  async function handleResetMappings() {
+    setIsResetting(true)
+    try {
+      const res = await mappingApi.resetAllMappings({ mode: resetMode })
+      if (res.data?.success) {
+        toast.success(res.data.message || 'Mapping berhasil direset!')
+        setShowResetModal(false)
+        fetchData()
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Gagal mereset mapping')
+    } finally {
+      setIsResetting(false)
     }
   }
 
@@ -433,24 +455,38 @@ export default function MappingReview() {
 
             {/* Tombol Eksekusi Cepat */}
             <div className={styles.autoActionWrap}>
-              <button
-                type="button"
-                className={styles.btnRunAuto}
-                onClick={handleRunAutoApproval}
-                disabled={isAutoApproving || items.length === 0}
-              >
-                {isAutoApproving ? (
-                  <>
-                    <Loader2 size={15} className="animate-spin" />
-                    Memproses Auto-Approval...
-                  </>
-                ) : (
-                  <>
-                    <Zap size={15} />
-                    Terapkan Auto-Approval (≥ {threshold}%)
-                  </>
-                )}
-              </button>
+              <div className={styles.actionButtonsRow}>
+                <button
+                  type="button"
+                  className={styles.btnRunAuto}
+                  onClick={handleRunAutoApproval}
+                  disabled={isAutoApproving || items.length === 0}
+                >
+                  {isAutoApproving ? (
+                    <>
+                      <Loader2 size={15} className="animate-spin" />
+                      Memproses Auto-Approval...
+                    </>
+                  ) : (
+                    <>
+                      <Zap size={15} />
+                      Terapkan Auto-Approval (≥ {threshold}%)
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  className={styles.btnResetDebug}
+                  onClick={() => setShowResetModal(true)}
+                  disabled={isResetting || isAutoApproving}
+                  title="Debug: Hapus semua mapping untuk uji ulang algoritma AI"
+                >
+                  <RotateCcw size={14} />
+                  Reset Mapping (Debug)
+                </button>
+              </div>
+
               <div className={`${styles.eligiblePill} ${eligibleCount > 0 ? styles.eligiblePillActive : ''}`}>
                 <Info size={12} />
                 {eligibleCount > 0 
@@ -784,6 +820,104 @@ export default function MappingReview() {
             <div className={styles.modalFooter}>
               <button className="btn-secondary" onClick={closeSearchModal}>
                 Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal Dialog Reset All Mappings (Debug) ── */}
+      {showResetModal && (
+        <div className={styles.modalOverlay} onClick={() => setShowResetModal(false)}>
+          <div className={styles.resetModalCard} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.resetModalHeader}>
+              <div className={styles.resetModalTitle}>
+                <AlertTriangle size={18} />
+                Reset Semua Mapping PR (Debug Testing)
+              </div>
+              <button 
+                className={styles.resetModalClose} 
+                onClick={() => setShowResetModal(false)}
+                disabled={isResetting}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className={styles.resetModalBody}>
+              <div className={styles.resetModalWarning}>
+                <strong>Perhatian:</strong> Fitur debug ini akan mengosongkan semua penautan PR ke Planning Detail, menghapus riwayat log AI, dan mengembalikan status realisasi anggaran ke <strong>OPEN</strong>.
+              </div>
+
+              <div className={styles.resetOptionsWrap}>
+                <label 
+                  className={`${styles.resetOptionItem} ${resetMode === 'rerun_ai' ? styles.resetOptionActive : ''}`}
+                  onClick={() => setResetMode('rerun_ai')}
+                >
+                  <input
+                    type="radio"
+                    name="resetMode"
+                    value="rerun_ai"
+                    checked={resetMode === 'rerun_ai'}
+                    onChange={() => setResetMode('rerun_ai')}
+                    className={styles.resetOptionRadio}
+                  />
+                  <div>
+                    <div className={styles.resetOptionTextTitle}>Reset & Jalankan Ulang AI (Full Test Benchmark)</div>
+                    <div className={styles.resetOptionTextDesc}>
+                      Hapus semua mapping lama, lalu otomatis jalankan algoritma AI (Master Rules + RapidFuzz + Preventive Umbrella) dari awal untuk melihat akurasi pencocokan.
+                    </div>
+                  </div>
+                </label>
+
+                <label 
+                  className={`${styles.resetOptionItem} ${resetMode === 'unmap_only' ? styles.resetOptionActive : ''}`}
+                  onClick={() => setResetMode('unmap_only')}
+                >
+                  <input
+                    type="radio"
+                    name="resetMode"
+                    value="unmap_only"
+                    checked={resetMode === 'unmap_only'}
+                    onChange={() => setResetMode('unmap_only')}
+                    className={styles.resetOptionRadio}
+                  />
+                  <div>
+                    <div className={styles.resetOptionTextTitle}>Kosongkan Saja (Unmap All ke Antrean Need Mapping)</div>
+                    <div className={styles.resetOptionTextDesc}>
+                      Kosongkan semua penautan agar seluruh PR masuk kembali ke antrean review manual ini tanpa auto-approval.
+                    </div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div className={styles.resetModalFooter}>
+              <button
+                type="button"
+                className={styles.btnCancelModal}
+                onClick={() => setShowResetModal(false)}
+                disabled={isResetting}
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                className={styles.btnConfirmReset}
+                onClick={handleResetMappings}
+                disabled={isResetting}
+              >
+                {isResetting ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    Mereset Mapping...
+                  </>
+                ) : (
+                  <>
+                    <RotateCcw size={14} />
+                    Konfirmasi Reset Sekarang
+                  </>
+                )}
               </button>
             </div>
           </div>

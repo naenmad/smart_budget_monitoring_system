@@ -12,6 +12,7 @@ import PrStatusModal from '../components/PrStatusModal'
 import PrTrackingModal from '../components/PrTrackingModal'
 import MonthlyPipelineChart from '../components/MonthlyPipelineChart'
 import MonthlyBudgetUsageChart from '../components/MonthlyBudgetUsageChart'
+import MonthlyItemDetailModal from '../components/MonthlyItemDetailModal'
 import KpiBudgetUsageReport from '../components/KpiBudgetUsageReport'
 import CancelledPlanningModal from '../components/CancelledPlanningModal'
 import PeriodeSwitcher from '../components/SwitchComponent'
@@ -32,6 +33,7 @@ export default function Dashboard() {
   const [isExporting, setIsExporting] = useState(false)
   const dashboardRef = useRef(null)
   const [showCancelledPlanningModal, setShowCancelledPlanningModal] = useState(false)
+  const [selectedMonthForDetail, setSelectedMonthForDetail] = useState(null)
 
   const handleExportAll = async () => {
     if (!dashboardRef.current) return
@@ -390,7 +392,7 @@ export default function Dashboard() {
                 onClick={() => setSelectedForm('ON_PLAN')}
               />
               <MetricCard
-                label="Over Plan"
+                label="Over Budget"
                 value={prSummary?.over_plan ?? 0}
                 sub="Realisasi melebihi budget"
                 variant="danger"
@@ -454,7 +456,14 @@ export default function Dashboard() {
           <MonthlyBudgetUsageChart
             title={`Monitoring Penggunaan Budget Bulanan (${periode})`}
             monthlyData={monthlySummary}
+            onMonthClick={(month) => setSelectedMonthForDetail(month)}
           />
+
+          {/* 6. Grafik Komitmen CAPEX vs OPEX & Grafik Realisasi per Form */}
+          <div className={s.chartGrid}>
+            <BudgetChart title="Grafik Komitmen CAPEX vs OPEX" data={chartCapexOpex} />
+            <BudgetChart title="Grafik Realisasi per Form" data={chartForm} />
+          </div>
         </div>
       )
     },
@@ -471,45 +480,6 @@ export default function Dashboard() {
             onDetailClick={() => setSelectedForm('ALL')}
           />
         </section>
-      )
-    },
-    {
-      id: 'capex_opex',
-      label: 'Analisis Form & Grafik',
-      content: (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div className={s.budgetGrid}>
-            <BudgetCard
-              type="CAPEX"
-              title="Capital Expenditure"
-              budget={capex.budget}
-              actualPr={capex.actual_pr || capex.actual}
-              actualGr={capex.actual_gr}
-              saldoPr={capex.saldo_pr !== undefined ? capex.saldo_pr : capex.saldo}
-              saldoGr={capex.saldo_gr}
-              persenPr={capex.persen_pr}
-              persenGr={capex.persen_gr}
-              onClick={() => setSelectedForm('CAPEX')}
-            />
-            <BudgetCard
-              type="OPEX"
-              title="Operational Expenditure"
-              budget={opex.budget}
-              actualPr={opex.actual_pr || opex.actual}
-              actualGr={opex.actual_gr}
-              saldoPr={opex.saldo_pr !== undefined ? opex.saldo_pr : opex.saldo}
-              saldoGr={opex.saldo_gr}
-              persenPr={opex.persen_pr}
-              persenGr={opex.persen_gr}
-              onClick={() => setSelectedForm('OPEX')}
-            />
-          </div>
-
-          <div className={s.chartGrid}>
-            <BudgetChart title="Grafik Komitmen CAPEX vs OPEX" data={chartCapexOpex} />
-            <BudgetChart title="Grafik Realisasi per Form" data={chartForm} />
-          </div>
-        </div>
       )
     },
     {
@@ -616,6 +586,13 @@ export default function Dashboard() {
         <CancelledPlanningModal
           periode={periode}
           onClose={() => { setShowCancelledPlanningModal(false); fetchSummary(false); }}
+        />
+      )}
+      {selectedMonthForDetail && (
+        <MonthlyItemDetailModal
+          periode={periode}
+          month={selectedMonthForDetail}
+          onClose={() => setSelectedMonthForDetail(null)}
         />
       )}
     </div>

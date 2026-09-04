@@ -60,4 +60,14 @@ export const budgetApi = {
     return api.delete(`/budgets/periode/${periode}`)
       .then(res => res.data)
   },
+
+  /**
+   * Get detail planned items and PR transactions for a specific month
+   * @param {string} periode
+   * @param {string} month
+   */
+  getMonthlyItems(periode, month) {
+    return api.get('/budgets/monthly_items', { params: { periode, month } })
+      .then(res => res.data)
+  },
 }

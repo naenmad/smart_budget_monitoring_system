@@ -39,4 +39,8 @@ export const mappingApi = {
   // Dataset Graf Relasi Traceability Master Planning & PR Realization
   getGraphData: (params = {}) =>
     api.get('/mapping/graph', { params }),
+
+  // Debug Utility: Hapus / Reset Semua Mapping untuk Uji Algoritma AI
+  resetAllMappings: (data = {}) =>
+    api.post('/mapping/reset_all', data),
 }

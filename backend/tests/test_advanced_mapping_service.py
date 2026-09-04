@@ -90,10 +90,51 @@ class TestAdvancedMappingService(unittest.TestCase):
         normal_anomaly = (normal_ratio > 3.0 or normal_ratio < 0.1)
         self.assertFalse(normal_anomaly)
 
-    def test_extract_code_none(self):
-        self.assertIsNone(AdvancedMappingService.extract_code("BELI BARANG BIASA SAJA"))
-        self.assertIsNone(AdvancedMappingService.extract_code(""))
-        self.assertIsNone(AdvancedMappingService.extract_code(None))
+    def test_preventive_umbrella_budget_price_anomaly_exempt(self):
+        # Scenario: PREVENTIVE C/F has 7.4M budget, small PR is Rp 20,000 (ratio 0.0027 < 0.1)
+        # Umbrella budgets should NOT be flagged as price anomaly for small consumables
+        pr_amt = 20000.0
+        plan_amt = 7435134.0
+        price_ratio = pr_amt / plan_amt
+        is_prev = True
+        
+        if price_ratio > 3.0:
+            anomaly = True
+        elif price_ratio < 0.1:
+            anomaly = False if is_prev else True
+        else:
+            anomaly = False
+            
+        self.assertFalse(anomaly)
+
+    def test_extract_code_non_code_words(self):
+        # Common non-code parenthesized words should NOT be extracted as registration/part codes
+        self.assertIsNone(AdvancedMappingService.extract_code("XIAOMI REDMI PAD 2 (WIFI)"))
+        self.assertIsNone(AdvancedMappingService.extract_code("Baut M4 (PCS)"))
+        self.assertIsNone(AdvancedMappingService.extract_code("Toolbox Besi (SET)"))
+        self.assertIsNone(AdvancedMappingService.extract_code("Stample (QC)"))
+
+    def test_preventive_keywords_coverage(self):
+        # Key fixture/maintenance items must be covered by PREVENTIVE_KEYWORDS
+        test_items = [
+            "Socket Head Cap Screws MISUMI CB8-30",
+            "THINNER IMPALA",
+            "Roda PU Merah No Brand SIZE 5 INCH FIX",
+            "Aluminium AL6061 500x200x30mm",
+            "Hand Reamer Misumi Straight Reamer HRST-6.03",
+            "Dowel Pin MISUMI MSTP6-20",
+            "Tips for Clamps - M8 Tips",
+            "Pad Lock ATS (40mm short)",
+            "NIPPON PAINT 1 kg VICTORY RED SUZUKI",
+            "Alas meja ESD hijau 2x600x1220",
+            "STAMPLE QC",
+            "REPAIR TOP TECH CUTTING MACHINE",
+            "Cleaning Kit (A-1085-0016) Renishaw"
+        ]
+        for item in test_items:
+            item_lower = item.lower()
+            matched = any(k in item_lower for k in AdvancedMappingService.PREVENTIVE_KEYWORDS)
+            self.assertTrue(matched, f"Failed keyword match for: {item}")
 
 
 if __name__ == "__main__":

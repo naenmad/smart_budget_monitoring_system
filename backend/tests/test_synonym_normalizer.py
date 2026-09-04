@@ -41,6 +41,12 @@ class TestSynonymNormalizer(unittest.TestCase):
         self.assertIn("preventive", t_prev)
         self.assertIn("maintenance", t_prev)
 
+        t_prevention = SynonymNormalizer.normalize_text("Auto prevention checking fixture")
+        self.assertIn("preventive", t_prevention)
+
+        t_preventif = SynonymNormalizer.normalize_text("Perawatan preventif jig")
+        self.assertIn("preventive", t_preventif)
+
 
 if __name__ == "__main__":
     unittest.main()

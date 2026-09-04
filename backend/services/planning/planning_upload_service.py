@@ -61,13 +61,98 @@ class PlanningUploadService:
     @staticmethod
     def _read_planning_df(file_path):
         excel_file = pd.ExcelFile(file_path)
+        sheet_names = excel_file.sheet_names
+
+        # Deteksi apakah file ini merupakan Multi-Sheet Workbook resmi Komite Review Budget PT SAI
+        committee_forms = [s for s in sheet_names if any(k in s for k in ("Form E-1", "Form E-9", "Form I-1", "Form E-6", "Form E-7"))]
+
+        if committee_forms:
+            import openpyxl
+            wb = openpyxl.load_workbook(file_path, data_only=True)
+            records = []
+            month_map = {
+                'jan': 'Jan', 'feb': 'Feb', 'mar': 'Mar', 'apr': 'Apr', 'may': 'May', 'jun': 'Jun',
+                'jul': 'Jul', 'aug': 'Aug', 'sep': 'Sep', 'okt': 'Oct', 'oct': 'Oct', 'nov': 'Nov', 'des': 'Dec', 'dec': 'Dec'
+            }
+
+            # 1. Parse Form E-1 (Consumables QC/Pabrik)
+            if 'Form E-1' in wb.sheetnames:
+                ws = wb['Form E-1']
+                month_cols = {}
+                for c in range(8, ws.max_column + 1):
+                    v7 = str(ws.cell(7, c).value or '').strip().lower()
+                    v8 = str(ws.cell(8, c).value or '').strip().lower()
+                    for m_key, m_val in month_map.items():
+                        if m_key in v7:
+                            if 'amount' in v8 or 'amt' in v8 or not v8:
+                                month_cols[c] = m_val
+                            elif 'usage' in v8 and c + 1 <= ws.max_column:
+                                month_cols[c + 1] = m_val
+                for r in range(9, ws.max_row + 1):
+                    item = ws.cell(r, 1).value
+                    if not item or 'total' in str(item).lower():
+                        continue
+                    item_str = str(item).strip()
+                    for c, m_val in month_cols.items():
+                        amt = ws.cell(r, c).value
+                        if isinstance(amt, (int, float)) and amt > 0:
+                            records.append({'month': m_val, 'form': 'E-1', 'item': item_str, 'planning_amount': float(amt), 'remarks': ''})
+
+            # 2. Parse Form E-9 (Calibration & Mtc CF)
+            sheet_e9 = 'Form E-9 (2)' if 'Form E-9 (2)' in wb.sheetnames else ('Form E-9' if 'Form E-9' in wb.sheetnames else None)
+            if sheet_e9:
+                ws = wb[sheet_e9]
+                month_cols = {}
+                for c in range(7, ws.max_column + 1):
+                    v8 = str(ws.cell(8, c).value or '').strip().lower()
+                    for m_key, m_val in month_map.items():
+                        if m_key == v8 or v8.startswith(m_key):
+                            month_cols[c] = m_val
+                for r in range(9, ws.max_row + 1):
+                    item = ws.cell(r, 2).value
+                    code = ws.cell(r, 3).value
+                    if not item or 'total' in str(item).lower():
+                        continue
+                    item_str = str(item).strip()
+                    if code and str(code).strip():
+                        item_str = f"{item_str} ({str(code).strip()})"
+                    for c, m_val in month_cols.items():
+                        amt = ws.cell(r, c).value
+                        if isinstance(amt, (int, float)) and amt > 0:
+                            records.append({'month': m_val, 'form': 'E-9', 'item': item_str, 'planning_amount': float(amt), 'remarks': ''})
+
+            # 3. Parse Form I-1 (Investment Asset CAPEX)
+            if 'Form I-1' in wb.sheetnames:
+                ws = wb['Form I-1']
+                month_cols = {}
+                for c in range(8, ws.max_column + 1):
+                    v7 = str(ws.cell(7, c).value or '').strip().lower()
+                    v8 = str(ws.cell(8, c).value or '').strip().lower()
+                    for m_key, m_val in month_map.items():
+                        if m_key == v8 or v8.startswith(m_key) or m_key == v7 or v7.startswith(m_key):
+                            month_cols[c] = m_val
+                for r in range(9, ws.max_row + 1):
+                    item = ws.cell(r, 2).value
+                    if not item or 'total' in str(item).lower():
+                        continue
+                    item_str = str(item).strip()
+                    code_val = str(ws.cell(r, 1).value or '').strip()
+                    for c, m_val in month_cols.items():
+                        amt = ws.cell(r, c).value
+                        if isinstance(amt, (int, float)) and amt > 0:
+                            records.append({'month': m_val, 'form': 'I-1', 'item': item_str, 'planning_amount': float(amt), 'remarks': code_val})
+
+            if records:
+                return pd.DataFrame(records)
+
+        # Fallback: Single-sheet flat planning template
         sheet_name = None
         for name in ["Budget Planning Detail", "Planning", "Sheet1"]:
-            if name in excel_file.sheet_names:
+            if name in sheet_names:
                 sheet_name = name
                 break
         if not sheet_name:
-            sheet_name = excel_file.sheet_names[0]
+            sheet_name = sheet_names[0]
 
         df = pd.read_excel(file_path, sheet_name=sheet_name)
         df.columns = [
@@ -220,9 +305,19 @@ class PlanningUploadService:
                     kategori = None
                     if form_val:
                         kategori = Kategori.query.filter(
-                            (Kategori.kode == form_val) | (Kategori.nama == form_val)
+                            (Kategori.kode.ilike(f"%{form_val}%")) | (Kategori.nama.ilike(f"%{form_val}%"))
                         ).first()
-                    kategori_id = kategori.id if kategori else 1
+
+                    if kategori:
+                        kategori_id = kategori.id
+                    else:
+                        item_lower = get_clean_str(row, "item").lower()
+                        if item_lower.startswith("kalibrasi") or item_lower == "preventive c/f":
+                            kategori_id = 2  # E-9 Calibration & Mtc CF
+                        elif any(kw in item_lower for kw in ("cutting machine", "laptop", "lemari", "shredder", "torque", "ojiyas", "ring gauge", "feeler gauge", "filler gauge", "pop nut", "komputer", "machine")):
+                            kategori_id = 3  # I-1 Investment Asset CAPEX
+                        else:
+                            kategori_id = 1  # E-1 Consumable OPEX
 
                     month_val = get_clean_str(row, "month") or None
                     item_val = get_clean_str(row, "item")
@@ -253,6 +348,25 @@ class PlanningUploadService:
                         existing_map[key] = new_detail
 
                 db.session.commit()
+
+                # Auto-sync total anggaran ke tabel Budget per kategori untuk periode ini
+                header = db.session.get(PlanningHeader, planning_header_id)
+                if header and header.periode:
+                    from models.budget import Budget
+                    from sqlalchemy import func
+                    for kat in Kategori.query.all():
+                        tot = db.session.query(func.sum(PlanningDetail.planning_amount)).filter_by(
+                            planning_header_id=planning_header_id,
+                            kategori_id=kat.id
+                        ).scalar() or 0
+                        b = Budget.query.filter_by(periode=header.periode, kategori_id=kat.id).first()
+                        if b:
+                            b.nominal = tot
+                        elif tot > 0:
+                            b = Budget(periode=header.periode, kategori_id=kat.id, nominal=tot)
+                            db.session.add(b)
+                    db.session.commit()
+
                 # Ubah status SUCCES dan commit
                 PlanningHeaderService.update_status(planning_header_id, "SUCCES", commit=True)
 

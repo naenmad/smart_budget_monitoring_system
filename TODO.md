@@ -45,3 +45,5 @@ _Dokumen pelacakan tugas pengembangan, refactoring, dan optimasi sistem._
 
 - [ ] **Validasi Skema Request Body (Pydantic / Marshmallow)**:
   - Pengetatan skema payload JSON untuk endpoint master data di masa mendatang jika dibutuhkan integrasi API eksternal.
+
+docker compose up -d --build

@@ -1062,7 +1062,7 @@ export default function MappingGraph() {
             <select value={budgetStatus} onChange={e => setBudgetStatus(e.target.value)} className={s.selectInput}>
               <option value="ALL">Semua Status Realisasi</option>
               <option value="ON_PLAN">On Plan (Sesuai Pagu)</option>
-              <option value="OVER_PLAN">Over Plan (Melebihi Pagu)</option>
+              <option value="OVER_PLAN">Over Budget (Melebihi Pagu)</option>
               <option value="OOP">OOP (Out of Plan)</option>
               <option value="NEED_MAPPING">Need Mapping (Review)</option>
             </select>

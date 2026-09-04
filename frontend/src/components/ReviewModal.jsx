@@ -9,7 +9,7 @@ export default function ReviewModal({ record, categories, onClose, onSuccess }) 
   const [loading, setLoading] = useState(false)
   const [approving, setApproving] = useState(false)
   const [error, setError] = useState('')
-  const [selectedCat, setSelectedCat] = useState('')
+  const [selectedCat, setSelectedCat] = useState(record?.kategori_id ? String(record.kategori_id) : '')
 
   async function handleApprove() {
     setApproving(true)

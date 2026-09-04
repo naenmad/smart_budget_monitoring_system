@@ -17,6 +17,8 @@ class SynonymNormalizer:
         r'\bcal\b': 'kalibrasi',
         r'\bcalib\b': 'kalibrasi',
         r'\bprev\b': 'preventive',
+        r'\bprevention\b': 'preventive',
+        r'\bpreventif\b': 'preventive',
         r'\bmaint\b': 'maintenance',
         r'\bsrv\b': 'service',
         r'\bops\b': 'operasional',
@@ -87,7 +89,15 @@ class SynonymNormalizer:
         (r'\b(screwdriver|obeng|obeng plus|obeng minus)\b', 'obeng screwdriver tool'),
         (r'\b(hex key|kunci l|allen key)\b', 'kunci l allen key hex wrench'),
         (r'\b(battery|baterai|batre|accu|aki)\b', 'baterai battery accu aki power'),
-        (r'\b(preventive|perawatan berkala|servis berkala|pemeliharaan)\b', 'preventive maintenance perawatan berkala servis')
+        (r'\b(repair|perbaikan|reparasi|servis mesin|repair machine|rekondisi)\b', 'repair perbaikan maintenance servis perawatan'),
+        (r'\b(cutting machine|mesin potong|mesin cutting|mesin bubut|mesin frais)\b', 'cutting machine mesin potong perbaikan workshop'),
+        (r'\b(cleaning kit|cleaner kit|alat pembersih)\b', 'cleaning kit pembersih perawatan maintenance'),
+        (r'\b(alkohol|alcohol|etanol|ethanol)\b', 'alkohol alcohol chemical pembersih'),
+        (r'\b(preventive|prevention|preventif|perawatan berkala|servis berkala|pemeliharaan|pemeliharaan berkala)\b', 'preventive maintenance perawatan berkala servis checking fixture'),
+        (r'\b(thread ring gauge|ring gauge|gauge ring|go nogo|go-nogo|tapper gauge|feeler gauge|filler gauge)\b', 'ring gauge tapper feeler gauge alat ukur presisi'),
+        (r'\b(faro arm|romer|cmm|coordinate measuring machine)\b', 'faro arm romer cmm alat ukur 3d presisi'),
+        (r'\b(paper shredder|penghancur kertas|paper cutter|pemotong kertas|mesin laminating)\b', 'mesin kantor peralatan asset office equipment'),
+        (r'\b(pop nut|alat pop nut|tang nut|rivet nut)\b', 'pop nut alat pop nut rivet fastener tool')
     ]
 
     @classmethod

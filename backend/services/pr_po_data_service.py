@@ -268,6 +268,8 @@ class PrPoDataService:
         from services.mapping.advanced_mapping_service import AdvancedMappingService
         AdvancedMappingService.run_mapping(record)
 
+        db.session.refresh(record)
+
         return {
             "success": True,
             "message": "Review berhasil disimpan",

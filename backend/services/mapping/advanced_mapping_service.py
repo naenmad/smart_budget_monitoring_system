@@ -35,6 +35,30 @@ class AdvancedMappingService:
         re.IGNORECASE
     )
 
+    NON_CODE_WORDS = {
+        'WIFI', 'WI-FI', 'PCS', 'SET', 'UNIT', 'PACK', 'BOX', 'ROLL', 'RIM',
+        'ORIGINAL', 'NEW', 'BARU', 'BEKAS', 'STANDAR', 'STANDARD', 'CUSTOM',
+        'FIX', 'SWIVEL', 'QC', 'QA', 'E-1', 'E-9', 'I-1', 'CAPEX', 'OPEX',
+        'WHITE', 'BLACK', 'RED', 'BLUE', 'GREEN', 'YELLOW', 'PUTIH', 'HITAM',
+        'MERAH', 'BIRU', 'HIJAU', 'KUNING', 'BESI', 'BAJA', 'ALUMINIUM',
+        'KECIL', 'BESAR', 'LONG', 'SHORT', 'PANJANG', 'PENDEK'
+    }
+
+    PREVENTIVE_KEYWORDS = [
+        'preventive', 'prevention', 'preventif', 'prev', 'perawatan', 'pemeliharaan',
+        'c/f', 'cf', 'fixture', 'checking fixture', 'jig', 'clamp', 'toogle', 'toggle',
+        'reamer', 'dowel', 'pin gauge', 'shim', 'castor', 'roda pu', 'baut', 'screw',
+        'ring per', 'ring plate', 'thinner', 'cat', 'ftalit', 'nippon', 'spray paint',
+        'kunci inggris', 'tang snap', 'hotmelt', 'glue stick', 'anodize', 'makitawireless',
+        'hand reamer', 'pad lock', 'obeng set', 'stample qe', 'stample qc', 'rubbing compound',
+        'rotary cutting', 'round bar', 'skun', 'sling spiral', 'nylon rod', 'rubber foot',
+        'tips for clamps', 'toolbox', 'wire rope', 'spring', 'recoil', 'baut hex',
+        'hex key', 'kunci l', 'mata bor', 'drill bit', 'alas meja', 'esd', 'aluminium', 'aluminum', 'plat', 'plate',
+        'repair', 'perbaikan', 'servis', 'service', 'cutting machine', 'mesin cutting', 'mesin potong',
+        'cleaning kit', 'cleaner kit', 'filter', 'pelumas', 'grease', 'solenoid', 'cylinder', 'bearing',
+        'nozzle', 'spet cat', 'spray gun', 'inspeal diamond', 'kenmaster', 'ats', 'jotun', 'renishaw', 'top tech', 'misumi'
+    ]
+
     @staticmethod
     def extract_periode(pr_doc_num):
         """
@@ -98,7 +122,7 @@ class AdvancedMappingService:
             raw_inside = match.group(1)
             # Bersihkan tanda petik satu/dua, backtick, spasi, awalan "NO. REG:", dll
             cleaned_code = re.sub(r"['\"`\s]|NO\.?\s*REG\s*:?", "", raw_inside, flags=re.IGNORECASE)
-            if cleaned_code:
+            if cleaned_code and cleaned_code.upper() not in AdvancedMappingService.NON_CODE_WORDS:
                 if not (AdvancedMappingService.DIMENSION_OR_UNIT_PATTERN.match(cleaned_code) or
                         AdvancedMappingService.DIMENSION_MULTIPLY_PATTERN.match(cleaned_code) or
                         AdvancedMappingService.THREAD_PATTERN.match(cleaned_code)):
@@ -109,8 +133,8 @@ class AdvancedMappingService:
         matches = re.findall(r'\b([A-Z0-9\-]*\d+[A-Z0-9\-]*)\b', cleaned_text.upper())
         for m in matches:
             cand = m.strip("-")
-            # Minimal 4 karakter dan bukan satuan/dimensi murni
-            if len(cand) >= 4:
+            # Minimal 4 karakter, bukan kata non-kode, dan bukan satuan/dimensi murni
+            if len(cand) >= 4 and cand.upper() not in AdvancedMappingService.NON_CODE_WORDS:
                 if (AdvancedMappingService.DIMENSION_OR_UNIT_PATTERN.match(cand) or
                         AdvancedMappingService.DIMENSION_MULTIPLY_PATTERN.match(cand) or
                         AdvancedMappingService.THREAD_PATTERN.match(cand)):
@@ -125,6 +149,7 @@ class AdvancedMappingService:
     @staticmethod
     def run_mapping(pr: PrPoData):
         start_time = time.time()
+        from services.budget_monitoring_service import BudgetMonitoringService
 
         # 0. Bersihkan SEMUA mapping log lama agar hasil koreksi/re-run tidak tumpang tindih
         MappingLog.query.filter_by(pr_po_data_id=pr.id).delete()
@@ -164,15 +189,24 @@ class AdvancedMappingService:
         search_text = f"{description} {comment_text}"
 
         rules = ItemMapping.query.filter_by(is_active=True).order_by(ItemMapping.priority.asc()).all()
-        # Jika pr punya kategori_id_koreksi (artinya manual review), JANGAN Terapkan Rule yang Kategori-nya beda!
+        # Jika PR sudah dikoreksi manual kategorinya oleh user, hormati preferensi tersebut.
+        # Jika belum dikoreksi manual, aturan Master ItemMapping dari admin berlaku
+        # (prioritaskan kategori yang sama lebih dulu, lalu semua rule aktif) agar salah tebak
+        # kategori awal oleh AI tidak membatalkan rule master dari user.
         if pr.kategori_id_koreksi:
-            valid_rules = [r for r in rules if r.kategori_id == pr.kategori_id_koreksi]
+            valid_rules = [r for r in rules if r.kategori_id == pr.kategori_id_koreksi or r.kategori_id is None]
         else:
-            valid_rules = [r for r in rules if r.kategori_id == pr.kategori_id or r.kategori_id is None]
+            same_cat = [r for r in rules if r.kategori_id == pr.kategori_id]
+            other_cat = [r for r in rules if r.kategori_id != pr.kategori_id]
+            valid_rules = same_cat + other_cat
 
+        norm_search = re.sub(r'\s+', ' ', search_text.strip().lower())
         matched_planning_item = None
         for rule in valid_rules:
-            if re.search(rule.keyword, search_text, re.IGNORECASE):
+            kw = re.sub(r'\s+', ' ', (rule.keyword or '').strip().lower())
+            if not kw:
+                continue
+            if kw in norm_search or re.search(r'\b' + re.escape(kw) + r'\b', norm_search):
                 matched_planning_item = rule.planning_item
                 break
 
@@ -186,15 +220,27 @@ class AdvancedMappingService:
                 PlanningDetail.month == month,
                 PlanningDetail.status_realisasi != 'CANCELLED'
             ).first()
+
+            # Fallback jika tidak ada di bulan bersangkutan, cari di bulan manapun pada header aktif
+            if not exact_detail:
+                exact_detail = PlanningDetail.query.filter(
+                    PlanningDetail.planning_header_id == header.id,
+                    PlanningDetail.item == matched_planning_item,
+                    PlanningDetail.status_realisasi != 'CANCELLED'
+                ).first()
+
             print(f"DEBUG [PR#{pr.id}] exact_detail (rule) = {exact_detail}")
 
             if exact_detail:
-                # Sinkronkan kategori PR mengikuti kategori resmi dari Planning
-                if pr.kategori_id != exact_detail.kategori_id:
-                    pr.kategori_id_koreksi = pr.kategori_id
-                pr.kategori_id = exact_detail.kategori_id
+                # Sinkronkan kategori PR mengikuti kategori resmi dari Planning HANYA jika bukan koreksi manual user
+                is_manual_category = (pr.metode_klasifikasi == "MANUAL" or pr.kategori_id_koreksi is not None or pr.direview_oleh is not None)
+                if not is_manual_category:
+                    if pr.kategori_id != exact_detail.kategori_id:
+                        pr.kategori_id_koreksi = pr.kategori_id
+                    pr.kategori_id = exact_detail.kategori_id
                 pr.planning_detail_id = exact_detail.id
                 pr.status_ai = "DONE"
+                pr.perlu_review = False
 
                 proc_time = time.time() - start_time
                 log = MappingLog(
@@ -206,60 +252,62 @@ class AdvancedMappingService:
                     processing_time=proc_time
                 )
                 db.session.add(log)
+                
+                # Recalculate status realisasi dan konsumsi budget
+                BudgetMonitoringService.recalculate_planning_status(exact_detail.id)
+                BudgetMonitoringService.calculate_budget_consumption(pr)
                 db.session.commit()
                 return {"success": True, "message": "Mapped via Rule", "status": "DONE"}
 
         # 5. Fuzzy matching & Preventive Auto-Suggestion
-        # Ambil kandidat di bulan yang sama (kategori sama + semua item preventive di bulan tersebut)
-        month_candidates_query = PlanningDetail.query.filter(
+        all_header_items = PlanningDetail.query.filter(
             PlanningDetail.planning_header_id == header.id,
-            PlanningDetail.month == month,
             PlanningDetail.status_realisasi != 'CANCELLED'
-        )
-        
-        all_month_details = month_candidates_query.all()
+        ).all()
+
+        all_month_details = [pd for pd in all_header_items if pd.month == month]
+
+        def is_preventive_detail(pd):
+            cand_str = ((pd.item or '') + ' ' + (pd.remarks or '')).lower()
+            return any(k in cand_str for k in ('preventive', 'prevention', 'preventif', 'perawatan', 'pemeliharaan'))
+
         # Filter kategori sama ATAU item preventive (agar preventive selalu masuk kandidat)
-        month_candidates = [
-            pd for pd in all_month_details 
-            if pd.kategori_id == pr.kategori_id or 'preventive' in pd.item.lower() or 'preventive' in (pd.remarks or '').lower()
-        ]
+        # Jika pr.kategori_id None atau belum diset, masukkan semua kandidat bulan ini
+        if not pr.kategori_id:
+            month_candidates = list(all_month_details)
+        else:
+            month_candidates = [
+                pd for pd in all_month_details 
+                if pd.kategori_id == pr.kategori_id or is_preventive_detail(pd)
+            ]
 
         pr_reg_num = AdvancedMappingService.extract_code(description)
         print(f"DEBUG [PR#{pr.id}] Code diekstrak: {pr_reg_num}")
 
         clean_desc = description.replace("'", "").replace('"', '').replace('`', '').strip()
 
-        # Temukan item preventive resmi untuk bulan ini
+        # Temukan item preventive resmi untuk bulan ini dan pastikan masuk candidate pool
         prev_detail_in_month = next(
-            (pd for pd in all_month_details if 'preventive' in pd.item.lower() or 'preventive' in (pd.remarks or '').lower()),
+            (pd for pd in all_month_details if is_preventive_detail(pd)),
             None
         )
 
         # Kandidat pool yang akan diskor
         candidate_pool = {pd.id: pd for pd in month_candidates}
+        if prev_detail_in_month and prev_detail_in_month.id not in candidate_pool:
+            candidate_pool[prev_detail_in_month.id] = prev_detail_in_month
 
-        # Jika PR memiliki part number / no registrasi unik (misal 0217035):
-        # Tambahkan kandidat yang punya kode identik di seluruh bulan pada header yang sama
-        if pr_reg_num:
-            all_header_items = PlanningDetail.query.filter(
-                PlanningDetail.planning_header_id == header.id,
-                PlanningDetail.status_realisasi != 'CANCELLED'
-            ).all()
-            for pd in all_header_items:
-                if AdvancedMappingService.extract_code(pd.item) == pr_reg_num:
-                    candidate_pool[pd.id] = pd
-
-        # Jika kandidat di bulan ini sangat sedikit, muat item unik dari seluruh bulan sebagai fallback
-        if len(candidate_pool) < 5:
-            all_header_items = PlanningDetail.query.filter(
-                PlanningDetail.planning_header_id == header.id,
-                PlanningDetail.status_realisasi != 'CANCELLED'
-            ).all()
-            seen_items = {pd.item.upper() for pd in candidate_pool.values()}
-            for pd in all_header_items:
-                norm = pd.item.upper()
-                if norm not in seen_items:
-                    seen_items.add(norm)
+        # Masukkan item dari bulan lain atau kategori lain yang memiliki kesamaan kode atau kata kunci kuat
+        desc_words = set(w for w in clean_desc.lower().split() if len(w) >= 4)
+        for pd in all_header_items:
+            if pr_reg_num and AdvancedMappingService.extract_code(pd.item) == pr_reg_num:
+                candidate_pool[pd.id] = pd
+            elif (not pr.kategori_id or pd.kategori_id == pr.kategori_id) and pd.id not in candidate_pool:
+                candidate_pool[pd.id] = pd
+            elif pd.id not in candidate_pool:
+                # Masukkan jika ada irisan kata kunci signifikan (misal nama alat/merk unik)
+                pd_words = set(w for w in (pd.item or '').lower().split() if len(w) >= 4)
+                if desc_words and pd_words and len(desc_words.intersection(pd_words)) >= 2:
                     candidate_pool[pd.id] = pd
 
         from ai.synonym_normalizer import SynonymNormalizer
@@ -272,7 +320,8 @@ class AdvancedMappingService:
             cand_item = pd.item or ""
             cand_remarks = pd.remarks or ""
             cand_code = AdvancedMappingService.extract_code(cand_item)
-            is_prev = ('preventive' in cand_item.lower() or 'preventive' in cand_remarks.lower()) and (pd.month == month)
+            is_prev = is_preventive_detail(pd) and (pd.month == month)
+            is_same_month = (pd.month == month)
 
             # 1. Lexical Hybrid Matching
             set_item = fuzz.token_set_ratio(clean_desc, cand_item, processor=default_process)
@@ -308,28 +357,46 @@ class AdvancedMappingService:
             final_score = base_score
 
             code_match_status = "N/A"
-            if pr_reg_num:
-                # PR memiliki kode alat/part
+            if pr_reg_num and cand_code:
+                # Keduanya memiliki kode alat/part
                 if cand_code == pr_reg_num:
                     final_score = 100.0
                     code_match_status = "MATCH_100"
-                elif cand_code and cand_code != pr_reg_num:
+                else:
                     # Penalti karena beda kode alat
                     final_score = min(final_score, 40.0)
                     code_match_status = "MISMATCH"
+            elif pr_reg_num and not cand_code:
+                # PR memiliki part number / model number (misal MISUMI CB8-30, AL6061),
+                # tetapi kandidat tidak punya kode khusus (seperti PREVENTIVE C/F).
+                if is_prev:
+                    desc_lower = clean_desc.lower()
+                    if score_remarks >= 60.0 or syn_remarks_score >= 60.0:
+                        final_score = max(final_score, 95.0)
+                    elif any(k in desc_lower for k in AdvancedMappingService.PREVENTIVE_KEYWORDS):
+                        final_score = max(final_score, 92.0)
+                    else:
+                        final_score = max(final_score, 88.0)
+                else:
+                    final_score = min(final_score, 45.0)
             else:
                 # PR TIDAK memiliki kode (non-instrument / tools / preventive consumables)
                 if is_prev:
+                    desc_lower = clean_desc.lower()
                     if score_remarks >= 60.0 or syn_remarks_score >= 60.0:
                         final_score = max(final_score, 95.0)
-                    elif any(k in clean_desc.lower() for k in ['preventive', 'prev', 'perawatan', 'pemeliharaan']):
-                        final_score = max(final_score, 90.0)
+                    elif any(k in desc_lower for k in AdvancedMappingService.PREVENTIVE_KEYWORDS):
+                        final_score = max(final_score, 92.0)
                     else:
-                        final_score = max(final_score, 75.0)
+                        final_score = max(final_score, 88.0)
                 elif cand_code:
                     # Jika kandidat adalah alat ukur kalibrasi berkode, beri penalti agar tidak mendominasi barang non-kode
                     final_score = min(final_score, 45.0)
                     code_match_status = "CANDIDATE_HAS_CODE"
+
+            # Jika kandidat berasal dari bulan berbeda dan bukan part-code match sempurna, beri soft penalti (-5%)
+            if not is_same_month and code_match_status != "MATCH_100":
+                final_score *= 0.95
 
             # 3. Financial Sanity Check & Price Anomaly Detection
             pr_total_amt = float(pr.total_price or 0.0)
@@ -337,14 +404,26 @@ class AdvancedMappingService:
             price_anomaly = False
             price_status = "SAFE"
 
+            # Jika kecocokan nama/kode sangat tinggi (>= 90% atau kode cocok),
+            # perbedaan harga adalah kelebihan anggaran (OVER_PLAN), BUKAN kegagalan identifikasi AI
+            is_strong_identity = (final_score >= 90.0 or code_match_status == "MATCH_100")
+
             if pr_total_amt > 0 and cand_plan_amt > 0:
                 price_ratio = pr_total_amt / cand_plan_amt
                 if price_ratio > 3.0:
-                    price_anomaly = True
-                    price_status = "WARNING_EXCEEDS_BUDGET"
+                    if is_strong_identity or is_prev:
+                        price_anomaly = False
+                        price_status = "WARNING_OVER_BUDGET"
+                    else:
+                        price_anomaly = True
+                        price_status = "WARNING_EXCEEDS_BUDGET"
                 elif price_ratio < 0.1:
-                    price_anomaly = True
-                    price_status = "WARNING_SCALE_MISMATCH"
+                    if is_prev or is_strong_identity:
+                        price_anomaly = False
+                        price_status = "SAFE"
+                    else:
+                        price_anomaly = True
+                        price_status = "WARNING_SCALE_MISMATCH"
                 else:
                     price_status = "SAFE"
 
@@ -362,6 +441,8 @@ class AdvancedMappingService:
 
             if price_status == "SAFE" and pr_total_amt > 0 and cand_plan_amt > 0:
                 explain_points.append("Kesesuaian Nominal Wajar")
+            elif price_status == "WARNING_OVER_BUDGET":
+                explain_points.append(f"Peringatan: Nominal PR ({pr_total_amt:,.0f}) > 300% Pagu ({cand_plan_amt:,.0f}) (Over-Budget)")
             elif price_status == "WARNING_EXCEEDS_BUDGET":
                 explain_points.append(f"Peringatan: Nominal PR ({pr_total_amt:,.0f}) > 300% Pagu ({cand_plan_amt:,.0f})")
             elif price_status == "WARNING_SCALE_MISMATCH":
@@ -421,7 +502,6 @@ class AdvancedMappingService:
 
         # Evaluasi ambang batas otomatisasi dari SystemSetting
         from models.system_setting import SystemSetting
-        from services.budget_monitoring_service import BudgetMonitoringService
 
         raw_thresh = SystemSetting.get_value("auto_mapping_threshold", "85")
         try:
@@ -470,11 +550,14 @@ class AdvancedMappingService:
         if is_auto_approved:
             pr.planning_detail_id = top_detail_id
             pr.status_ai = "DONE"
-            if cand_detail and pr.kategori_id != cand_detail.kategori_id:
+            pr.perlu_review = False
+            is_manual_category = (pr.metode_klasifikasi == "MANUAL" or pr.kategori_id_koreksi is not None or pr.direview_oleh is not None)
+            if not is_manual_category and cand_detail and pr.kategori_id != cand_detail.kategori_id:
                 pr.kategori_id = cand_detail.kategori_id
 
-            # Recalculate status realisasi anggaran
+            # Recalculate status realisasi anggaran & konsumsi budget
             BudgetMonitoringService.recalculate_planning_status(top_detail_id)
+            BudgetMonitoringService.calculate_budget_consumption(pr)
             db.session.commit()
             print(f"[Auto-Approval] PR#{pr.id} ({description[:40]}) auto-mapped to #{top_detail_id} ({top_score:.1f}% >= {threshold:.0f}%) | {top_candidate['explanation_summary']}")
             return {

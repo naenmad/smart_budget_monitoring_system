@@ -3,7 +3,7 @@ import toast from 'react-hot-toast'
 import { useState, useEffect } from 'react'
 import { itemMappingApi } from '../api/itemMappingApi'
 import { kategoriApi } from '../api/kategoriApi'
-import { Lightbulb, Plus, Edit2, Trash2, Check, X } from 'lucide-react'
+import { Lightbulb, Plus, Edit2, Trash2, Check, X, Search } from 'lucide-react'
 import styles from './ItemMapping.module.css'
 
 export default function ItemMapping() {
@@ -16,6 +16,7 @@ export default function ItemMapping() {
   const [form, setForm] = useState({ keyword: '', planning_item: '', kategori_id: '', priority: 1, is_active: true })
   const [suggestions, setSuggestions] = useState([])
   const [appliedKeyword, setAppliedKeyword] = useState(null)
+  const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => { fetchAll() }, [])
   useEffect(() => {
@@ -93,6 +94,18 @@ export default function ItemMapping() {
       {active ? 'Aktif' : 'Nonaktif'}
     </span>
   )
+
+  const filteredMappings = mappings.filter(m => {
+    if (!searchQuery.trim()) return true
+    const q = searchQuery.toLowerCase().trim()
+    const kat = kategoris.find(k => k.id === m.kategori_id)
+    const katText = kat ? `${kat.kode} ${kat.nama}`.toLowerCase() : ''
+    return (
+      (m.keyword || '').toLowerCase().includes(q) ||
+      (m.planning_item || '').toLowerCase().includes(q) ||
+      katText.includes(q)
+    )
+  })
 
   return (
     <div className={styles.page}>
@@ -183,6 +196,33 @@ export default function ItemMapping() {
         </div>
       )}
 
+      {/* Search Toolbar */}
+      <div className={styles.toolbar}>
+        <div className={styles.searchWrapper}>
+          <Search size={16} className={styles.searchIcon} />
+          <input
+            type="text"
+            placeholder="Cari rule berdasarkan keyword PR, planning target, atau kategori..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className={styles.searchInput}
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              className={styles.searchClearBtn}
+              onClick={() => setSearchQuery('')}
+              title="Hapus pencarian"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+        <div className={styles.countBadge}>
+          Menampilkan <strong>{filteredMappings.length}</strong> dari <strong>{mappings.length}</strong> aturan
+        </div>
+      </div>
+
       {/* Table */}
       <div className={styles.card}>
         <div className={styles.tableWrap}>
@@ -198,33 +238,44 @@ export default function ItemMapping() {
                 </tr>
               </thead>
               <tbody>
-                {mappings.length === 0 && (
+                {filteredMappings.length === 0 && (
                   <tr>
-                    <td colSpan={7} className={styles.emptyState}>Belum ada data rule mapping</td>
-                  </tr>
-                )}
-                {mappings.map((m, i) => (
-                  <tr key={m.id} className={styles.tr}>
-                    <td className={styles.td} style={{ width: 40 }}>{i + 1}</td>
-                    <td className={styles.td}><strong>{m.keyword}</strong></td>
-                    <td className={styles.td}>{m.planning_item}</td>
-                    <td className={styles.td}>{m.kategori_id || '-'}</td>
-                    <td className={styles.td}>{m.priority}</td>
-                    <td className={styles.td}>{statusBadge(m.is_active)}</td>
-                    <td className={styles.td}>
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <button onClick={() => openEdit(m)} className={styles.btnEdit} title="Edit Mapping">
-                          <Edit2 size={13} />
-                          <span>Edit</span>
-                        </button>
-                        <button onClick={() => handleDelete(m.id)} className={styles.btnDelete} title="Hapus Mapping">
-                          <Trash2 size={13} />
-                          <span>Hapus</span>
-                        </button>
-                      </div>
+                    <td colSpan={7} className={styles.emptyState}>
+                      {searchQuery ? `Tidak ada aturan yang cocok dengan "${searchQuery}"` : 'Belum ada data rule mapping'}
                     </td>
                   </tr>
-                ))}
+                )}
+                {filteredMappings.map((m, i) => {
+                  const kat = kategoris.find(k => k.id === m.kategori_id)
+                  return (
+                    <tr key={m.id} className={styles.tr}>
+                      <td className={styles.td} style={{ width: 40 }}>{i + 1}</td>
+                      <td className={styles.td}><strong>{m.keyword}</strong></td>
+                      <td className={styles.td}>{m.planning_item}</td>
+                      <td className={styles.td}>
+                        {kat ? (
+                          <span className={styles.categoryBadge} title={kat.nama}>
+                            {kat.kode}
+                          </span>
+                        ) : '-'}
+                      </td>
+                      <td className={styles.td}>{m.priority}</td>
+                      <td className={styles.td}>{statusBadge(m.is_active)}</td>
+                      <td className={styles.td}>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button onClick={() => openEdit(m)} className={styles.btnEdit} title="Edit Mapping">
+                            <Edit2 size={13} />
+                            <span>Edit</span>
+                          </button>
+                          <button onClick={() => handleDelete(m.id)} className={styles.btnDelete} title="Hapus Mapping">
+                            <Trash2 size={13} />
+                            <span>Hapus</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           )}

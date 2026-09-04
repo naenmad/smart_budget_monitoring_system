@@ -353,16 +353,21 @@ export default function Sidebar({ mode = 'open', setMode, isMobileOpen, onMobile
         {/* User Card & Actions */}
         <div className={s.userCard}>
           {!isCollapsed || isMobile ? (
-            <>
-              <div className={s.userCardProfile}>
-                <div className={s.userAvatarMini}>
-                  <User size={15} />
+            <div className={s.userCardInner}>
+              <div className={s.userCardTop}>
+                <div className={s.avatarWrapper}>
+                  <div className={s.userAvatar}>
+                    {user?.username ? user.username.charAt(0).toUpperCase() : <User size={15} />}
+                  </div>
+                  <span className={s.statusDot} title="Online" />
                 </div>
                 <div className={s.userCardInfo}>
-                  <span className={s.userCardName}>{user?.username || 'User'}</span>
+                  <span className={s.userCardName} title={user?.username || 'User'}>
+                    {user?.username || 'User'}
+                  </span>
                   <span className={`${s.roleBadge} ${user?.role === 'admin' ? s.roleAdmin : s.roleManager}`}>
-                    <Shield size={10} style={{ display: 'inline', marginRight: 3 }} />
-                    {user?.role === 'admin' ? 'Admin' : 'Manager'}
+                    <Shield size={10} style={{ flexShrink: 0 }} />
+                    <span>{user?.role === 'admin' ? 'Administrator' : 'Manager'}</span>
                   </span>
                 </div>
               </div>
@@ -372,27 +377,30 @@ export default function Sidebar({ mode = 'open', setMode, isMobileOpen, onMobile
                   type="button" 
                   className={s.actionBtn}
                   onClick={() => setShowPwdModal(true)}
-                  title="Ganti Password"
+                  title="Ganti Password Akun"
                 >
-                  <KeyRound size={13} />
+                  <KeyRound size={13} className={s.actionBtnIcon} />
                   <span>Password</span>
                 </button>
                 <button 
                   type="button" 
                   className={`${s.actionBtn} ${s.logoutBtn}`}
                   onClick={handleLogout}
-                  title="Logout dari akun"
+                  title="Keluar dari akun"
                 >
-                  <LogOut size={13} />
+                  <LogOut size={13} className={s.actionBtnIcon} />
                   <span>Logout</span>
                 </button>
               </div>
-            </>
+            </div>
           ) : (
             <div className={s.userCardCollapsed}>
               <div className={s.tooltipWrapper}>
-                <div className={s.userAvatarMini}>
-                  <User size={16} />
+                <div className={s.avatarWrapper}>
+                  <div className={s.userAvatarMini}>
+                    {user?.username ? user.username.charAt(0).toUpperCase() : <User size={15} />}
+                  </div>
+                  <span className={s.statusDot} />
                 </div>
                 <span className={s.navTooltip}>
                   {user?.username || 'User'} ({user?.role === 'admin' ? 'Admin' : 'Manager'})

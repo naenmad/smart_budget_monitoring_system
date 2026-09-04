@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from sqlalchemy import case
 from utils.db import db
 from models.pr_po_data import PrPoData
 from models.mapping_log import MappingLog
@@ -79,7 +80,15 @@ def get_pending_mapping():
     
     results = []
     for pr in pagination.items:
-        logs = MappingLog.query.filter_by(pr_po_data_id=pr.id, method="FUZZY_MATCH").order_by(MappingLog.rank_no.asc()).all()
+        logs = MappingLog.query.filter_by(pr_po_data_id=pr.id).order_by(MappingLog.rank_no.asc()).all()
+        if not logs:
+            try:
+                AdvancedMappingService.run_mapping(pr)
+                db.session.commit()
+                logs = MappingLog.query.filter_by(pr_po_data_id=pr.id).order_by(MappingLog.rank_no.asc()).all()
+            except Exception as e:
+                print(f"[PendingMapping] On-the-fly candidates failed for PR#{pr.id}: {e}")
+
         candidates = []
         pr_total_amt = float(pr.total_price or 0.0)
 
@@ -94,14 +103,25 @@ def get_pending_mapping():
             cand_plan_amt = float(detail.planning_amount or 0.0) if detail else 0.0
             price_status = "SAFE"
             price_anomaly = False
+            cand_str = ((detail.item or '') + ' ' + (detail.remarks or '')).lower() if detail else ''
+            is_umbrella = any(k in cand_str for k in ('preventive', 'prevention', 'preventif', 'perawatan', 'pemeliharaan'))
+            conf_pct = (float(log.confidence_score) * 100.0) if log.confidence_score else 0.0
+            is_strong_match = (conf_pct >= 90.0 or (pr_code and candidate_code and pr_code == candidate_code))
+
             if pr_total_amt > 0 and cand_plan_amt > 0:
                 price_ratio = pr_total_amt / cand_plan_amt
                 if price_ratio > 3.0:
-                    price_anomaly = True
-                    price_status = "WARNING_EXCEEDS_BUDGET"
+                    if is_strong_match or is_umbrella:
+                        price_status = "WARNING_OVER_BUDGET"
+                    else:
+                        price_anomaly = True
+                        price_status = "WARNING_EXCEEDS_BUDGET"
                 elif price_ratio < 0.1:
-                    price_anomaly = True
-                    price_status = "WARNING_SCALE_MISMATCH"
+                    if is_umbrella or is_strong_match:
+                        price_status = "SAFE"
+                    else:
+                        price_anomaly = True
+                        price_status = "WARNING_SCALE_MISMATCH"
 
             # Explainability Reason
             explain_points = []
@@ -110,11 +130,12 @@ def get_pending_mapping():
             elif code_mismatch:
                 explain_points.append(f"Part Number Berbeda ({pr_code} vs {candidate_code})")
 
-            conf_pct = (float(log.confidence_score) * 100.0) if log.confidence_score else 0.0
             explain_points.append(f"Kemiripan AI: {conf_pct:.1f}%")
 
             if price_status == "SAFE" and pr_total_amt > 0 and cand_plan_amt > 0:
                 explain_points.append("Nominal Wajar")
+            elif price_status == "WARNING_OVER_BUDGET":
+                explain_points.append("Peringatan: Nominal melampaui pagu (Over-Budget)")
             elif price_status == "WARNING_EXCEEDS_BUDGET":
                 explain_points.append("Peringatan: Nominal PR melampaui toleransi pagu")
             elif price_status == "WARNING_SCALE_MISMATCH":
@@ -653,11 +674,15 @@ def auto_confirm_by_threshold():
     errors = []
 
     for pr in pending_prs:
-        # Ambil top candidate dari mapping_log
-        top_log = MappingLog.query.filter_by(
-            pr_po_data_id=pr.id,
-            method="FUZZY_MATCH"
-        ).order_by(MappingLog.rank_no.asc()).first()
+        # Ambil top candidate dari mapping_log (bisa ITEM_MAPPING_RULE atau FUZZY_MATCH)
+        top_log = MappingLog.query.filter(
+            MappingLog.pr_po_data_id == pr.id,
+            MappingLog.method.in_(["FUZZY_MATCH", "ITEM_MAPPING_RULE"])
+        ).order_by(
+            case((MappingLog.method == "ITEM_MAPPING_RULE", 0), else_=1),
+            MappingLog.rank_no.asc().nullslast(),
+            MappingLog.confidence_score.desc()
+        ).first()
 
         if not top_log or not top_log.planning_detail_hasil_id:
             continue
@@ -677,9 +702,12 @@ def auto_confirm_by_threshold():
         if score >= threshold_fraction and not code_mismatch:
             old_planning_detail_id = pr.planning_detail_id
 
-            if pr.kategori_id != detail.kategori_id:
-                pr.kategori_id_koreksi = detail.kategori_id
-            pr.kategori_id = detail.kategori_id
+            is_manual_category = (pr.metode_klasifikasi == "MANUAL" or pr.kategori_id_koreksi is not None or pr.direview_oleh is not None)
+            if not is_manual_category:
+                if pr.kategori_id != detail.kategori_id:
+                    pr.kategori_id_koreksi = detail.kategori_id
+                pr.kategori_id = detail.kategori_id
+
             pr.planning_detail_id = detail.id
             pr.status_ai = "DONE"
             pr.perlu_review = False
@@ -955,4 +983,85 @@ def get_mapping_graph():
             "unmapped_count": unmapped_count,
             "matched_ratio": round((on_plan_count + over_plan_count) / len(filtered_prs) * 100, 1) if filtered_prs else 0.0
         }
+    }), 200
+
+
+# -------------------------------------------------------------
+# Debug Utility: Reset Semua Mapping PR & Planning Detail
+# POST /api/v1/mapping/reset_all
+# -------------------------------------------------------------
+@mapping_bp.route("/reset_all", methods=["POST"])
+@role_required("admin")
+def reset_all_mappings():
+    """
+    DEBUG UTILITY:
+    Mereset seluruh relasi mapping PR/PO dan menghapus log AI mapping sehingga user
+    dapat menguji ulang performa algoritma AI dari kondisi awal secara fleksibel.
+    """
+    data = request.get_json() or {}
+    mode = data.get("mode", "unmap_only")  # 'unmap_only' atau 'rerun_ai'
+    target_status = data.get("target_status", "NEED_MAPPING")
+
+    # 1. Ambil seluruh PR aktif (tidak berstatus CANCELLED)
+    prs = PrPoData.query.filter(PrPoData.status_ai != "CANCELLED").all()
+    reset_count = len(prs)
+
+    # 2. Hapus seluruh MappingLog
+    MappingLog.query.delete()
+
+    # 3. Reset kolom relasi & status pada PrPoData
+    for pr in prs:
+        pr.planning_detail_id = None
+        pr.budget_status = None
+        pr.status_ai = target_status
+        pr.perlu_review = True
+        pr.kategori_id_koreksi = None
+        pr.direview_oleh = None
+        pr.direview_at = None
+
+    # 4. Reset status_realisasi pada seluruh PlanningDetail (kecuali CANCELLED)
+    PlanningDetail.query.filter(PlanningDetail.status_realisasi != "CANCELLED").update(
+        {"status_realisasi": "OPEN"}, synchronize_session=False
+    )
+
+    db.session.commit()
+
+    # 5. Jika mode 'rerun_ai', langsung jalankan algoritma AI dari awal
+    rerun_results = None
+    if mode == "rerun_ai":
+        auto_approved = 0
+        need_review = 0
+        for pr in prs:
+            res = AdvancedMappingService.run_mapping(pr)
+            if res.get("auto_approved") or pr.status_ai == "DONE":
+                auto_approved += 1
+            else:
+                need_review += 1
+
+        db.session.commit()
+        rerun_results = {
+            "auto_approved": auto_approved,
+            "need_review": need_review,
+            "total": reset_count
+        }
+    elif mode == "unmap_only":
+        # Hasilkan rekomendasi kandidat Top-5 untuk semua PR tanpa menyetujui otomatis
+        for pr in prs:
+            AdvancedMappingService.run_mapping(pr)
+            pr.planning_detail_id = None
+            pr.status_ai = "NEED_MAPPING"
+            pr.perlu_review = True
+            pr.budget_status = None
+        db.session.commit()
+
+    msg = f"Berhasil mereset mapping {reset_count} PR."
+    if rerun_results:
+        msg += f" Algoritma AI selesai dijalankan ulang: {rerun_results['auto_approved']} auto-approved, {rerun_results['need_review']} butuh review."
+
+    return jsonify({
+        "success": True,
+        "message": msg,
+        "reset_count": reset_count,
+        "mode": mode,
+        "rerun_results": rerun_results
     }), 200
