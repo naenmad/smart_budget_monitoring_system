@@ -123,6 +123,9 @@ class EntertaintService:
                 first = first.split(sep)[0].strip()
 
         cleaned = first.replace('Mr. ', '').replace('Mr.', '').replace('Mr ', '').strip()
+        # Abaikan jika hasil bersih murni angka atau karakter non-huruf
+        if cleaned.isdigit() or re.match(r"^[\d\s\.,\-_/]+$", cleaned):
+            return None
         low = cleaned.lower()
 
         if 'yayan' in low:
@@ -273,6 +276,8 @@ class EntertaintService:
             return
         cleaned_name = str(name).strip()
         cat = category.upper()
+        if cat == "PIC" and (cleaned_name.isdigit() or re.match(r"^[\d\s\.,\-_/]+$", cleaned_name)):
+            return
         existing = EntertaintMasterItem.query.filter(
             EntertaintMasterItem.category == cat,
             func.lower(EntertaintMasterItem.name) == cleaned_name.lower()
@@ -621,6 +626,8 @@ class EntertaintService:
             return {"success": False, "message": "Kategori harus CUSTOMER, PIC, PLACE, atau CUSTOMER_MEMBER"}, 400
         if not name:
             return {"success": False, "message": "Nama wajib diisi"}, 400
+        if category == "PIC" and name.isdigit():
+            return {"success": False, "message": "Nama PIC tidak boleh berupa angka saja"}, 400
 
         existing = EntertaintMasterItem.query.filter_by(category=category, name=name).first()
         if existing:
@@ -652,14 +659,18 @@ class EntertaintService:
     @classmethod
     def get_summary_stats(cls, periode: str = None):
         query = EntertaintCost.query
+        cf_query = EntertaintCashflow.query
+        year_int = None
         if periode:
             try:
                 year_int = int(periode)
                 query = query.filter(extract("year", EntertaintCost.tanggal) == year_int)
+                cf_query = cf_query.filter(extract("year", EntertaintCashflow.tanggal) == year_int)
             except ValueError:
                 pass
 
         all_items = query.all()
+        cashflow_items = cf_query.all()
 
         total_amount = sum(float(c.total_amount or 0) for c in all_items)
         count_total = len(all_items)
@@ -676,9 +687,9 @@ class EntertaintService:
         total_kasbon = sum(float(c.total_kasbon or 0) for c in all_items)
 
         # Cashflow metrics
-        cashflow_items = EntertaintCashflow.query.all()
-        total_cf_in = sum(float(x.uang_masuk or 0) for x in cashflow_items)
-        total_cf_out = sum(float(x.uang_keluar or 0) for x in cashflow_items)
+        all_cf_items = EntertaintCashflow.query.all()
+        total_cf_in = sum(float(x.uang_masuk or 0) for x in all_cf_items)
+        total_cf_out = sum(float(x.uang_keluar or 0) for x in all_cf_items)
         current_cf_balance = total_cf_in - total_cf_out
 
         # Available years for filter dropdown
@@ -736,45 +747,102 @@ class EntertaintService:
             reverse=True
         )
 
-        # Monthly Trends (Claims)
-        monthly_map = {m: {"month": m, "total": 0.0, "count": 0} for m in range(1, 13)}
+        # Monthly Trends (Claims) & Cashflow comparison
         month_names = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des"]
 
-        for c in all_items:
-            if c.tanggal:
-                m_idx = c.tanggal.month
-                monthly_map[m_idx]["total"] += float(c.total_amount or 0)
-                monthly_map[m_idx]["count"] += 1
+        if year_int:
+            # Fixed 12 months for a specific chosen year
+            monthly_trend = []
+            monthly_map = {m: {"total": 0.0, "count": 0} for m in range(1, 13)}
+            for c in all_items:
+                if c.tanggal:
+                    m = c.tanggal.month
+                    monthly_map[m]["total"] += float(c.total_amount or 0)
+                    monthly_map[m]["count"] += 1
+            for m in range(1, 13):
+                monthly_trend.append({
+                    "month_num": m,
+                    "month_name": month_names[m - 1],
+                    "total": monthly_map[m]["total"],
+                    "count": monthly_map[m]["count"],
+                    "avg_per_event": round(monthly_map[m]["total"] / monthly_map[m]["count"] if monthly_map[m]["count"] > 0 else 0, 2)
+                })
 
-        monthly_trend = [
-            {
-                "month_num": m,
-                "month_name": month_names[m - 1],
-                "total": monthly_map[m]["total"],
-                "count": monthly_map[m]["count"],
-                "avg_per_event": round(monthly_map[m]["total"] / monthly_map[m]["count"] if monthly_map[m]["count"] > 0 else 0, 2)
-            }
-            for m in range(1, 13)
-        ]
+            cashflow_monthly = []
+            cf_monthly_map = {m: {"uang_masuk": 0.0, "uang_keluar": 0.0} for m in range(1, 13)}
+            for cf in cashflow_items:
+                if cf.tanggal:
+                    m = cf.tanggal.month
+                    cf_monthly_map[m]["uang_masuk"] += float(cf.uang_masuk or 0)
+                    cf_monthly_map[m]["uang_keluar"] += float(cf.uang_keluar or 0)
+            for m in range(1, 13):
+                cashflow_monthly.append({
+                    "month_num": m,
+                    "month_name": month_names[m - 1],
+                    "uang_masuk": cf_monthly_map[m]["uang_masuk"],
+                    "uang_keluar": cf_monthly_map[m]["uang_keluar"],
+                    "net": cf_monthly_map[m]["uang_masuk"] - cf_monthly_map[m]["uang_keluar"]
+                })
+        else:
+            # Dynamic timeline across all periods (chronological months)
+            dates = [c.tanggal for c in all_items if c.tanggal] + [cf.tanggal for cf in cashflow_items if cf.tanggal]
+            if dates:
+                min_d = min(dates)
+                max_d = max(dates)
+                curr_y, curr_m = min_d.year, min_d.month
+                end_y, end_m = max_d.year, max_d.month
+                timeline = []
+                while (curr_y < end_y) or (curr_y == end_y and curr_m <= end_m):
+                    timeline.append((curr_y, curr_m))
+                    curr_m += 1
+                    if curr_m > 12:
+                        curr_m = 1
+                        curr_y += 1
+            else:
+                now_y = datetime.now().year
+                timeline = [(now_y, m) for m in range(1, 13)]
 
-        # Monthly Cashflow Comparison
-        cf_monthly_map = {m: {"month": m, "uang_masuk": 0.0, "uang_keluar": 0.0} for m in range(1, 13)}
-        for cf in cashflow_items:
-            if cf.tanggal:
-                m_idx = cf.tanggal.month
-                cf_monthly_map[m_idx]["uang_masuk"] += float(cf.uang_masuk or 0)
-                cf_monthly_map[m_idx]["uang_keluar"] += float(cf.uang_keluar or 0)
+            # Aggregate claims
+            claim_dyn_map = {ym: {"total": 0.0, "count": 0} for ym in timeline}
+            for c in all_items:
+                if c.tanggal:
+                    ym = (c.tanggal.year, c.tanggal.month)
+                    if ym in claim_dyn_map:
+                        claim_dyn_map[ym]["total"] += float(c.total_amount or 0)
+                        claim_dyn_map[ym]["count"] += 1
 
-        cashflow_monthly = [
-            {
-                "month_num": m,
-                "month_name": month_names[m - 1],
-                "uang_masuk": cf_monthly_map[m]["uang_masuk"],
-                "uang_keluar": cf_monthly_map[m]["uang_keluar"],
-                "net": cf_monthly_map[m]["uang_masuk"] - cf_monthly_map[m]["uang_keluar"]
-            }
-            for m in range(1, 13)
-        ]
+            monthly_trend = [
+                {
+                    "month_num": m,
+                    "year": y,
+                    "month_name": f"{month_names[m - 1]} '{str(y)[-2:]}",
+                    "total": claim_dyn_map[(y, m)]["total"],
+                    "count": claim_dyn_map[(y, m)]["count"],
+                    "avg_per_event": round(claim_dyn_map[(y, m)]["total"] / claim_dyn_map[(y, m)]["count"] if claim_dyn_map[(y, m)]["count"] > 0 else 0, 2)
+                }
+                for (y, m) in timeline
+            ]
+
+            # Aggregate cashflows
+            cf_dyn_map = {ym: {"uang_masuk": 0.0, "uang_keluar": 0.0} for ym in timeline}
+            for cf in cashflow_items:
+                if cf.tanggal:
+                    ym = (cf.tanggal.year, cf.tanggal.month)
+                    if ym in cf_dyn_map:
+                        cf_dyn_map[ym]["uang_masuk"] += float(cf.uang_masuk or 0)
+                        cf_dyn_map[ym]["uang_keluar"] += float(cf.uang_keluar or 0)
+
+            cashflow_monthly = [
+                {
+                    "month_num": m,
+                    "year": y,
+                    "month_name": f"{month_names[m - 1]} '{str(y)[-2:]}",
+                    "uang_masuk": cf_dyn_map[(y, m)]["uang_masuk"],
+                    "uang_keluar": cf_dyn_map[(y, m)]["uang_keluar"],
+                    "net": cf_dyn_map[(y, m)]["uang_masuk"] - cf_dyn_map[(y, m)]["uang_keluar"]
+                }
+                for (y, m) in timeline
+            ]
 
         # Payment and Claim Status Percentages
         lunas_pct = round((total_lunas / total_amount * 100) if total_amount > 0 else 0, 1)
@@ -1528,9 +1596,15 @@ class EntertaintService:
                 st = clean_str_safe(ws_cf.cell(r, 12).value) or "Open"
                 ket = clean_str_safe(ws_cf.cell(r, 13).value)
 
-                if not desc and masuk == 0 and keluar == 0:
+                # Reject non-movements or summary/formula junk rows
+                if masuk == 0 and keluar == 0:
                     continue
-                if desc and ("total" in desc.lower() or "saldo" in desc.lower()):
+                if not desc:
+                    continue
+                desc_lower = desc.lower()
+                if desc.startswith("-") or "-500" in desc_lower or "2000" in desc_lower and "-" in desc:
+                    continue
+                if any(kw in desc_lower for kw in ["total", "saldo", "status entertaint", "uang keluar", "uang masuk", "kasbon qc"]):
                     continue
 
                 existing_cf = EntertaintCashflow.query.filter(

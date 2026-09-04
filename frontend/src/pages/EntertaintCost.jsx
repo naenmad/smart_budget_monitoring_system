@@ -133,6 +133,8 @@ export default function EntertaintCost() {
   const [newMasterCustomer, setNewMasterCustomer] = useState('')
   const [newMasterPic, setNewMasterPic] = useState('')
   const [newMasterPlace, setNewMasterPlace] = useState('')
+  const [newMasterMember, setNewMasterMember] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // -------------------------------------------------------------
   // EXCEL IMPORT STATE
@@ -658,7 +660,7 @@ export default function EntertaintCost() {
                 }}
               >
                 <option value="">Customer: Semua</option>
-                {masterData.customers.map((c) => (
+                {masterData.customers?.map((c) => (
                   <option key={c.id} value={c.name}>{c.name}</option>
                 ))}
               </select>
@@ -673,7 +675,7 @@ export default function EntertaintCost() {
                 }}
               >
                 <option value="">PIC: Semua</option>
-                {masterData.pics.map((p) => (
+                {masterData.pics?.map((p) => (
                   <option key={p.id} value={p.name}>{p.name}</option>
                 ))}
               </select>
@@ -1214,6 +1216,22 @@ export default function EntertaintCost() {
                 </span>
               ))}
             </div>
+            <div className={s.masterAddForm} style={{ marginTop: 14 }}>
+              <input
+                type="text"
+                placeholder="Nama personil / kontak baru (misal: Pak Budi MMKI)..."
+                value={newMasterMember}
+                onChange={(e) => setNewMasterMember(e.target.value)}
+                className={s.input}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddMaster('CUSTOMER_MEMBER', newMasterMember, setNewMasterMember)}
+              />
+              <button
+                className={s.btnPrimary}
+                onClick={() => handleAddMaster('CUSTOMER_MEMBER', newMasterMember, setNewMasterMember)}
+              >
+                + Tambah Personil
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -1334,7 +1352,7 @@ export default function EntertaintCost() {
                         onChange={(e) => setFormData({ ...formData, pic_entertaint: e.target.value })}
                       />
                       <datalist id="pic-list">
-                        {masterData.pics.map((p) => (
+                        {masterData.pics?.map((p) => (
                           <option key={p.id} value={p.name} />
                         ))}
                       </datalist>
@@ -1356,7 +1374,7 @@ export default function EntertaintCost() {
                         onChange={(e) => setFormData({ ...formData, customer: e.target.value })}
                       />
                       <datalist id="customer-list">
-                        {masterData.customers.map((c) => (
+                        {masterData.customers?.map((c) => (
                           <option key={c.id} value={c.name} />
                         ))}
                       </datalist>
@@ -1378,7 +1396,7 @@ export default function EntertaintCost() {
                         onChange={(e) => setFormData({ ...formData, place_of_occurrence: e.target.value })}
                       />
                       <datalist id="place-list">
-                        {masterData.places.map((pl) => (
+                        {masterData.places?.map((pl) => (
                           <option key={pl.id} value={pl.name} />
                         ))}
                       </datalist>
