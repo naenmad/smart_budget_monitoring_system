@@ -74,6 +74,19 @@ export const entertaintApi = {
   deleteCashflow: (id) =>
     api.delete(`/entertaint/cashflow/${id}`),
 
+  // Recap Kasbon ke Marketing (History Closing QC - Marketing)
+  getRecapMkt: (params = {}) =>
+    api.get('/entertaint/recap-mkt', { params }),
+
+  createRecapMkt: (data) =>
+    api.post('/entertaint/recap-mkt', data),
+
+  updateRecapMkt: (id, data) =>
+    api.put(`/entertaint/recap-mkt/${id}`, data),
+
+  deleteRecapMkt: (id) =>
+    api.delete(`/entertaint/recap-mkt/${id}`),
+
   // Master Referensi (Customer PT, PIC Tugas Luar, Place of Occurrence)
   getMasters: () =>
     api.get('/entertaint/masters'),

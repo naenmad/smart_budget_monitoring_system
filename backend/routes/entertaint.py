@@ -233,6 +233,49 @@ def delete_cashflow_record(cashflow_id):
 
 
 # ------------------------------------------------------------------
+# Recap Kasbon ke Marketing (History Closing QC - Marketing)
+# ------------------------------------------------------------------
+@entertaint_bp.route("/recap-mkt", methods=["GET"])
+@role_required("admin", "manager")
+def get_recap_mkt_list():
+    """Daftar Mutasi Rekap Kasbon ke Marketing (History Closing QC - Marketing)"""
+    page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 100, type=int)
+    search = request.args.get("search", "").strip()
+    year = request.args.get("year", type=int)
+
+    result = EntertaintService.get_recap_mkt(page=page, per_page=per_page, search=search, year=year)
+    return jsonify(result), 200
+
+
+@entertaint_bp.route("/recap-mkt", methods=["POST"])
+@role_required("admin")
+def create_recap_mkt_record():
+    """Catat Mutasi Kasbon Marketing Baru"""
+    data = request.get_json(silent=True) or {}
+    result = EntertaintService.create_recap_mkt(data)
+    return jsonify(result), 201
+
+
+@entertaint_bp.route("/recap-mkt/<int:recap_id>", methods=["PUT"])
+@role_required("admin")
+def update_recap_mkt_record(recap_id):
+    """Perbarui Mutasi Kasbon Marketing"""
+    data = request.get_json(silent=True) or {}
+    result = EntertaintService.update_recap_mkt(recap_id, data)
+    status_code = 200 if result.get("success") else 400
+    return jsonify(result), status_code
+
+
+@entertaint_bp.route("/recap-mkt/<int:recap_id>", methods=["DELETE"])
+@role_required("admin")
+def delete_recap_mkt_record(recap_id):
+    """Hapus Mutasi Kasbon Marketing"""
+    result, status_code = EntertaintService.delete_recap_mkt(recap_id)
+    return jsonify(result), status_code
+
+
+# ------------------------------------------------------------------
 # Master Data Endpoints (Customer, PIC, Place)
 # ------------------------------------------------------------------
 @entertaint_bp.route("/masters", methods=["GET"])

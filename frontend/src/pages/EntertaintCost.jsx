@@ -31,7 +31,8 @@ import {
   ArrowUpRight,
   MapPin,
   Database,
-  TrendingUp
+  TrendingUp,
+  Landmark
 } from 'lucide-react'
 
 const formatRp = (num) => {
@@ -127,6 +128,24 @@ export default function EntertaintCost() {
   })
 
   // -------------------------------------------------------------
+  // TAB: RECAP KASBON KE MARKETING STATE (Rp 159 Juta)
+  // -------------------------------------------------------------
+  const [recapMktList, setRecapMktList] = useState([])
+  const [recapMktSummary, setRecapMktSummary] = useState(null)
+  const [recapMktLoading, setRecapMktLoading] = useState(false)
+  const [recapMktSearch, setRecapMktSearch] = useState('')
+  const [isRecapModalOpen, setIsRecapModalOpen] = useState(false)
+  const [editingRecapItem, setEditingRecapItem] = useState(null)
+  const [recapFormData, setRecapFormData] = useState({
+    batch_no: '',
+    tanggal: new Date().toISOString().slice(0, 10),
+    account: 'Closing',
+    uang_masuk: '',
+    uang_keluar: '',
+    remarks: ''
+  })
+
+  // -------------------------------------------------------------
   // TAB 3: MASTER DATA STATE
   // -------------------------------------------------------------
   const [masterData, setMasterData] = useState({ customers: [], pics: [], places: [], customer_members: [], total: 0 })
@@ -212,6 +231,21 @@ export default function EntertaintCost() {
     }
   }, [])
 
+  const fetchRecapMkt = useCallback(async () => {
+    setRecapMktLoading(true)
+    try {
+      const res = await entertaintApi.getRecapMkt({ per_page: 200, search: recapMktSearch })
+      if (res.data?.success) {
+        setRecapMktList(res.data.data || [])
+        setRecapMktSummary(res.data.summary)
+      }
+    } catch (err) {
+      console.error('Gagal memuat rekap kasbon ke marketing:', err)
+    } finally {
+      setRecapMktLoading(false)
+    }
+  }, [recapMktSearch])
+
   useEffect(() => {
     fetchData()
   }, [fetchData])
@@ -220,7 +254,8 @@ export default function EntertaintCost() {
     fetchSummary()
     fetchCashflow()
     fetchMasters()
-  }, [fetchSummary, fetchCashflow, fetchMasters])
+    fetchRecapMkt()
+  }, [fetchSummary, fetchCashflow, fetchMasters, fetchRecapMkt])
 
   // Recalculate Total Struk from Struk #1 - #4
   const handleStrukChange = (field, val) => {
@@ -491,6 +526,77 @@ export default function EntertaintCost() {
     }
   }
 
+  // -------------------------------------------------------------
+  // Recap Kasbon ke Marketing Handlers (History Closing QC - MKT)
+  // -------------------------------------------------------------
+  const handleOpenRecapModal = (item = null) => {
+    if (item) {
+      setEditingRecapItem(item)
+      setRecapFormData({
+        batch_no: item.batch_no !== null && item.batch_no !== undefined ? String(item.batch_no) : '',
+        tanggal: item.tanggal || new Date().toISOString().slice(0, 10),
+        account: item.account || 'Closing',
+        uang_masuk: item.uang_masuk ? String(item.uang_masuk) : '',
+        uang_keluar: item.uang_keluar ? String(item.uang_keluar) : '',
+        remarks: item.remarks || ''
+      })
+    } else {
+      setEditingRecapItem(null)
+      setRecapFormData({
+        batch_no: '',
+        tanggal: new Date().toISOString().slice(0, 10),
+        account: 'Closing',
+        uang_masuk: '',
+        uang_keluar: '',
+        remarks: ''
+      })
+    }
+    setIsRecapModalOpen(true)
+  }
+
+  const handleSaveRecap = async (e) => {
+    e.preventDefault()
+    if (!recapFormData.account) {
+      toast.error('Akun / jenis mutasi wajib diisi')
+      return
+    }
+    const payload = {
+      batch_no: recapFormData.batch_no ? Number(recapFormData.batch_no) : null,
+      tanggal: recapFormData.tanggal,
+      account: recapFormData.account,
+      uang_masuk: parseFloat(recapFormData.uang_masuk || 0),
+      uang_keluar: parseFloat(recapFormData.uang_keluar || 0),
+      remarks: recapFormData.remarks
+    }
+
+    try {
+      if (editingRecapItem) {
+        await entertaintApi.updateRecapMkt(editingRecapItem.id, payload)
+        toast.success('Mutasi kasbon marketing berhasil diperbarui')
+      } else {
+        await entertaintApi.createRecapMkt(payload)
+        toast.success('Mutasi kasbon marketing berhasil ditambahkan')
+      }
+      setIsRecapModalOpen(false)
+      fetchRecapMkt()
+    } catch (err) {
+      console.error(err)
+      toast.error('Gagal menyimpan mutasi kasbon marketing')
+    }
+  }
+
+  const handleDeleteRecap = async (id) => {
+    if (!confirm('Hapus mutasi kasbon marketing ini?')) return
+    try {
+      await entertaintApi.deleteRecapMkt(id)
+      toast.success('Mutasi kasbon marketing berhasil dihapus')
+      fetchRecapMkt()
+    } catch (err) {
+      console.error(err)
+      toast.error('Gagal menghapus mutasi kasbon marketing')
+    }
+  }
+
   // Lightbox Handlers
   const handleOpenLightbox = (receiptList, initialIndex = 0) => {
     if (!receiptList || receiptList.length === 0) return
@@ -540,6 +646,12 @@ export default function EntertaintCost() {
               <span>Catat Klaim Baru</span>
             </button>
           )}
+          {currentMainTab === 'recap_mkt' && (
+            <button onClick={() => handleOpenRecapModal()} className={s.btnPrimary}>
+              <Plus size={16} />
+              <span>Catat Mutasi MKT</span>
+            </button>
+          )}
           {currentMainTab === 'cashflow' && (
             <button onClick={() => setIsCashflowModalOpen(true)} className={s.btnPrimary}>
               <Plus size={16} />
@@ -561,11 +673,20 @@ export default function EntertaintCost() {
         </button>
 
         <button
+          onClick={() => setCurrentMainTab('recap_mkt')}
+          className={`${s.tabBtn} ${currentMainTab === 'recap_mkt' ? s.tabBtnActive : ''}`}
+        >
+          <Landmark size={17} />
+          <span>Rekap Kasbon ke Marketing</span>
+          <span className={s.tabBadge}>{recapMktSummary?.total_records || recapMktList.length || 79}</span>
+        </button>
+
+        <button
           onClick={() => setCurrentMainTab('cashflow')}
           className={`${s.tabBtn} ${currentMainTab === 'cashflow' ? s.tabBtnActive : ''}`}
         >
           <Wallet size={17} />
-          <span>Arus Kas Kasbon & Saldo QC</span>
+          <span>Arus Kas Internal QC</span>
           <span className={s.tabBadge}>{cashflowList.length}</span>
         </button>
 
@@ -586,9 +707,22 @@ export default function EntertaintCost() {
             <Receipt size={22} />
           </div>
           <div className={s.statInfo}>
-            <span className={s.statLabel}>Total Biaya Klaim</span>
+            <span className={s.statLabel}>Total Biaya Klaim (Struk)</span>
             <span className={s.statVal}>{formatRp(summary?.total_amount || 0)}</span>
-            <span className={s.statSub}>{summary?.count_total || 0} Aktivitas Dicatat</span>
+            <span className={s.statSub}>{summary?.count_total || 0} Aktivitas Riil Struk</span>
+          </div>
+        </div>
+
+        <div className={s.statCard}>
+          <div className={s.statIcon} style={{ background: 'rgba(99, 102, 241, 0.1)', color: '#6366f1' }}>
+            <Landmark size={22} />
+          </div>
+          <div className={s.statInfo}>
+            <span className={s.statLabel}>Mutasi Kasbon QC-MKT</span>
+            <span className={s.statVal} style={{ color: '#6366f1' }}>
+              {formatRp(recapMktSummary?.total_uang_masuk || 159097173)}
+            </span>
+            <span className={s.statSub}>Status: {recapMktSummary?.status || 'Balance'} ({recapMktSummary?.batch_count || 47} Batch)</span>
           </div>
         </div>
 
@@ -597,20 +731,9 @@ export default function EntertaintCost() {
             <CheckCircle2 size={22} />
           </div>
           <div className={s.statInfo}>
-            <span className={s.statLabel}>Klaim Lunas (Sudah Dibayar)</span>
+            <span className={s.statLabel}>Klaim Lunas (Dibayar)</span>
             <span className={s.statVal} style={{ color: '#16a34a' }}>{formatRp(summary?.total_lunas || 0)}</span>
             <span className={s.statSub}>{summary?.count_lunas || 0} Klaim Selesai</span>
-          </div>
-        </div>
-
-        <div className={s.statCard}>
-          <div className={s.statIcon} style={{ background: 'rgba(220, 38, 38, 0.1)', color: '#dc2626' }}>
-            <Clock size={22} />
-          </div>
-          <div className={s.statInfo}>
-            <span className={s.statLabel}>Belum Dibayar</span>
-            <span className={s.statVal} style={{ color: '#dc2626' }}>{formatRp(summary?.total_belum_lunas || 0)}</span>
-            <span className={s.statSub}>{summary?.count_belum_dibayar || 0} Menunggu Pembayaran</span>
           </div>
         </div>
 
@@ -621,9 +744,9 @@ export default function EntertaintCost() {
           <div className={s.statInfo}>
             <span className={s.statLabel}>Sisa Saldo Kasbon QC</span>
             <span className={s.statVal} style={{ color: '#d97706' }}>
-              {formatRp(cashflowSummary?.current_balance ?? summary?.cashflow_balance ?? 0)}
+              {formatRp(recapMktSummary?.kasbon_qc_saat_ini || 5000000)}
             </span>
-            <span className={s.statSub}>Balance Arus Kasbon</span>
+            <span className={s.statSub}>Saldo Berjalan Saat Ini</span>
           </div>
         </div>
       </div>
@@ -946,7 +1069,164 @@ export default function EntertaintCost() {
       )}
 
       {/* ========================================================= */}
-      {/* VIEW 2: CASHFLOW TAB (BUDGET ENTERTAINT)                  */}
+      {/* VIEW 2: RECAP KASBON KE MARKETING TAB (Rp 159 Juta)        */}
+      {/* ========================================================= */}
+      {currentMainTab === 'recap_mkt' && (
+        <div className={s.tableCard}>
+          {/* Header Banner */}
+          <div className={s.recapBanner}>
+            <div>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Landmark size={20} color="var(--primary)" />
+                <span>Rekap Kasbon ke Marketing (History Closing QC ↔ Marketing)</span>
+              </h3>
+              <p style={{ margin: '4px 0 0', fontSize: 12, color: 'var(--text-muted)' }}>
+                Buku perputaran kasbon kumulatif antara QC dan Marketing sepanjang periode berjalan (Revolving Imprest Fund).
+              </p>
+            </div>
+            <div className={s.recapStatsMini}>
+              <div className={s.miniStatItem}>
+                <span className={s.miniStatLabel}>Uang Masuk ke QC</span>
+                <span className={s.miniStatVal} style={{ color: '#16a34a' }}>
+                  {formatRp(recapMktSummary?.total_uang_masuk || 159097173)}
+                </span>
+              </div>
+              <div className={s.miniStatItem}>
+                <span className={s.miniStatLabel}>Uang Keluar ke MKT</span>
+                <span className={s.miniStatVal} style={{ color: '#dc2626' }}>
+                  {formatRp(recapMktSummary?.total_uang_keluar || 154102473)}
+                </span>
+              </div>
+              <div className={s.miniStatItem}>
+                <span className={s.miniStatLabel}>Kasbon QC Saat Ini</span>
+                <span className={s.miniStatVal} style={{ color: '#d97706' }}>
+                  {formatRp(recapMktSummary?.kasbon_qc_saat_ini || 5000000)}
+                </span>
+              </div>
+              <div className={s.miniStatItem}>
+                <span className={s.miniStatLabel}>Status Audit</span>
+                <span className={s.miniStatVal} style={{ color: '#2563eb' }}>
+                  {recapMktSummary?.status || 'Balance'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Search Filter Bar */}
+          <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+            <div className={s.searchBox} style={{ maxWidth: 360 }}>
+              <Search size={16} className={s.searchIcon} />
+              <input
+                type="text"
+                className={s.searchInput}
+                placeholder="Cari akun mutasi, keterangan closing..."
+                value={recapMktSearch}
+                onChange={(e) => setRecapMktSearch(e.target.value)}
+              />
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>
+              Menampilkan {recapMktList.length} transaksi mutasi kasbon marketing
+            </div>
+          </div>
+
+          {/* Table */}
+          <div className={s.tableResponsive}>
+            <table className={s.table}>
+              <thead>
+                <tr>
+                  <th style={{ width: 50 }}>No</th>
+                  <th style={{ width: 80 }}>Batch</th>
+                  <th style={{ width: 110 }}>Tanggal</th>
+                  <th>Akun / Deskripsi Mutasi</th>
+                  <th style={{ textAlign: 'right' }}>Uang Masuk (ke QC)</th>
+                  <th style={{ textAlign: 'right' }}>Uang Keluar (ke MKT)</th>
+                  <th>Remarks / Catatan Closing</th>
+                  <th style={{ textAlign: 'center', width: 90 }}>Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recapMktLoading ? (
+                  <tr>
+                    <td colSpan={8} style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
+                      Memuat data rekap kasbon marketing...
+                    </td>
+                  </tr>
+                ) : recapMktList.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
+                      Belum ada data mutasi kasbon marketing.
+                    </td>
+                  </tr>
+                ) : (
+                  recapMktList.map((item, idx) => {
+                    const accLower = (item.account || '').toLowerCase()
+                    const isClosing = accLower.includes('closing')
+                    const isRenewal = accLower.includes('renewal') || accLower.includes('kasbon')
+                    const isQCUse = accLower.includes('qc')
+
+                    return (
+                      <tr key={item.id}>
+                        <td style={{ color: 'var(--text-muted)', fontSize: 12 }}>{idx + 1}</td>
+                        <td>
+                          {item.batch_no ? (
+                            <span style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, padding: '2px 6px', background: 'var(--bg-subtle)', borderRadius: 4, fontSize: 12 }}>
+                              #{item.batch_no}
+                            </span>
+                          ) : (
+                            <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>-</span>
+                          )}
+                        </td>
+                        <td style={{ whiteSpace: 'nowrap', fontWeight: 600, fontSize: 13 }}>
+                          {item.tanggal ? new Date(item.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}
+                        </td>
+                        <td>
+                          <span className={isClosing ? s.badgeClosing : isRenewal ? s.badgeRenewal : isQCUse ? s.badgeReimburse : s.badgeOpen}>
+                            {item.account}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'right', fontFamily: 'JetBrains Mono', fontWeight: 700, color: '#16a34a' }}>
+                          {item.uang_masuk > 0 ? formatRp(item.uang_masuk) : '-'}
+                        </td>
+                        <td style={{ textAlign: 'right', fontFamily: 'JetBrains Mono', fontWeight: 700, color: '#dc2626' }}>
+                          {item.uang_keluar > 0 ? formatRp(item.uang_keluar) : '-'}
+                        </td>
+                        <td style={{ fontSize: 12, color: 'var(--text-main)', maxWidth: 320 }}>
+                          {item.remarks ? (
+                            <span>{item.remarks}</span>
+                          ) : (
+                            <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>-</span>
+                          )}
+                        </td>
+                        <td style={{ textAlign: 'center' }}>
+                          <div className={s.rowActions} style={{ justifyContent: 'center' }}>
+                            <button
+                              onClick={() => handleOpenRecapModal(item)}
+                              className={s.iconBtn}
+                              title="Edit Mutasi"
+                            >
+                              <Edit3 size={14} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteRecap(item.id)}
+                              className={`${s.iconBtn} ${s.iconBtnDanger}`}
+                              title="Hapus Mutasi"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* VIEW 3: CASHFLOW TAB (BUDGET ENTERTAINT)                  */}
       {/* ========================================================= */}
       {currentMainTab === 'cashflow' && (
         <div className={s.tableCard}>
@@ -1696,6 +1976,110 @@ export default function EntertaintCost() {
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? 'Menyimpan...' : editingItem ? 'Simpan Perubahan' : 'Simpan & Kompres Struk'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL: CREATE / EDIT RECAP KASBON KE MARKETING           */}
+      {/* ========================================================= */}
+      {isRecapModalOpen && (
+        <div className={s.modalBackdrop}>
+          <div className={s.modalContent} style={{ maxWidth: 520 }}>
+            <div className={s.modalHeader}>
+              <h2 className={s.modalTitle}>
+                <Landmark size={20} color="var(--primary)" />
+                <span>{editingRecapItem ? 'Edit Mutasi Kasbon Marketing' : 'Catat Mutasi Kasbon Marketing'}</span>
+              </h2>
+              <button onClick={() => setIsRecapModalOpen(false)} className={s.modalClose}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveRecap}>
+              <div className={s.modalBody}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 12 }}>
+                  <div className={s.formGroup}>
+                    <label className={s.label}>No. Batch (Opsional)</label>
+                    <input
+                      type="number"
+                      className={s.input}
+                      placeholder="Misal: 1"
+                      value={recapFormData.batch_no}
+                      onChange={(e) => setRecapFormData({ ...recapFormData, batch_no: e.target.value })}
+                    />
+                  </div>
+                  <div className={s.formGroup}>
+                    <label className={s.label}>Tanggal Transaksi</label>
+                    <input
+                      type="date"
+                      className={s.input}
+                      value={recapFormData.tanggal}
+                      onChange={(e) => setRecapFormData({ ...recapFormData, tanggal: e.target.value })}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className={s.formGroup}>
+                  <label className={s.label}>Akun / Jenis Mutasi</label>
+                  <input
+                    type="text"
+                    className={s.input}
+                    placeholder="Contoh: Closing, Renewal Kasbon, Uang QC yang terpakai..."
+                    value={recapFormData.account}
+                    onChange={(e) => setRecapFormData({ ...recapFormData, account: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div className={s.formGroup}>
+                    <label className={s.label}>Uang Masuk (ke QC)</label>
+                    <input
+                      type="number"
+                      className={s.input}
+                      placeholder="0"
+                      value={recapFormData.uang_masuk}
+                      onChange={(e) => setRecapFormData({ ...recapFormData, uang_masuk: e.target.value })}
+                    />
+                  </div>
+                  <div className={s.formGroup}>
+                    <label className={s.label}>Uang Keluar (ke MKT)</label>
+                    <input
+                      type="number"
+                      className={s.input}
+                      placeholder="0"
+                      value={recapFormData.uang_keluar}
+                      onChange={(e) => setRecapFormData({ ...recapFormData, uang_keluar: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className={s.formGroup}>
+                  <label className={s.label}>Remarks / Catatan Closing</label>
+                  <textarea
+                    className={s.textarea}
+                    placeholder="Keterangan closing atau info pendukung..."
+                    value={recapFormData.remarks}
+                    onChange={(e) => setRecapFormData({ ...recapFormData, remarks: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className={s.modalFooter}>
+                <button
+                  type="button"
+                  onClick={() => setIsRecapModalOpen(false)}
+                  className={s.btnSecondary}
+                >
+                  Batal
+                </button>
+                <button type="submit" className={s.btnPrimary}>
+                  Simpan Mutasi
                 </button>
               </div>
             </form>

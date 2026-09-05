@@ -13,6 +13,7 @@ from models.entertaint_cost import EntertaintCost
 from models.entertaint_receipt import EntertaintReceipt
 from models.entertaint_cashflow import EntertaintCashflow
 from models.entertaint_master import EntertaintMasterItem
+from models.entertaint_recap_mkt import EntertaintRecapMkt
 from utils.db import db
 from sqlalchemy import or_, and_, func, extract
 
@@ -594,6 +595,119 @@ class EntertaintService:
         db.session.delete(item)
         db.session.commit()
         return {"success": True, "message": "Transaksi kasbon berhasil dihapus"}, 200
+
+    # -------------------------------------------------------------------------
+    # Recap Kasbon ke Marketing (History Closing QC - Marketing)
+    # -------------------------------------------------------------------------
+    @classmethod
+    def get_recap_mkt(cls, page: int = 1, per_page: int = 100, search: str = None, year: int = None):
+        query = EntertaintRecapMkt.query
+        if year:
+            try:
+                y_int = int(year)
+                query = query.filter(extract("year", EntertaintRecapMkt.tanggal) == y_int)
+            except ValueError:
+                pass
+
+        if search:
+            s_term = f"%{search.strip()}%"
+            query = query.filter(
+                or_(
+                    EntertaintRecapMkt.account.ilike(s_term),
+                    EntertaintRecapMkt.remarks.ilike(s_term),
+                )
+            )
+
+        query = query.order_by(EntertaintRecapMkt.id.asc())
+
+        all_items = query.all()
+        tot_masuk = sum(float(it.uang_masuk or 0) for it in all_items)
+        tot_keluar = sum(float(it.uang_keluar or 0) for it in all_items)
+        kasbon_qc_saat_ini = 5000000.0  # Saldo kasbon QC berjalan
+        tot_keluar_with_saldo = tot_keluar + kasbon_qc_saat_ini
+        selisih = tot_masuk - tot_keluar_with_saldo
+        status = "Balance" if abs(selisih) <= 10000 else f"Selisih Rp {selisih:,.0f}"
+
+        total = len(all_items)
+        start = (page - 1) * per_page
+        end = start + per_page
+        paginated_items = all_items[start:end]
+
+        return {
+            "success": True,
+            "data": [it.to_dict() for it in paginated_items],
+            "pagination": {
+                "page": page,
+                "per_page": per_page,
+                "total": total,
+                "total_pages": (total + per_page - 1) // per_page if per_page > 0 else 1,
+            },
+            "summary": {
+                "total_uang_masuk": tot_masuk,
+                "total_uang_keluar": tot_keluar,
+                "kasbon_qc_saat_ini": kasbon_qc_saat_ini,
+                "total_keluar_with_saldo": tot_keluar_with_saldo,
+                "selisih": selisih,
+                "status": status,
+                "batch_count": len(set(it.batch_no for it in all_items if it.batch_no is not None)),
+                "total_records": total
+            }
+        }
+
+    @classmethod
+    def create_recap_mkt(cls, data: dict):
+        tanggal = None
+        if data.get("tanggal"):
+            try:
+                tanggal = datetime.strptime(data["tanggal"], "%Y-%m-%d").date()
+            except ValueError:
+                pass
+
+        item = EntertaintRecapMkt(
+            batch_no=int(data.get("batch_no")) if data.get("batch_no") is not None and str(data.get("batch_no")).isdigit() else None,
+            tanggal=tanggal or date.today(),
+            account=str(data.get("account") or "").strip() or "Mutasi Kasbon",
+            uang_masuk=Decimal(str(data.get("uang_masuk") or 0)),
+            uang_keluar=Decimal(str(data.get("uang_keluar") or 0)),
+            remarks=str(data.get("remarks") or "").strip() or None,
+        )
+        db.session.add(item)
+        db.session.commit()
+        return {"success": True, "data": item.to_dict(), "message": "Mutasi kasbon marketing berhasil ditambahkan"}
+
+    @classmethod
+    def update_recap_mkt(cls, recap_id: int, data: dict):
+        item = db.session.get(EntertaintRecapMkt, recap_id)
+        if not item:
+            return {"success": False, "message": "Data mutasi kasbon marketing tidak ditemukan"}, 404
+
+        if "batch_no" in data:
+            item.batch_no = int(data["batch_no"]) if data["batch_no"] is not None and str(data["batch_no"]).isdigit() else None
+        if "tanggal" in data and data["tanggal"]:
+            try:
+                item.tanggal = datetime.strptime(data["tanggal"], "%Y-%m-%d").date()
+            except ValueError:
+                pass
+        if "account" in data:
+            item.account = str(data["account"]).strip() or item.account
+        if "uang_masuk" in data:
+            item.uang_masuk = Decimal(str(data["uang_masuk"] or 0))
+        if "uang_keluar" in data:
+            item.uang_keluar = Decimal(str(data["uang_keluar"] or 0))
+        if "remarks" in data:
+            item.remarks = str(data["remarks"]).strip() or None
+
+        db.session.commit()
+        return {"success": True, "data": item.to_dict(), "message": "Mutasi kasbon marketing berhasil diperbarui"}
+
+    @classmethod
+    def delete_recap_mkt(cls, recap_id: int):
+        item = db.session.get(EntertaintRecapMkt, recap_id)
+        if not item:
+            return {"success": False, "message": "Data mutasi kasbon marketing tidak ditemukan"}, 404
+        db.session.delete(item)
+        db.session.commit()
+        return {"success": True, "message": "Mutasi kasbon marketing berhasil dihapus"}, 200
 
     # -------------------------------------------------------------------------
     # Master Items (Customer, PIC, Place)
@@ -1629,15 +1743,74 @@ class EntertaintService:
                     db.session.add(new_cf)
                     cashflow_synced += 1
 
+        # ---------------------------------------------------------------------
+        # 3. Synchronize Recap Kasbon ke MKT (History Closing QC - Marketing)
+        # ---------------------------------------------------------------------
+        recap_mkt_synced = 0
+        recap_mkt_sheet_name = None
+        for sname in wb.sheetnames:
+            if "recap kasbon" in sname.lower() or "closing qc" in sname.lower():
+                recap_mkt_sheet_name = sname
+                break
+
+        if recap_mkt_sheet_name:
+            ws_mkt = wb[recap_mkt_sheet_name]
+            curr_batch = None
+            curr_date = None
+            for r in range(3, ws_mkt.max_row + 1):
+                no_val = ws_mkt.cell(r, 1).value
+                date_val = ws_mkt.cell(r, 2).value
+                acc_val = ws_mkt.cell(r, 3).value
+                masuk_val = ws_mkt.cell(r, 4).value
+                keluar_val = ws_mkt.cell(r, 5).value
+                rem_val = ws_mkt.cell(r, 6).value
+
+                if no_val is not None and isinstance(no_val, int):
+                    curr_batch = no_val
+                p_date = parse_date_safe(date_val)
+                if p_date:
+                    curr_date = p_date
+
+                acc_str = clean_str_safe(acc_val)
+                if any(k in acc_str.lower() for k in ["total", "saldo", "status", "kasbon qc saat ini"]):
+                    continue
+
+                masuk = parse_dec_safe(masuk_val)
+                keluar = parse_dec_safe(keluar_val)
+
+                if not acc_str and masuk == 0 and keluar == 0:
+                    continue
+
+                existing_mkt = EntertaintRecapMkt.query.filter(
+                    EntertaintRecapMkt.batch_no == curr_batch,
+                    EntertaintRecapMkt.tanggal == curr_date,
+                    EntertaintRecapMkt.account == (acc_str or "Mutasi Kasbon"),
+                    EntertaintRecapMkt.uang_masuk == masuk,
+                    EntertaintRecapMkt.uang_keluar == keluar
+                ).first()
+
+                if not existing_mkt:
+                    new_mkt = EntertaintRecapMkt(
+                        batch_no=curr_batch,
+                        tanggal=curr_date,
+                        account=acc_str or "Mutasi Kasbon",
+                        uang_masuk=masuk,
+                        uang_keluar=keluar,
+                        remarks=clean_str_safe(rem_val) or None
+                    )
+                    db.session.add(new_mkt)
+                    recap_mkt_synced += 1
+
         db.session.commit()
 
         return {
             "success": True,
-            "message": f"Import Excel berhasil: {created_claims} klaim baru ditambahkan, {updated_claims} diperbarui, {cashflow_synced} arus kas disinkronkan.",
+            "message": f"Import Excel berhasil: {created_claims} klaim baru, {updated_claims} diperbarui, {cashflow_synced} arus kas, {recap_mkt_synced} mutasi kasbon marketing disinkronkan.",
             "data": {
                 "created_claims": created_claims,
                 "updated_claims": updated_claims,
                 "cashflow_synced": cashflow_synced,
+                "recap_mkt_synced": recap_mkt_synced,
                 "skipped_rows": skipped_rows,
                 "total_rows_parsed": created_claims + updated_claims + skipped_rows
             }

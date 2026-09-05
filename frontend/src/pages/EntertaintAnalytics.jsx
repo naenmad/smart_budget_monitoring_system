@@ -59,11 +59,58 @@ const PIE_COLORS = [
   '#94a3b8'  // Gray
 ]
 
+const QUARTAL_DATA = [
+  {
+    quarter: 'Q1 2026',
+    months: 'Januari - Maret',
+    target: 62773404,
+    actual: 65732957,
+    details: [
+      { month: 'Januari', target: 12057869, actual: 29949352 },
+      { month: 'Februari', target: 39654381, actual: 17252502 },
+      { month: 'Maret', target: 11061154, actual: 18531103 }
+    ]
+  },
+  {
+    quarter: 'Q2 2026',
+    months: 'April - Juni',
+    target: 37412697,
+    actual: 53572596,
+    details: [
+      { month: 'April', target: 13413681, actual: 16475253 },
+      { month: 'Mei', target: 11820569, actual: 15090443 },
+      { month: 'Juni', target: 12178447, actual: 22006900 }
+    ]
+  },
+  {
+    quarter: 'Q3 2026',
+    months: 'Juli - September',
+    target: 50215029,
+    actual: 16631057,
+    details: [
+      { month: 'Juli', target: 23600320, actual: 16631057 },
+      { month: 'Agustus', target: 14501551, actual: 0 },
+      { month: 'September', target: 12113158, actual: 0 }
+    ]
+  },
+  {
+    quarter: 'Q4 2026',
+    months: 'Oktober - Desember',
+    target: 35000000,
+    actual: 0,
+    details: [
+      { month: 'Oktober', target: 10883131, actual: 0 },
+      { month: 'November', target: 12419605, actual: 0 },
+      { month: 'Desember', target: 11696133, actual: 0 }
+    ]
+  }
+]
+
 export default function EntertaintAnalytics() {
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState(null)
   const [selectedYear, setSelectedYear] = useState('')
-  const [activeTableTab, setActiveTableTab] = useState('customer') // 'customer' | 'pic'
+  const [activeTableTab, setActiveTableTab] = useState('customer') // 'customer' | 'pic' | 'quartal'
 
   const fetchAnalytics = useCallback(async (year = selectedYear) => {
     setLoading(true)
@@ -426,11 +473,95 @@ export default function EntertaintAnalytics() {
               <User size={14} style={{ display: 'inline', marginRight: 5, verticalAlign: 'text-bottom' }} />
               Per PIC Tugas Luar ({data?.pic_ranking?.length || 0})
             </button>
+            <button
+              onClick={() => setActiveTableTab('quartal')}
+              className={`${s.tableTabBtn} ${activeTableTab === 'quartal' ? s.tableTabBtnActive : ''}`}
+            >
+              <Calendar size={14} style={{ display: 'inline', marginRight: 5, verticalAlign: 'text-bottom' }} />
+              Target vs Realisasi Kuartal 2026
+            </button>
           </div>
         </div>
 
         <div className={s.tableResponsive}>
-          {activeTableTab === 'customer' ? (
+          {activeTableTab === 'quartal' ? (
+            <table className={s.table}>
+              <thead>
+                <tr>
+                  <th>Kuartal</th>
+                  <th>Periode Bulan</th>
+                  <th>Target Budget (IDR)</th>
+                  <th>Realisasi Actual (IDR)</th>
+                  <th>Sisa / Selisih (IDR)</th>
+                  <th>Pencapaian (%)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {QUARTAL_DATA.map((q, idx) => {
+                  const pct = q.target > 0 ? ((q.actual / q.target) * 100).toFixed(1) : '0.0'
+                  const diff = q.target - q.actual
+                  const isOver = q.actual > q.target
+
+                  return (
+                    <tr key={idx}>
+                      <td style={{ fontWeight: 800, color: 'var(--text-main)' }}>
+                        <span style={{ padding: '3px 8px', borderRadius: 6, background: 'rgba(37, 99, 235, 0.1)', color: 'var(--primary)', fontFamily: 'JetBrains Mono', fontSize: 13 }}>
+                          {q.quarter}
+                        </span>
+                      </td>
+                      <td style={{ color: 'var(--text-muted)', fontSize: 13 }}>{q.months}</td>
+                      <td style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, color: 'var(--text-main)' }}>
+                        {formatRp(q.target)}
+                      </td>
+                      <td style={{ fontFamily: 'JetBrains Mono', fontWeight: 800, color: isOver ? '#dc2626' : '#16a34a' }}>
+                        {formatRp(q.actual)}
+                      </td>
+                      <td style={{ fontFamily: 'JetBrains Mono', fontWeight: 600, color: diff >= 0 ? '#16a34a' : '#dc2626' }}>
+                        {diff >= 0 ? `+${formatRp(diff)}` : formatRp(diff)}
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <div className={s.progressBarTrack}>
+                            <div
+                              className={s.progressBarFill}
+                              style={{
+                                width: `${Math.min(100, Number(pct))}%`,
+                                background: isOver ? '#dc2626' : 'var(--primary)'
+                              }}
+                            />
+                          </div>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: isOver ? '#dc2626' : 'var(--text-main)' }}>
+                            {pct}%
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+              <tfoot>
+                <tr style={{ background: 'var(--bg-subtle)', fontWeight: 800 }}>
+                  <td colSpan={2} style={{ padding: '12px 16px', fontSize: 13, textTransform: 'uppercase' }}>
+                    Total Target Tahunan (Sheet Quartal 2026)
+                  </td>
+                  <td style={{ fontFamily: 'JetBrains Mono', fontSize: 13, color: 'var(--text-main)' }}>
+                    Rp 185.399.999
+                  </td>
+                  <td style={{ fontFamily: 'JetBrains Mono', fontSize: 13, color: '#16a34a' }}>
+                    Rp 135.936.610
+                  </td>
+                  <td style={{ fontFamily: 'JetBrains Mono', fontSize: 13, color: '#16a34a' }}>
+                    +Rp 49.463.389 (Sisa Plafon)
+                  </td>
+                  <td>
+                    <span style={{ fontFamily: 'JetBrains Mono', fontSize: 12, fontWeight: 800, color: 'var(--primary)' }}>
+                      73.3% Terealisasi
+                    </span>
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          ) : activeTableTab === 'customer' ? (
             <table className={s.table}>
               <thead>
                 <tr>
