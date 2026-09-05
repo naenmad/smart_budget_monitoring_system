@@ -1,5 +1,6 @@
 import os
 import io
+import re
 import uuid
 from datetime import datetime, date
 from decimal import Decimal

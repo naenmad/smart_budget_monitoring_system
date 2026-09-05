@@ -680,7 +680,8 @@ def auto_confirm_by_threshold():
             MappingLog.method.in_(["FUZZY_MATCH", "ITEM_MAPPING_RULE"])
         ).order_by(
             case((MappingLog.method == "ITEM_MAPPING_RULE", 0), else_=1),
-            MappingLog.rank_no.asc().nullslast(),
+            MappingLog.rank_no.is_(None),
+            MappingLog.rank_no.asc(),
             MappingLog.confidence_score.desc()
         ).first()
 
@@ -717,6 +718,7 @@ def auto_confirm_by_threshold():
             if old_planning_detail_id and old_planning_detail_id != detail.id:
                 _recalculate_planning_status(old_planning_detail_id)
 
+            _save_auto_learning_rule(pr, detail)
             BudgetMonitoringService.calculate_budget_consumption(pr)
             approved_count += 1
 
