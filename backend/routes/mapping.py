@@ -68,6 +68,7 @@ def get_pending_mapping():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 20, type=int)
     keyword = request.args.get('keyword', '').strip()
+    order_direction = request.args.get('order_direction', 'desc').strip()
 
     query = PrPoData.query.filter_by(status_ai="NEED_MAPPING")
     if keyword:
@@ -76,7 +77,10 @@ def get_pending_mapping():
             (PrPoData.description.ilike(f"%{keyword}%")) |
             (PrPoData.comment_text.ilike(f"%{keyword}%"))
         )
-    pagination = query.order_by(PrPoData.id.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    if order_direction.lower() == 'asc':
+        pagination = query.order_by(PrPoData.id.asc()).paginate(page=page, per_page=per_page, error_out=False)
+    else:
+        pagination = query.order_by(PrPoData.id.desc()).paginate(page=page, per_page=per_page, error_out=False)
     
     results = []
     for pr in pagination.items:

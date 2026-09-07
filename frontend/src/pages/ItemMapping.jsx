@@ -1,12 +1,14 @@
 import toast from 'react-hot-toast'
-
+import { useConfirm } from '../context/ConfirmContext'
 import { useState, useEffect } from 'react'
 import { itemMappingApi } from '../api/itemMappingApi'
 import { kategoriApi } from '../api/kategoriApi'
-import { Lightbulb, Plus, Edit2, Trash2, Check, X, Search } from 'lucide-react'
+import { Lightbulb, Plus, Edit2, Trash2, Check, X, Search, ArrowUpDown } from 'lucide-react'
+import TablePagination from '../components/common/TablePagination'
 import styles from './ItemMapping.module.css'
 
 export default function ItemMapping() {
+  const confirm = useConfirm()
   const [mappings, setMappings] = useState([])
   const [kategoris, setKategoris] = useState([])
   const [loading, setLoading] = useState(false)
@@ -17,6 +19,9 @@ export default function ItemMapping() {
   const [suggestions, setSuggestions] = useState([])
   const [appliedKeyword, setAppliedKeyword] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [page, setPage] = useState(1)
+  const [perPage, setPerPage] = useState(20)
+  const [sortOrder, setSortOrder] = useState('desc')
 
   useEffect(() => { fetchAll() }, [])
   useEffect(() => {
@@ -84,9 +89,20 @@ export default function ItemMapping() {
   }
 
   async function handleDelete(id) {
-    if (!confirm('Hapus mapping ini?')) return
-    try { await itemMappingApi.delete(id); fetchAll() }
-    catch { toast.error('Gagal menghapus') }
+    const ok = await confirm({
+      title: 'Hapus Rule Mapping',
+      message: 'Hapus rule mapping ini?',
+      confirmText: 'Hapus',
+      cancelText: 'Batal',
+      type: 'danger'
+    })
+    if (!ok) return
+    try { 
+      await itemMappingApi.delete(id)
+      toast.success('Mapping berhasil dihapus')
+      fetchAll() 
+    }
+    catch { toast.error('Gagal menghapus mapping') }
   }
 
   const statusBadge = (active) => (
@@ -218,8 +234,19 @@ export default function ItemMapping() {
             </button>
           )}
         </div>
-        <div className={styles.countBadge}>
-          Menampilkan <strong>{filteredMappings.length}</strong> dari <strong>{mappings.length}</strong> aturan
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <select
+            value={sortOrder}
+            onChange={e => { setSortOrder(e.target.value); setPage(1); }}
+            className={styles.sortSelect}
+            title="Urutan data"
+          >
+            <option value="desc">ID: Terbaru dahulu</option>
+            <option value="asc">ID: Terlama dahulu</option>
+          </select>
+          <div className={styles.countBadge}>
+            Menampilkan <strong>{filteredMappings.length}</strong> dari <strong>{mappings.length}</strong> aturan
+          </div>
         </div>
       </div>
 
@@ -238,48 +265,73 @@ export default function ItemMapping() {
                 </tr>
               </thead>
               <tbody>
-                {filteredMappings.length === 0 && (
+                {filteredMappings.length === 0 ? (
                   <tr>
                     <td colSpan={7} className={styles.emptyState}>
                       {searchQuery ? `Tidak ada aturan yang cocok dengan "${searchQuery}"` : 'Belum ada data rule mapping'}
                     </td>
                   </tr>
+                ) : (
+                  [...filteredMappings]
+                    .sort((a, b) => {
+                      if (sortOrder === 'asc') return a.id - b.id
+                      return b.id - a.id
+                    })
+                    .slice((page - 1) * perPage, page * perPage)
+                    .map((m, i) => {
+                      const kat = kategoris.find(k => k.id === m.kategori_id)
+                      const globalIdx = (page - 1) * perPage + i + 1
+                      return (
+                        <tr key={m.id} className={styles.tr}>
+                          <td className={styles.td} style={{ width: 40 }}>{globalIdx}</td>
+                          <td className={styles.td}><strong>{m.keyword}</strong></td>
+                          <td className={styles.td}>{m.planning_item}</td>
+                          <td className={styles.td}>
+                            {kat ? (
+                              <span className={styles.categoryBadge} title={kat.nama}>
+                                {kat.kode}
+                              </span>
+                            ) : '-'}
+                          </td>
+                          <td className={styles.td}>{m.priority}</td>
+                          <td className={styles.td}>{statusBadge(m.is_active)}</td>
+                          <td className={styles.td}>
+                            <div style={{ display: 'flex', gap: 6 }}>
+                              <button onClick={() => openEdit(m)} className={styles.btnEdit} title="Edit Mapping">
+                                <Edit2 size={13} />
+                                <span>Edit</span>
+                              </button>
+                              <button onClick={() => handleDelete(m.id)} className={styles.btnDelete} title="Hapus Mapping">
+                                <Trash2 size={13} />
+                                <span>Hapus</span>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })
                 )}
-                {filteredMappings.map((m, i) => {
-                  const kat = kategoris.find(k => k.id === m.kategori_id)
-                  return (
-                    <tr key={m.id} className={styles.tr}>
-                      <td className={styles.td} style={{ width: 40 }}>{i + 1}</td>
-                      <td className={styles.td}><strong>{m.keyword}</strong></td>
-                      <td className={styles.td}>{m.planning_item}</td>
-                      <td className={styles.td}>
-                        {kat ? (
-                          <span className={styles.categoryBadge} title={kat.nama}>
-                            {kat.kode}
-                          </span>
-                        ) : '-'}
-                      </td>
-                      <td className={styles.td}>{m.priority}</td>
-                      <td className={styles.td}>{statusBadge(m.is_active)}</td>
-                      <td className={styles.td}>
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          <button onClick={() => openEdit(m)} className={styles.btnEdit} title="Edit Mapping">
-                            <Edit2 size={13} />
-                            <span>Edit</span>
-                          </button>
-                          <button onClick={() => handleDelete(m.id)} className={styles.btnDelete} title="Hapus Mapping">
-                            <Trash2 size={13} />
-                            <span>Hapus</span>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
               </tbody>
             </table>
           )}
         </div>
+
+        {/* Standardized Table Pagination */}
+        {filteredMappings.length > 0 && (
+          <TablePagination
+            page={page}
+            totalPages={Math.ceil(filteredMappings.length / perPage) || 1}
+            total={filteredMappings.length}
+            perPage={perPage}
+            onPageChange={setPage}
+            onPerPageChange={(newSize) => {
+              setPerPage(newSize)
+              setPage(1)
+            }}
+            itemName="aturan mapping"
+            loading={loading}
+          />
+        )}
       </div>
     </div>
   )

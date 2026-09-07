@@ -91,6 +91,48 @@
     background: var(--bg-subtle);
 }
 
+.filterControlsWrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.sortWrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.sortIcon {
+    position: absolute;
+    left: 10px;
+    color: var(--text-muted);
+    pointer-events: none;
+}
+
+.sortSelect {
+    padding: 9px 12px 9px 32px;
+    border: 1.5px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    background: var(--bg-card);
+    color: var(--text-main);
+    outline: none;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s ease;
+}
+
+.sortSelect:hover {
+    border-color: var(--primary);
+}
+
+.sortSelect:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
 .loadingState,
 .emptyState {
     text-align: center;

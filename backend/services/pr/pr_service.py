@@ -8,7 +8,7 @@ class PrService:
     """
 
     @staticmethod
-    def get_all(upload_id=None, status_ai=None, tracking_stage=None, kategori_id=None, search=None, filter_status=None, page=1, per_page=50):
+    def get_all(upload_id=None, status_ai=None, tracking_stage=None, kategori_id=None, search=None, filter_status=None, order_direction="desc", page=1, per_page=50, **kwargs):
         query = PrPoData.query
 
         if upload_id:
@@ -43,9 +43,15 @@ class PrService:
         elif tracking_stage == "PR":
             query = query.filter(PrPoData.pr_doc_num.isnot(None), PrPoData.po_doc_num.is_(None), PrPoData.gr_legal_number.is_(None))
 
-        pagination = query.order_by(PrPoData.id.desc()).paginate(
-            page=page, per_page=per_page, error_out=False
-        )
+        order_direction = kwargs.get("order_direction", "desc")
+        if order_direction and str(order_direction).lower() == "asc":
+            pagination = query.order_by(PrPoData.id.asc()).paginate(
+                page=page, per_page=per_page, error_out=False
+            )
+        else:
+            pagination = query.order_by(PrPoData.id.desc()).paginate(
+                page=page, per_page=per_page, error_out=False
+            )
 
         return {
             "success": True,

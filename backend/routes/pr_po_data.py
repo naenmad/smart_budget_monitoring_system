@@ -63,6 +63,7 @@ def get_all():
     search = request.args.get("search")              # server-side text search
     kategori_kode = request.args.get("kategori_kode")  # filter by category code
     metode = request.args.get("metode")              # filter by classification method
+    order_direction = request.args.get("order_direction", "desc")
 
     # parse boolean
     if perlu_review is not None:
@@ -76,6 +77,7 @@ def get_all():
         search=search,
         kategori_kode=kategori_kode,
         metode=metode,
+        order_direction=order_direction,
         page=page,
         per_page=per_page
     )

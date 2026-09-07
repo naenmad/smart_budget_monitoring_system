@@ -71,6 +71,9 @@ export const entertaintApi = {
   createCashflow: (data) =>
     api.post('/entertaint/cashflow', data),
 
+  updateCashflow: (id, data) =>
+    api.put(`/entertaint/cashflow/${id}`, data),
+
   deleteCashflow: (id) =>
     api.delete(`/entertaint/cashflow/${id}`),
 

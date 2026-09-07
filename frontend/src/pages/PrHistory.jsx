@@ -1,19 +1,23 @@
 import toast from 'react-hot-toast'
+import { useConfirm } from '../context/ConfirmContext'
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { prApi } from '../api/prApi'
 import { prPoDataApi } from '../api/prPoDataApi'
 import { uploadHistoryApi } from '../api/uploadHistoryApi'
 import { useAuth } from '../context/AuthContext'
-import { RefreshCw, Play, Trash2, Loader2 } from 'lucide-react'
+import { RefreshCw, Play, Trash2, Loader2, ArrowUpDown } from 'lucide-react'
+import TablePagination from '../components/common/TablePagination'
 import styles from './PrHistory.module.css'
 
 export default function PrHistory() {
+  const confirm = useConfirm()
   const { user } = useAuth()
   const queryClient = useQueryClient()
   
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(30)
+  const [orderDirection, setOrderDirection] = useState('desc')
   const [filterStatus, setFilterStatus] = useState('')
   const [trackingStage, setTrackingStage] = useState('')
   const [uploadId, setUploadId] = useState('')
@@ -23,9 +27,9 @@ export default function PrHistory() {
 
   // Fetch Data Query
   const { data: listData, isLoading: loading, refetch } = useQuery({
-    queryKey: ['prHistory', page, perPage, filterStatus, trackingStage, uploadId, search],
+    queryKey: ['prHistory', page, perPage, orderDirection, filterStatus, trackingStage, uploadId, search],
     queryFn: async () => {
-      const params = { page, per_page: perPage }
+      const params = { page, per_page: perPage, order_direction: orderDirection }
       if (filterStatus) params.status_ai = filterStatus
       if (trackingStage) params.tracking_stage = trackingStage
       if (uploadId) params.upload_id = parseInt(uploadId)
@@ -52,7 +56,14 @@ export default function PrHistory() {
   const summary = summaryData || null
 
   const handleProcessPipeline = async () => {
-    if (!confirm(`Jalankan proses pipeline untuk semua data WAITING di periode ${CURRENT_YEAR}?`)) return
+    const ok = await confirm({
+      title: 'Jalankan Pipeline',
+      message: `Jalankan proses pipeline untuk semua data WAITING di periode ${CURRENT_YEAR}?`,
+      confirmText: 'Jalankan',
+      cancelText: 'Batal',
+      type: 'info'
+    })
+    if (!ok) return
     setIsProcessing(true)
     try {
       const res = await prApi.processPipeline(CURRENT_YEAR)
@@ -66,7 +77,14 @@ export default function PrHistory() {
   }
 
   const handleRetryMapping = async () => {
-    if (!confirm(`Jalankan ulang HANYA mapping untuk semua data NEED_MAPPING di periode ${CURRENT_YEAR}?`)) return
+    const ok = await confirm({
+      title: 'Jalankan Ulang Mapping',
+      message: `Jalankan ulang HANYA mapping untuk semua data NEED_MAPPING di periode ${CURRENT_YEAR}?`,
+      confirmText: 'Jalankan',
+      cancelText: 'Batal',
+      type: 'info'
+    })
+    if (!ok) return
     setIsProcessing(true)
     try {
       const res = await prApi.retryMapping(CURRENT_YEAR)
@@ -80,7 +98,14 @@ export default function PrHistory() {
   }
 
   const handleDeletePr = async (id) => {
-    if (!confirm('Hapus data PR ini?')) return
+    const ok = await confirm({
+      title: 'Hapus Data PR',
+      message: 'Hapus data PR ini?',
+      confirmText: 'Hapus',
+      cancelText: 'Batal',
+      type: 'danger'
+    })
+    if (!ok) return
     try {
       await prPoDataApi.delete(id)
       queryClient.invalidateQueries({ queryKey: ['prHistory'] })
@@ -91,7 +116,14 @@ export default function PrHistory() {
 
   const handleDeleteUpload = async () => {
     if (!uploadId) return
-    if (!confirm(`Hapus SELURUH data PR dari Upload ID ${uploadId}? Tindakan ini tidak dapat dibatalkan.`)) return
+    const ok = await confirm({
+      title: 'Hapus Seluruh Data Upload',
+      message: `Hapus SELURUH data PR dari Upload ID ${uploadId}? Tindakan ini tidak dapat dibatalkan.`,
+      confirmText: 'Hapus Seluruh Data',
+      cancelText: 'Batal',
+      type: 'danger'
+    })
+    if (!ok) return
     setIsProcessing(true)
     try {
       await uploadHistoryApi.delete(uploadId)
@@ -200,6 +232,26 @@ export default function PrHistory() {
           <option value="PO">PO</option>
           <option value="GR">GR</option>
         </select>
+        <select value={orderDirection} onChange={e => { setOrderDirection(e.target.value); setPage(1) }} className={styles.input} title="Urutan Data">
+          <option value="desc">Terbaru dahulu (Akhir → Awal)</option>
+          <option value="asc">Terlama dahulu (Awal → Akhir)</option>
+        </select>
+        {(search || uploadId || filterStatus || trackingStage) && (
+          <button
+            onClick={() => {
+              setSearch('')
+              setUploadId('')
+              setFilterStatus('')
+              setTrackingStage('')
+              setOrderDirection('desc')
+              setPage(1)
+            }}
+            className="btn-secondary"
+            style={{ padding: '6px 12px', fontSize: 13 }}
+          >
+            Reset Filter
+          </button>
+        )}
         {uploadId && user?.role === 'admin' && (
           <button 
             onClick={handleDeleteUpload} 
@@ -269,33 +321,22 @@ export default function PrHistory() {
             </table>
           </div>
 
-          {/* Pagination */}
-          <div className={styles.pagination}>
-            <div className={styles.perPageWrap}>
-              <span className={styles.perPageLabel}>Tampilkan:</span>
-              <select
-                className={styles.perPageSelect}
-                value={perPage}
-                onChange={e => {
-                  setPerPage(Number(e.target.value))
-                  setPage(1)
-                }}
-              >
-                <option value={10}>10 item</option>
-                <option value={25}>25 item</option>
-                <option value={30}>30 item</option>
-                <option value={50}>50 item</option>
-                <option value={100}>100 item</option>
-              </select>
-              <span className={styles.totalInfo}>dari {total} data</span>
-            </div>
-
-            <div className={styles.pgActions}>
-              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className={styles.pgBtn}>‹ Prev</button>
-              <span className={styles.pgLabel}>Hal {page} / {totalPages}</span>
-              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className={styles.pgBtn}>Next ›</button>
-            </div>
-          </div>
+          {/* Standardized Table Pagination */}
+          {total > 0 && (
+            <TablePagination
+              page={page}
+              totalPages={totalPages}
+              total={total}
+              perPage={perPage}
+              onPageChange={setPage}
+              onPerPageChange={(newSize) => {
+                setPerPage(newSize)
+                setPage(1)
+              }}
+              itemName="data PR"
+              loading={loading}
+            />
+          )}
         </>
       )}
     </div>

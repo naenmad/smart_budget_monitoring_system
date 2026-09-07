@@ -498,11 +498,52 @@ class EntertaintService:
     # Cashflow / Budget Entertaint Handling
     # -------------------------------------------------------------------------
     @classmethod
-    def get_cashflows(cls, page: int = 1, per_page: int = 50, flow_type: str = "", search: str = ""):
+    def recalculate_cashflow_balances(cls):
+        """
+        Hitung ulang saldo balance berjalan secara kronologis untuk seluruh data arus kas kasbon QC.
+        """
+        rows = EntertaintCashflow.query.order_by(EntertaintCashflow.tanggal.asc(), EntertaintCashflow.id.asc()).all()
+        running = Decimal("0.00")
+        for r in rows:
+            in_amt = r.uang_masuk or Decimal("0.00")
+            out_amt = r.uang_keluar or Decimal("0.00")
+            running += (in_amt - out_amt)
+            r.balance = running
+        db.session.commit()
+
+    @classmethod
+    def get_cashflows(
+        cls,
+        page: int = 1,
+        per_page: int = 50,
+        flow_type: str = "",
+        search: str = "",
+        status: str = "",
+        start_date: str = "",
+        end_date: str = "",
+        sort_order: str = "asc"
+    ):
         query = EntertaintCashflow.query
 
-        if flow_type:
+        if flow_type and flow_type.upper() != "ALL":
             query = query.filter(EntertaintCashflow.flow_type == flow_type.upper())
+
+        if status and status.upper() != "ALL":
+            query = query.filter(EntertaintCashflow.status_entertaint.ilike(f"%{status.strip()}%"))
+
+        if start_date:
+            try:
+                s_dt = datetime.strptime(start_date[:10], "%Y-%m-%d").date()
+                query = query.filter(EntertaintCashflow.tanggal >= s_dt)
+            except Exception:
+                pass
+
+        if end_date:
+            try:
+                e_dt = datetime.strptime(end_date[:10], "%Y-%m-%d").date()
+                query = query.filter(EntertaintCashflow.tanggal <= e_dt)
+            except Exception:
+                pass
 
         if search:
             s_term = f"%{search.strip()}%"
@@ -511,10 +552,14 @@ class EntertaintService:
                     EntertaintCashflow.account_deskripsi.ilike(s_term),
                     EntertaintCashflow.doc_no.ilike(s_term),
                     EntertaintCashflow.keterangan.ilike(s_term),
+                    EntertaintCashflow.status_entertaint.ilike(s_term),
                 )
             )
 
-        query = query.order_by(EntertaintCashflow.tanggal.asc(), EntertaintCashflow.id.asc())
+        if sort_order and str(sort_order).lower() == "desc":
+            query = query.order_by(EntertaintCashflow.tanggal.desc(), EntertaintCashflow.id.desc())
+        else:
+            query = query.order_by(EntertaintCashflow.tanggal.asc(), EntertaintCashflow.id.asc())
         items = query.all()
 
         total_in = sum(float(x.uang_masuk or 0) for x in items)
@@ -566,11 +611,6 @@ class EntertaintService:
         uang_masuk = parse_dec(data.get("uang_masuk")) if flow_type == "IN" else Decimal("0.00")
         uang_keluar = parse_dec(data.get("uang_keluar")) if flow_type == "OUT" else Decimal("0.00")
 
-        # Hitung running balance terakhir
-        last_item = EntertaintCashflow.query.order_by(EntertaintCashflow.id.desc()).first()
-        prev_balance = last_item.balance if last_item else Decimal("0.00")
-        new_balance = prev_balance + uang_masuk - uang_keluar
-
         item = EntertaintCashflow(
             doc_no=str(data.get("doc_no", "")).strip() or None,
             tanggal=tgl,
@@ -578,14 +618,75 @@ class EntertaintService:
             account_deskripsi=str(data.get("account_deskripsi")).strip(),
             uang_masuk=uang_masuk,
             uang_keluar=uang_keluar,
-            balance=new_balance,
-            status_entertaint=str(data.get("status_entertaint", "Open")).strip(),
+            balance=Decimal("0.00"),
+            status_entertaint=str(data.get("status_entertaint", "Open")).strip() or "Open",
             keterangan=str(data.get("keterangan", "")).strip() or None
         )
         db.session.add(item)
         db.session.commit()
+        cls.recalculate_cashflow_balances()
+        db.session.refresh(item)
 
         return {"success": True, "message": "Transaksi kasbon berhasil dicatat", "data": item.to_dict()}, 201
+
+    @classmethod
+    def update_cashflow(cls, cashflow_id: int, data: dict):
+        item = db.session.get(EntertaintCashflow, cashflow_id)
+        if not item:
+            return {"success": False, "message": "Data arus kas kasbon tidak ditemukan"}, 404
+
+        if "tanggal" in data and data["tanggal"]:
+            try:
+                if isinstance(data["tanggal"], str):
+                    item.tanggal = datetime.strptime(data["tanggal"][:10], "%Y-%m-%d").date()
+                else:
+                    item.tanggal = data["tanggal"]
+            except Exception as e:
+                return {"success": False, "message": f"Format tanggal tidak valid: {str(e)}"}, 400
+
+        if "account_deskripsi" in data:
+            if not str(data["account_deskripsi"]).strip():
+                return {"success": False, "message": "Deskripsi akun / transaksi wajib diisi"}, 400
+            item.account_deskripsi = str(data["account_deskripsi"]).strip()
+
+        if "doc_no" in data:
+            item.doc_no = str(data.get("doc_no", "")).strip() or None
+
+        def parse_dec(val):
+            if val is None or val == "":
+                return Decimal("0.00")
+            try:
+                return Decimal(str(val).replace("Rp", "").replace(",", "").strip())
+            except Exception:
+                return Decimal("0.00")
+
+        if "flow_type" in data:
+            flow_type = str(data.get("flow_type", item.flow_type)).upper()
+            item.flow_type = flow_type
+
+            if flow_type == "IN":
+                item.uang_masuk = parse_dec(data.get("uang_masuk", item.uang_masuk))
+                item.uang_keluar = Decimal("0.00")
+            else:
+                item.uang_keluar = parse_dec(data.get("uang_keluar", item.uang_keluar))
+                item.uang_masuk = Decimal("0.00")
+        else:
+            if "uang_masuk" in data and item.flow_type == "IN":
+                item.uang_masuk = parse_dec(data.get("uang_masuk"))
+            if "uang_keluar" in data and item.flow_type == "OUT":
+                item.uang_keluar = parse_dec(data.get("uang_keluar"))
+
+        if "status_entertaint" in data:
+            item.status_entertaint = str(data["status_entertaint"]).strip() or "Open"
+
+        if "keterangan" in data:
+            item.keterangan = str(data.get("keterangan", "")).strip() or None
+
+        db.session.commit()
+        cls.recalculate_cashflow_balances()
+        db.session.refresh(item)
+
+        return {"success": True, "message": "Transaksi kasbon berhasil diperbarui", "data": item.to_dict()}, 200
 
     @classmethod
     def delete_cashflow(cls, cashflow_id: int):
@@ -595,13 +696,14 @@ class EntertaintService:
 
         db.session.delete(item)
         db.session.commit()
+        cls.recalculate_cashflow_balances()
         return {"success": True, "message": "Transaksi kasbon berhasil dihapus"}, 200
 
     # -------------------------------------------------------------------------
     # Recap Kasbon ke Marketing (History Closing QC - Marketing)
     # -------------------------------------------------------------------------
     @classmethod
-    def get_recap_mkt(cls, page: int = 1, per_page: int = 100, search: str = None, year: int = None):
+    def get_recap_mkt(cls, page: int = 1, per_page: int = 100, search: str = None, year: int = None, sort_order: str = "asc"):
         query = EntertaintRecapMkt.query
         if year:
             try:
@@ -619,7 +721,10 @@ class EntertaintService:
                 )
             )
 
-        query = query.order_by(EntertaintRecapMkt.id.asc())
+        if sort_order and str(sort_order).lower() == "desc":
+            query = query.order_by(EntertaintRecapMkt.tanggal.desc(), EntertaintRecapMkt.id.desc())
+        else:
+            query = query.order_by(EntertaintRecapMkt.tanggal.asc(), EntertaintRecapMkt.id.asc())
 
         all_items = query.all()
         tot_masuk = sum(float(it.uang_masuk or 0) for it in all_items)
@@ -634,14 +739,17 @@ class EntertaintService:
         end = start + per_page
         paginated_items = all_items[start:end]
 
+        total_pages = (total + per_page - 1) // per_page if per_page > 0 else 1
         return {
             "success": True,
             "data": [it.to_dict() for it in paginated_items],
+            "total": total,
+            "pages": total_pages,
             "pagination": {
                 "page": page,
                 "per_page": per_page,
                 "total": total,
-                "total_pages": (total + per_page - 1) // per_page if per_page > 0 else 1,
+                "total_pages": total_pages,
             },
             "summary": {
                 "total_uang_masuk": tot_masuk,

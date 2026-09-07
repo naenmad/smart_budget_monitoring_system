@@ -14,10 +14,11 @@ import {
   Loader2, 
   X, 
   Database, 
-  RotateCcw, 
   CheckCircle2, 
-  Sliders
+  Sliders,
+  ArrowUpDown
 } from 'lucide-react'
+import TablePagination from '../components/common/TablePagination'
 import styles from './PrResult.module.css'
 
 const STATUS_CONFIG = {
@@ -35,6 +36,7 @@ export default function PrResult() {
   const [loading, setLoading] = useState(false)
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(50)
+  const [orderDirection, setOrderDirection] = useState('desc')
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
   const [kategoris, setKategoris] = useState([])
@@ -67,12 +69,12 @@ export default function PrResult() {
 
   useEffect(() => { 
     fetchData() 
-  }, [page, perPage, filterKategori, searchItem, filterStatus])
+  }, [page, perPage, filterKategori, searchItem, filterStatus, orderDirection])
 
   async function fetchData() {
     setLoading(true)
     try {
-      const params = { page, per_page: perPage }
+      const params = { page, per_page: perPage, order_direction: orderDirection }
       if (filterStatus) params.filter_status = filterStatus
       if (filterKategori) params.kategori_id = filterKategori
       if (searchItem) params.search = searchItem
@@ -265,9 +267,25 @@ export default function PrResult() {
           <option value="">Semua Kategori</option>
           {kategoris.map(k => <option key={k.id} value={k.id}>{k.kode} - {k.nama}</option>)}
         </select>
-        <span className={styles.totalLabel}>
-          Total: <strong>{total}</strong>
-        </span>
+        <select value={orderDirection} onChange={e => { setOrderDirection(e.target.value); setPage(1) }} className={styles.input} title="Urutan Data">
+          <option value="desc">Terbaru dahulu (Akhir → Awal)</option>
+          <option value="asc">Terlama dahulu (Awal → Akhir)</option>
+        </select>
+        {(searchItem || filterKategori || filterStatus !== 'DONE') && (
+          <button
+            onClick={() => {
+              setSearchItem('')
+              setFilterKategori('')
+              setFilterStatus('DONE')
+              setOrderDirection('desc')
+              setPage(1)
+            }}
+            className="btn-secondary"
+            style={{ padding: '6px 12px', fontSize: 13 }}
+          >
+            Reset Filter
+          </button>
+        )}
       </div>
 
       {/* Table */}
@@ -338,32 +356,22 @@ export default function PrResult() {
             </table>
           </div>
 
-          {/* Pagination */}
-          <div className={styles.pagination}>
-            <div className={styles.perPageWrap}>
-              <span className={styles.perPageLabel}>Tampilkan:</span>
-              <select
-                className={styles.perPageSelect}
-                value={perPage}
-                onChange={e => {
-                  setPerPage(Number(e.target.value))
-                  setPage(1)
-                }}
-              >
-                <option value={10}>10 item</option>
-                <option value={25}>25 item</option>
-                <option value={50}>50 item</option>
-                <option value={100}>100 item</option>
-              </select>
-              <span className={styles.totalInfo}>dari {total} data</span>
-            </div>
-
-            <div className={styles.pgActions}>
-              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className={styles.pgBtn}>‹ Prev</button>
-              <span className={styles.pgLabel}>Hal {page} / {totalPages}</span>
-              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className={styles.pgBtn}>Next ›</button>
-            </div>
-          </div>
+          {/* Standardized Table Pagination */}
+          {total > 0 && (
+            <TablePagination
+              page={page}
+              totalPages={totalPages}
+              total={total}
+              perPage={perPage}
+              onPageChange={setPage}
+              onPerPageChange={(newSize) => {
+                setPerPage(newSize)
+                setPage(1)
+              }}
+              itemName="hasil PR"
+              loading={loading}
+            />
+          )}
         </>
       )}
 

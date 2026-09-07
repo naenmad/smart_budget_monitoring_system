@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { toast } from 'react-hot-toast'
+import { useConfirm } from '../context/ConfirmContext'
 import { entertaintApi } from '../api/entertaintApi'
 import s from './EntertaintCost.module.css'
 import {
@@ -32,8 +33,10 @@ import {
   MapPin,
   Database,
   TrendingUp,
-  Landmark
+  Landmark,
+  ArrowUpDown
 } from 'lucide-react'
+import TablePagination from '../components/common/TablePagination'
 
 const formatRp = (num) => {
   if (num === null || num === undefined) return 'Rp 0'
@@ -41,6 +44,7 @@ const formatRp = (num) => {
 }
 
 export default function EntertaintCost() {
+  const confirm = useConfirm()
   // Navigation Tabs: 'claims' | 'cashflow' | 'masters'
   const [currentMainTab, setCurrentMainTab] = useState('claims')
 
@@ -51,6 +55,8 @@ export default function EntertaintCost() {
   const [loading, setLoading] = useState(false)
   const [summary, setSummary] = useState(null)
   const [page, setPage] = useState(1)
+  const [perPage, setPerPage] = useState(15)
+  const [sortOrder, setSortOrder] = useState('desc')
   const [totalPages, setTotalPages] = useState(1)
   const [totalRecords, setTotalRecords] = useState(0)
 
@@ -115,7 +121,18 @@ export default function EntertaintCost() {
   const [cashflowList, setCashflowList] = useState([])
   const [cashflowSummary, setCashflowSummary] = useState(null)
   const [cashflowLoading, setCashflowLoading] = useState(false)
+  const [cashflowPage, setCashflowPage] = useState(1)
+  const [cashflowPerPage, setCashflowPerPage] = useState(20)
+  const [cashflowSortOrder, setCashflowSortOrder] = useState('desc')
+  const [cashflowTotalPages, setCashflowTotalPages] = useState(1)
+  const [cashflowTotal, setCashflowTotal] = useState(0)
+  const [cashflowSearch, setCashflowSearch] = useState('')
+  const [cashflowFlowType, setCashflowFlowType] = useState('')
+  const [cashflowStatus, setCashflowStatus] = useState('')
+  const [cashflowStartDate, setCashflowStartDate] = useState('')
+  const [cashflowEndDate, setCashflowEndDate] = useState('')
   const [isCashflowModalOpen, setIsCashflowModalOpen] = useState(false)
+  const [editingCashflowId, setEditingCashflowId] = useState(null)
   const [cashflowFormData, setCashflowFormData] = useState({
     doc_no: '',
     tanggal: new Date().toISOString().slice(0, 10),
@@ -133,6 +150,11 @@ export default function EntertaintCost() {
   const [recapMktList, setRecapMktList] = useState([])
   const [recapMktSummary, setRecapMktSummary] = useState(null)
   const [recapMktLoading, setRecapMktLoading] = useState(false)
+  const [recapMktPage, setRecapMktPage] = useState(1)
+  const [recapMktPerPage, setRecapMktPerPage] = useState(25)
+  const [recapMktSortOrder, setRecapMktSortOrder] = useState('desc')
+  const [recapMktTotalPages, setRecapMktTotalPages] = useState(1)
+  const [recapMktTotal, setRecapMktTotal] = useState(0)
   const [recapMktSearch, setRecapMktSearch] = useState('')
   const [isRecapModalOpen, setIsRecapModalOpen] = useState(false)
   const [editingRecapItem, setEditingRecapItem] = useState(null)
@@ -172,14 +194,16 @@ export default function EntertaintCost() {
     try {
       const res = await entertaintApi.getAll({
         page,
-        per_page: 15,
+        per_page: perPage,
         search,
         customer,
         pic,
         status_pembayaran: statusPembayaran,
         status_claim: statusClaim,
         start_date: startDate,
-        end_date: endDate
+        end_date: endDate,
+        sort_by: 'tanggal',
+        sort_order: sortOrder
       })
       if (res.data?.success) {
         setItems(res.data.data || [])
@@ -192,7 +216,7 @@ export default function EntertaintCost() {
     } finally {
       setLoading(false)
     }
-  }, [page, search, customer, pic, statusPembayaran, statusClaim, startDate, endDate])
+  }, [page, perPage, sortOrder, search, customer, pic, statusPembayaran, statusClaim, startDate, endDate])
 
   const fetchSummary = useCallback(async () => {
     try {
@@ -208,17 +232,28 @@ export default function EntertaintCost() {
   const fetchCashflow = useCallback(async () => {
     setCashflowLoading(true)
     try {
-      const res = await entertaintApi.getCashflows({ per_page: 100 })
+      const res = await entertaintApi.getCashflows({
+        page: cashflowPage,
+        per_page: cashflowPerPage,
+        search: cashflowSearch,
+        flow_type: cashflowFlowType,
+        status: cashflowStatus,
+        start_date: cashflowStartDate,
+        end_date: cashflowEndDate,
+        sort_order: cashflowSortOrder
+      })
       if (res.data?.success) {
         setCashflowList(res.data.data || [])
         setCashflowSummary(res.data.summary)
+        setCashflowTotal(res.data.total || 0)
+        setCashflowTotalPages(res.data.pages || 1)
       }
     } catch (err) {
       console.error('Gagal memuat buku kas kasbon:', err)
     } finally {
       setCashflowLoading(false)
     }
-  }, [])
+  }, [cashflowPage, cashflowPerPage, cashflowSortOrder, cashflowSearch, cashflowFlowType, cashflowStatus, cashflowStartDate, cashflowEndDate])
 
   const fetchMasters = useCallback(async () => {
     try {
@@ -234,17 +269,24 @@ export default function EntertaintCost() {
   const fetchRecapMkt = useCallback(async () => {
     setRecapMktLoading(true)
     try {
-      const res = await entertaintApi.getRecapMkt({ per_page: 200, search: recapMktSearch })
+      const res = await entertaintApi.getRecapMkt({
+        page: recapMktPage,
+        per_page: recapMktPerPage,
+        search: recapMktSearch,
+        sort_order: recapMktSortOrder
+      })
       if (res.data?.success) {
         setRecapMktList(res.data.data || [])
         setRecapMktSummary(res.data.summary)
+        setRecapMktTotal(res.data.total ?? res.data.pagination?.total ?? 0)
+        setRecapMktTotalPages(res.data.pages ?? res.data.pagination?.total_pages ?? 1)
       }
     } catch (err) {
       console.error('Gagal memuat rekap kasbon ke marketing:', err)
     } finally {
       setRecapMktLoading(false)
     }
-  }, [recapMktSearch])
+  }, [recapMktPage, recapMktPerPage, recapMktSortOrder, recapMktSearch])
 
   useEffect(() => {
     fetchData()
@@ -252,10 +294,19 @@ export default function EntertaintCost() {
 
   useEffect(() => {
     fetchSummary()
+  }, [fetchSummary])
+
+  useEffect(() => {
     fetchCashflow()
-    fetchMasters()
+  }, [fetchCashflow])
+
+  useEffect(() => {
     fetchRecapMkt()
-  }, [fetchSummary, fetchCashflow, fetchMasters, fetchRecapMkt])
+  }, [fetchRecapMkt])
+
+  useEffect(() => {
+    fetchMasters()
+  }, [fetchMasters])
 
   // Recalculate Total Struk from Struk #1 - #4
   const handleStrukChange = (field, val) => {
@@ -392,7 +443,14 @@ export default function EntertaintCost() {
   }
 
   const handleDeleteExistingReceipt = async (receiptId) => {
-    if (!confirm('Hapus foto struk ini secara permanen?')) return
+    const ok = await confirm({
+      title: 'Hapus Foto Struk',
+      message: 'Hapus foto struk ini secara permanen?',
+      confirmText: 'Hapus',
+      cancelText: 'Batal',
+      type: 'danger'
+    })
+    if (!ok) return
     try {
       const res = await entertaintApi.deleteReceipt(receiptId)
       if (res.data?.success) {
@@ -447,7 +505,14 @@ export default function EntertaintCost() {
 
   // Delete Claim
   const handleDeleteClaim = async (item) => {
-    if (!confirm(`Hapus catatan "${item.deskripsi}" beserta seluruh lampiran struknya?`)) return
+    const ok = await confirm({
+      title: 'Hapus Catatan Entertainment',
+      message: `Hapus catatan "${item.deskripsi}" beserta seluruh lampiran struknya?`,
+      confirmText: 'Hapus',
+      cancelText: 'Batal',
+      type: 'danger'
+    })
+    if (!ok) return
     try {
       const res = await entertaintApi.delete(item.id)
       if (res.data?.success) {
@@ -460,36 +525,84 @@ export default function EntertaintCost() {
     }
   }
 
-  // Cashflow Submit
+  // Cashflow Modal Helpers & Submit (Create / Edit)
+  const handleOpenCashflowCreate = () => {
+    setEditingCashflowId(null)
+    setCashflowFormData({
+      doc_no: '',
+      tanggal: new Date().toISOString().slice(0, 10),
+      flow_type: 'OUT',
+      account_deskripsi: '',
+      uang_masuk: '',
+      uang_keluar: '',
+      status_entertaint: 'Open',
+      keterangan: ''
+    })
+    setIsCashflowModalOpen(true)
+  }
+
+  const handleOpenCashflowEdit = (cf) => {
+    setEditingCashflowId(cf.id)
+    setCashflowFormData({
+      doc_no: cf.doc_no || '',
+      tanggal: cf.tanggal ? cf.tanggal.slice(0, 10) : new Date().toISOString().slice(0, 10),
+      flow_type: cf.flow_type || 'OUT',
+      account_deskripsi: cf.account_deskripsi || '',
+      uang_masuk: cf.uang_masuk > 0 ? String(cf.uang_masuk) : '',
+      uang_keluar: cf.uang_keluar > 0 ? String(cf.uang_keluar) : '',
+      status_entertaint: cf.status_entertaint || 'Open',
+      keterangan: cf.keterangan || ''
+    })
+    setIsCashflowModalOpen(true)
+  }
+
   const handleCashflowSubmit = async (e) => {
     e.preventDefault()
     if (!cashflowFormData.account_deskripsi.trim()) return toast.error('Deskripsi transaksi kasbon wajib diisi')
 
     try {
-      const res = await entertaintApi.createCashflow(cashflowFormData)
-      if (res.data?.success) {
-        toast.success('Transaksi kasbon berhasil dicatat')
-        setIsCashflowModalOpen(false)
-        setCashflowFormData({
-          doc_no: '',
-          tanggal: new Date().toISOString().slice(0, 10),
-          flow_type: 'OUT',
-          account_deskripsi: '',
-          uang_masuk: '',
-          uang_keluar: '',
-          status_entertaint: 'Open',
-          keterangan: ''
-        })
-        fetchCashflow()
-        fetchSummary()
+      if (editingCashflowId) {
+        const res = await entertaintApi.updateCashflow(editingCashflowId, cashflowFormData)
+        if (res.data?.success) {
+          toast.success('Transaksi kasbon berhasil diperbarui')
+          setIsCashflowModalOpen(false)
+          setEditingCashflowId(null)
+          fetchCashflow()
+          fetchSummary()
+        }
+      } else {
+        const res = await entertaintApi.createCashflow(cashflowFormData)
+        if (res.data?.success) {
+          toast.success('Transaksi kasbon berhasil dicatat')
+          setIsCashflowModalOpen(false)
+          setCashflowFormData({
+            doc_no: '',
+            tanggal: new Date().toISOString().slice(0, 10),
+            flow_type: 'OUT',
+            account_deskripsi: '',
+            uang_masuk: '',
+            uang_keluar: '',
+            status_entertaint: 'Open',
+            keterangan: ''
+          })
+          fetchCashflow()
+          fetchSummary()
+        }
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Gagal mencatat kasbon')
+      toast.error(err.response?.data?.message || 'Gagal menyimpan transaksi kasbon')
     }
   }
 
   const handleDeleteCashflow = async (id) => {
-    if (!confirm('Hapus riwayat transaksi kasbon ini?')) return
+    const ok = await confirm({
+      title: 'Hapus Transaksi Kasbon',
+      message: 'Hapus riwayat transaksi kasbon ini?',
+      confirmText: 'Hapus',
+      cancelText: 'Batal',
+      type: 'danger'
+    })
+    if (!ok) return
     try {
       await entertaintApi.deleteCashflow(id)
       toast.success('Transaksi kasbon berhasil dihapus')
@@ -516,7 +629,14 @@ export default function EntertaintCost() {
   }
 
   const handleDeleteMaster = async (id, name) => {
-    if (!confirm(`Hapus "${name}" dari master list?`)) return
+    const ok = await confirm({
+      title: 'Hapus Master Item',
+      message: `Hapus "${name}" dari master list?`,
+      confirmText: 'Hapus',
+      cancelText: 'Batal',
+      type: 'danger'
+    })
+    if (!ok) return
     try {
       await entertaintApi.deleteMaster(id)
       toast.success('Item master berhasil dihapus')
@@ -586,7 +706,14 @@ export default function EntertaintCost() {
   }
 
   const handleDeleteRecap = async (id) => {
-    if (!confirm('Hapus mutasi kasbon marketing ini?')) return
+    const ok = await confirm({
+      title: 'Hapus Rekap Kasbon MKT',
+      message: 'Hapus mutasi kasbon marketing ini?',
+      confirmText: 'Hapus',
+      cancelText: 'Batal',
+      type: 'danger'
+    })
+    if (!ok) return
     try {
       await entertaintApi.deleteRecapMkt(id)
       toast.success('Mutasi kasbon marketing berhasil dihapus')
@@ -653,7 +780,7 @@ export default function EntertaintCost() {
             </button>
           )}
           {currentMainTab === 'cashflow' && (
-            <button onClick={() => setIsCashflowModalOpen(true)} className={s.btnPrimary}>
+            <button onClick={handleOpenCashflowCreate} className={s.btnPrimary}>
               <Plus size={16} />
               <span>Catat Mutasi Kasbon</span>
             </button>
@@ -687,7 +814,7 @@ export default function EntertaintCost() {
         >
           <Wallet size={17} />
           <span>Arus Kas Internal QC</span>
-          <span className={s.tabBadge}>{cashflowList.length}</span>
+          <span className={s.tabBadge}>{cashflowSummary?.total_transactions ?? cashflowList.length}</span>
         </button>
 
         <button
@@ -827,6 +954,19 @@ export default function EntertaintCost() {
                 <option value="">Claim: Semua</option>
                 <option value="OPEN">OPEN</option>
                 <option value="CLOSE">CLOSE</option>
+              </select>
+
+              <select
+                className={s.selectInput}
+                value={sortOrder}
+                onChange={(e) => {
+                  setSortOrder(e.target.value)
+                  setPage(1)
+                }}
+                title="Urutan data"
+              >
+                <option value="desc">Terbaru dahulu (Akhir → Awal)</option>
+                <option value="asc">Terlama dahulu (Awal → Akhir)</option>
               </select>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1037,33 +1177,22 @@ export default function EntertaintCost() {
               </table>
             </div>
 
-            {/* Pagination */}
-            <div className={s.pagination}>
-              <span className={s.pageInfo}>
-                Menampilkan {items.length} dari {totalRecords} klaim
-              </span>
-              <div className={s.pageControls}>
-                <button
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page <= 1}
-                  className={s.pageBtn}
-                >
-                  <ChevronLeft size={14} />
-                  <span>Sebelumnya</span>
-                </button>
-                <span style={{ fontSize: 12, fontWeight: 700, margin: '0 8px', color: 'var(--text-main)' }}>
-                  {page} / {totalPages}
-                </span>
-                <button
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page >= totalPages}
-                  className={s.pageBtn}
-                >
-                  <span>Selanjutnya</span>
-                  <ChevronRight size={14} />
-                </button>
-              </div>
-            </div>
+            {/* Standardized Table Pagination */}
+            {totalRecords > 0 && (
+              <TablePagination
+                page={page}
+                totalPages={totalPages}
+                total={totalRecords}
+                perPage={perPage}
+                onPageChange={setPage}
+                onPerPageChange={(newSize) => {
+                  setPerPage(newSize)
+                  setPage(1)
+                }}
+                itemName="klaim"
+                loading={loading}
+              />
+            )}
           </div>
         </>
       )}
@@ -1114,15 +1243,32 @@ export default function EntertaintCost() {
 
           {/* Search Filter Bar */}
           <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-            <div className={s.searchBox} style={{ maxWidth: 360 }}>
-              <Search size={16} className={s.searchIcon} />
-              <input
-                type="text"
-                className={s.searchInput}
-                placeholder="Cari akun mutasi, keterangan closing..."
-                value={recapMktSearch}
-                onChange={(e) => setRecapMktSearch(e.target.value)}
-              />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 260 }}>
+              <div className={s.searchBox} style={{ maxWidth: 360, flex: 1 }}>
+                <Search size={16} className={s.searchIcon} />
+                <input
+                  type="text"
+                  className={s.searchInput}
+                  placeholder="Cari akun mutasi, keterangan closing..."
+                  value={recapMktSearch}
+                  onChange={(e) => {
+                    setRecapMktSearch(e.target.value)
+                    setRecapMktPage(1)
+                  }}
+                />
+              </div>
+              <select
+                className={s.selectInput}
+                value={recapMktSortOrder}
+                onChange={(e) => {
+                  setRecapMktSortOrder(e.target.value)
+                  setRecapMktPage(1)
+                }}
+                title="Urutan data"
+              >
+                <option value="desc">Terbaru dahulu (Akhir → Awal)</option>
+                <option value="asc">Terlama dahulu (Awal → Akhir)</option>
+              </select>
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>
               Menampilkan {recapMktList.length} transaksi mutasi kasbon marketing
@@ -1222,6 +1368,23 @@ export default function EntertaintCost() {
               </tbody>
             </table>
           </div>
+
+          {/* Standardized Table Pagination */}
+          {recapMktTotal > 0 && (
+            <TablePagination
+              page={recapMktPage}
+              totalPages={recapMktTotalPages}
+              total={recapMktTotal}
+              perPage={recapMktPerPage}
+              onPageChange={setRecapMktPage}
+              onPerPageChange={(newSize) => {
+                setRecapMktPerPage(newSize)
+                setRecapMktPage(1)
+              }}
+              itemName="mutasi kasbon"
+              loading={recapMktLoading}
+            />
+          )}
         </div>
       )}
 
@@ -1230,16 +1393,17 @@ export default function EntertaintCost() {
       {/* ========================================================= */}
       {currentMainTab === 'cashflow' && (
         <div className={s.tableCard}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 14 }}>
             <div>
-              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--text-main)' }}>
-                Buku Arus Kas Kasbon QC (Budget Entertaint)
+              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Wallet size={18} color="var(--primary)" />
+                <span>Buku Arus Kas Kasbon QC (Budget Entertaint)</span>
               </h3>
               <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-muted)' }}>
-                Catatan mutasi uang masuk dari Marketing/Finance dan uang keluar ke PIC beserta perhitungan saldo balance.
+                Catatan mutasi uang masuk dari Marketing/Finance dan uang keluar ke PIC beserta perhitungan saldo balance berjalan.
               </p>
             </div>
-            <div style={{ display: 'flex', gap: 12 }}>
+            <div style={{ display: 'flex', gap: 16 }}>
               <div style={{ textAlign: 'right' }}>
                 <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Total Uang Masuk:</span>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#16a34a', fontFamily: 'JetBrains Mono' }}>
@@ -1252,7 +1416,109 @@ export default function EntertaintCost() {
                   {formatRp(cashflowSummary?.total_uang_keluar || 0)}
                 </div>
               </div>
+              <div style={{ textAlign: 'right' }}>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Saldo Akhir (Balance):</span>
+                <div style={{ fontSize: 13, fontWeight: 800, color: '#2563eb', fontFamily: 'JetBrains Mono' }}>
+                  {formatRp(cashflowSummary?.current_balance || 0)}
+                </div>
+              </div>
             </div>
+          </div>
+
+          {/* Search & Filter Bar */}
+          <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, background: 'var(--bg-subtle)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10, flex: 1 }}>
+              <div className={s.searchBox} style={{ maxWidth: 300, minWidth: 220 }}>
+                <Search size={15} className={s.searchIcon} />
+                <input
+                  type="text"
+                  className={s.searchInput}
+                  placeholder="Cari deskripsi, no doc, keterangan..."
+                  value={cashflowSearch}
+                  onChange={(e) => setCashflowSearch(e.target.value)}
+                />
+                {cashflowSearch && (
+                  <button onClick={() => setCashflowSearch('')} className={s.clearSearch}>
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+
+              <select
+                className={s.selectInput}
+                value={cashflowFlowType}
+                onChange={(e) => setCashflowFlowType(e.target.value)}
+              >
+                <option value="">Semua Tipe Arus</option>
+                <option value="IN">CASH IN (Uang Masuk ke QC)</option>
+                <option value="OUT">CASH OUT (Uang Keluar ke PIC)</option>
+              </select>
+
+              <select
+                className={s.selectInput}
+                value={cashflowStatus}
+                onChange={(e) => setCashflowStatus(e.target.value)}
+              >
+                <option value="">Semua Status</option>
+                <option value="Open">Status: Open</option>
+                <option value="Close">Status: Close</option>
+              </select>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <input
+                  type="date"
+                  className={s.dateInput}
+                  value={cashflowStartDate}
+                  onChange={(e) => setCashflowStartDate(e.target.value)}
+                  title="Dari Tanggal"
+                />
+                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>s/d</span>
+                <input
+                  type="date"
+                  className={s.dateInput}
+                  value={cashflowEndDate}
+                  onChange={(e) => {
+                    setCashflowEndDate(e.target.value)
+                    setCashflowPage(1)
+                  }}
+                  title="Sampai Tanggal"
+                />
+              </div>
+
+              <select
+                className={s.selectInput}
+                value={cashflowSortOrder}
+                onChange={(e) => {
+                  setCashflowSortOrder(e.target.value)
+                  setCashflowPage(1)
+                }}
+                title="Urutan data"
+              >
+                <option value="desc">Terbaru dahulu (Akhir → Awal)</option>
+                <option value="asc">Terlama dahulu (Awal → Akhir)</option>
+              </select>
+
+              {(cashflowSearch || cashflowFlowType || cashflowStatus || cashflowStartDate || cashflowEndDate) && (
+                <button
+                  onClick={() => {
+                    setCashflowSearch('')
+                    setCashflowFlowType('')
+                    setCashflowStatus('')
+                    setCashflowStartDate('')
+                    setCashflowEndDate('')
+                    setCashflowPage(1)
+                  }}
+                  className={s.btnReset}
+                >
+                  Reset Filter
+                </button>
+              )}
+            </div>
+
+            <button onClick={handleOpenCashflowCreate} className={s.btnPrimary} style={{ padding: '8px 14px', fontSize: 12.5 }}>
+              <Plus size={15} />
+              <span>Tambah Mutasi</span>
+            </button>
           </div>
 
           <div className={s.tableResponsive}>
@@ -1281,7 +1547,7 @@ export default function EntertaintCost() {
                 ) : cashflowList.length === 0 ? (
                   <tr>
                     <td colSpan={10} style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
-                      Belum ada mutasi arus kas kasbon yang dicatat.
+                      Belum ada mutasi arus kas kasbon yang sesuai filter.
                     </td>
                   </tr>
                 ) : (
@@ -1326,13 +1592,22 @@ export default function EntertaintCost() {
                         </span>
                       </td>
                       <td style={{ textAlign: 'center' }}>
-                        <button
-                          onClick={() => handleDeleteCashflow(cf.id)}
-                          className={`${s.iconBtn} ${s.iconBtnDanger}`}
-                          title="Hapus Mutasi"
-                        >
-                          <Trash2 size={14} />
-                        </button>
+                        <div className={s.rowActions} style={{ justifyContent: 'center' }}>
+                          <button
+                            onClick={() => handleOpenCashflowEdit(cf)}
+                            className={`${s.iconBtn} ${s.iconBtnEdit}`}
+                            title="Edit Mutasi Kasbon"
+                          >
+                            <Edit3 size={14} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteCashflow(cf.id)}
+                            className={`${s.iconBtn} ${s.iconBtnDanger}`}
+                            title="Hapus Mutasi Kasbon"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -1340,6 +1615,23 @@ export default function EntertaintCost() {
               </tbody>
             </table>
           </div>
+
+          {/* Standardized Table Pagination */}
+          {cashflowTotal > 0 && (
+            <TablePagination
+              page={cashflowPage}
+              totalPages={cashflowTotalPages}
+              total={cashflowTotal}
+              perPage={cashflowPerPage}
+              onPageChange={setCashflowPage}
+              onPerPageChange={(newSize) => {
+                setCashflowPerPage(newSize)
+                setCashflowPage(1)
+              }}
+              itemName="transaksi kasbon"
+              loading={cashflowLoading}
+            />
+          )}
         </div>
       )}
 
@@ -2095,8 +2387,17 @@ export default function EntertaintCost() {
           <div className={s.modalContent} style={{ maxWidth: 520 }}>
             <div className={s.modalHeader}>
               <h2 className={s.modalTitle}>
-                <Wallet size={20} color="var(--primary)" />
-                <span>Catat Mutasi Kasbon QC</span>
+                {editingCashflowId ? (
+                  <>
+                    <Edit3 size={20} color="var(--primary)" />
+                    <span>Edit Mutasi Kasbon QC</span>
+                  </>
+                ) : (
+                  <>
+                    <Wallet size={20} color="var(--primary)" />
+                    <span>Catat Mutasi Kasbon QC</span>
+                  </>
+                )}
               </h2>
               <button onClick={() => setIsCashflowModalOpen(false)} className={s.modalClose}>
                 <X size={18} />
@@ -2204,7 +2505,7 @@ export default function EntertaintCost() {
                   Batal
                 </button>
                 <button type="submit" className={s.btnPrimary}>
-                  Simpan Mutasi
+                  {editingCashflowId ? 'Simpan Perubahan' : 'Simpan Mutasi'}
                 </button>
               </div>
             </form>

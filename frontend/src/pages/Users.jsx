@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useConfirm } from '../context/ConfirmContext'
 import s from './Users.module.css'
 import { userApi } from '../api/userApi'
 import { useAuth } from '../context/AuthContext'
@@ -8,6 +9,7 @@ const USERNAME_REGEX = /^[a-z0-9_.-]{3,30}$/
 const EMPTY_FORM = { username: '', password: '', role: 'admin' }
 
 export default function Users() {
+  const confirm = useConfirm()
   const { user: currentUser } = useAuth()
 
   const [users, setUsers] = useState([])
@@ -114,7 +116,14 @@ export default function Users() {
       setFeedback({ type: 'error', text: 'Tidak bisa menghapus akun sendiri' })
       return
     }
-    if (!confirm(`Hapus user "${username}"? Tindakan ini tidak bisa dibatalkan.`)) return
+    const ok = await confirm({
+      title: 'Hapus Pengguna',
+      message: `Hapus user "${username}"? Tindakan ini tidak bisa dibatalkan.`,
+      confirmText: 'Hapus User',
+      cancelText: 'Batal',
+      type: 'danger'
+    })
+    if (!ok) return
 
     setDeletingId(id)
     try {

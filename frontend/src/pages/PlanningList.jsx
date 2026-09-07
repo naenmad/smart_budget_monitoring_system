@@ -1,10 +1,12 @@
 import toast from 'react-hot-toast'
+import { useConfirm } from '../context/ConfirmContext'
 import { useState, useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { planningApi } from '../api/planningApi'
 import s from './PlanningList.module.css'
 import { formatRp } from '../utils/format'
-import { Calendar, X, ChevronUp, ChevronDown } from 'lucide-react'
+import { Calendar, X, ChevronUp, ChevronDown, ArrowUpDown, Search } from 'lucide-react'
+import TablePagination from '../components/common/TablePagination'
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
@@ -31,6 +33,7 @@ function RealisasiBadge({ status }) {
 }
 
 export default function PlanningList() {
+  const confirm = useConfirm()
   const queryClient = useQueryClient()
 
   const [periode, setPeriode] = useState('')
@@ -39,6 +42,9 @@ export default function PlanningList() {
   const [expanded, setExpanded] = useState(null)
   const [details, setDetails] = useState({})
   const [detailLoading, setDetailLoading] = useState(false)
+  const [detailPage, setDetailPage] = useState(1)
+  const [detailPerPage, setDetailPerPage] = useState(20)
+  const [detailSortOrder, setDetailSortOrder] = useState('asc')
 
   // Fetch Headers Query
   const { data: headersData, isLoading: loading } = useQuery({
@@ -73,15 +79,20 @@ export default function PlanningList() {
   async function toggleExpand(id) {
     if (expanded === id) { setExpanded(null); return }
     setExpanded(id)
+    setDetailPage(1)
     fetchDetails(id)
   }
 
   async function handleDelete(e, id) {
     e.stopPropagation()
-    if (!confirm(
-      'Apakah Anda yakin ingin menghapus Planning ini?\n' +
-      'Semua PR yang mengacu pada Planning ini akan dikembalikan ke status WAITING dan budget monitoring-nya direset.'
-    )) return
+    const ok = await confirm({
+      title: 'Hapus Planning',
+      message: 'Apakah Anda yakin ingin menghapus Planning ini? Semua PR yang mengacu pada Planning ini akan dikembalikan ke status WAITING dan budget monitoring-nya direset.',
+      confirmText: 'Hapus Planning',
+      cancelText: 'Batal',
+      type: 'danger'
+    })
+    if (!ok) return
     try {
       const res = await planningApi.delete(id)
       if (res.data?.success) {
@@ -93,7 +104,14 @@ export default function PlanningList() {
     }
   }
   async function handleCancelDetail(headerId, detailId) {
-    if (!confirm('Batalkan item Planning ini?')) return
+    const ok = await confirm({
+      title: 'Batalkan Item Planning',
+      message: 'Batalkan item Planning ini?',
+      confirmText: 'Batalkan Item',
+      cancelText: 'Batal',
+      type: 'warning'
+    })
+    if (!ok) return
     try {
       const res = await planningApi.cancelPlanningDetail(detailId)
       if (res.data?.success) {
@@ -127,13 +145,38 @@ export default function PlanningList() {
           />
           <select
             value={filterMonth}
-            onChange={e => setFilterMonth(e.target.value)}
+            onChange={e => { setFilterMonth(e.target.value); setDetailPage(1); }}
             className={s.input}
             style={{ width: 150 }}
           >
             <option value="">Semua Bulan</option>
-            {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
+            {MONTHS.map(m => (
+              <option key={m} value={m}>{m}</option>
+            ))}
           </select>
+          <select
+            value={detailSortOrder}
+            onChange={e => { setDetailSortOrder(e.target.value); setDetailPage(1); }}
+            className={s.input}
+            title="Urutan Bulan"
+          >
+            <option value="asc">Bulan: Awal → Akhir (Jan-Dec)</option>
+            <option value="desc">Bulan: Akhir → Awal (Dec-Jan)</option>
+          </select>
+          {(search || periode || filterMonth) && (
+            <button
+              onClick={() => {
+                setSearch('')
+                setPeriode('')
+                setFilterMonth('')
+                setDetailPage(1)
+              }}
+              className="btn-secondary"
+              style={{ padding: '6px 12px', fontSize: 13 }}
+            >
+              Reset
+            </button>
+          )}
         </div>
       </div>
 
@@ -205,69 +248,108 @@ export default function PlanningList() {
                               </tr>
                             </thead>
                             <tbody>
-                              {(details[h.id] || [])
-                                .filter(d => {
-                                  if (!search) return true;
-                                  const q = search.toLowerCase();
+                              {(() => {
+                                const rawList = (details[h.id] || []).filter(d => {
+                                  if (!search) return true
+                                  const q = search.toLowerCase()
                                   return (
                                     (d.item || '').toLowerCase().includes(q) ||
                                     (d.kategori_kode || '').toLowerCase().includes(q) ||
                                     (d.kategori_nama || '').toLowerCase().includes(q) ||
                                     (d.kategori_tipe_formulir || '').toLowerCase().includes(q)
-                                  );
+                                  )
                                 })
-                                .length === 0
-                                ? (
-                                  <tr className={s.emptyRow}>
-                                    <td colSpan={7}>
-                                      Tidak ada detail{filterMonth ? ` untuk bulan ${filterMonth}` : ''}{search ? ' yang cocok dengan pencarian' : ''}
-                                    </td>
-                                  </tr>
+
+                                const sortedList = [...rawList].sort((a, b) => {
+                                  const idxA = MONTHS.indexOf(a.month)
+                                  const idxB = MONTHS.indexOf(b.month)
+                                  if (detailSortOrder === 'desc') return idxB - idxA
+                                  return idxA - idxB
+                                })
+
+                                const totalDetails = sortedList.length
+                                const totalDetailPages = Math.ceil(totalDetails / detailPerPage) || 1
+                                const paginatedList = sortedList.slice(
+                                  (detailPage - 1) * detailPerPage,
+                                  detailPage * detailPerPage
                                 )
-                                : (details[h.id] || [])
-                                  .filter(d => {
-                                    if (!search) return true;
-                                    const q = search.toLowerCase();
-                                    return (
-                                      (d.item || '').toLowerCase().includes(q) ||
-                                      (d.kategori_kode || '').toLowerCase().includes(q) ||
-                                      (d.kategori_nama || '').toLowerCase().includes(q) ||
-                                      (d.kategori_tipe_formulir || '').toLowerCase().includes(q)
-                                    );
-                                  })
-                                  .map(d => (
-                                    <tr key={d.id}>
-                                      <td>{d.month}</td>
-                                      <td className={s.muted}>
-                                        <strong>{d.kategori_kode || d.kategori_id || '-'}</strong>
-                                        {d.kategori_nama && <div>{d.kategori_nama}</div>}
-                                        {d.kategori_tipe_formulir && <div style={{ fontSize: '0.8em', color: '#888' }}>({d.kategori_tipe_formulir})</div>}
-                                      </td>
-                                      <td>{d.item}</td>
-                                      <td className={s.right}>
-                                        {formatRp(d.planning_amount)}
-                                      </td>
-                                      <td className={s.muted}>{d.remarks || '-'}</td>
-                                      <td>
-                                        <RealisasiBadge status={d.status_realisasi} />
-                                      </td>
-                                      <td>
-                                        {d.status_realisasi === 'OPEN' && (
-                                          <button
-                                            onClick={() => handleCancelDetail(h.id, d.id)}
-                                            className={s.deleteBtn}
-                                            title="Batalkan item Planning"
-                                          >
-                                            Batalkan
-                                          </button>
-                                        )}
+
+                                if (sortedList.length === 0) {
+                                  return (
+                                    <tr className={s.emptyRow}>
+                                      <td colSpan={7}>
+                                        Tidak ada detail{filterMonth ? ` untuk bulan ${filterMonth}` : ''}{search ? ' yang cocok dengan pencarian' : ''}
                                       </td>
                                     </tr>
-                                  ))
-                              }
+                                  )
+                                }
+
+                                return paginatedList.map(d => (
+                                  <tr key={d.id}>
+                                    <td>{d.month}</td>
+                                    <td className={s.muted}>
+                                      <strong>{d.kategori_kode || d.kategori_id || '-'}</strong>
+                                      {d.kategori_nama && <div>{d.kategori_nama}</div>}
+                                      {d.kategori_tipe_formulir && <div style={{ fontSize: '0.8em', color: '#888' }}>({d.kategori_tipe_formulir})</div>}
+                                    </td>
+                                    <td>{d.item}</td>
+                                    <td className={s.right}>
+                                      {formatRp(d.planning_amount)}
+                                    </td>
+                                    <td className={s.muted}>{d.remarks || '-'}</td>
+                                    <td>
+                                      <RealisasiBadge status={d.status_realisasi} />
+                                    </td>
+                                    <td>
+                                      {d.status_realisasi === 'OPEN' && (
+                                        <button
+                                          onClick={() => handleCancelDetail(h.id, d.id)}
+                                          className={s.deleteBtn}
+                                          title="Batalkan item Planning"
+                                        >
+                                          Batalkan
+                                        </button>
+                                      )}
+                                    </td>
+                                  </tr>
+                                ))
+                              })()}
                             </tbody>
                           </table>
                         </div>
+
+                        {/* Standardized Table Pagination for Details */}
+                        {(() => {
+                          const rawList = (details[h.id] || []).filter(d => {
+                            if (!search) return true
+                            const q = search.toLowerCase()
+                            return (
+                              (d.item || '').toLowerCase().includes(q) ||
+                              (d.kategori_kode || '').toLowerCase().includes(q) ||
+                              (d.kategori_nama || '').toLowerCase().includes(q) ||
+                              (d.kategori_tipe_formulir || '').toLowerCase().includes(q)
+                            )
+                          })
+                          const totalDetails = rawList.length
+                          const totalDetailPages = Math.ceil(totalDetails / detailPerPage) || 1
+
+                          if (totalDetails === 0) return null
+                          return (
+                            <TablePagination
+                              page={detailPage}
+                              totalPages={totalDetailPages}
+                              total={totalDetails}
+                              perPage={detailPerPage}
+                              onPageChange={setDetailPage}
+                              onPerPageChange={(newSize) => {
+                                setDetailPerPage(newSize)
+                                setDetailPage(1)
+                              }}
+                              itemName="item planning"
+                              loading={detailLoading}
+                            />
+                          )
+                        })()}
                       </>
                     )}
                   </div>

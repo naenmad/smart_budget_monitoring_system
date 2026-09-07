@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
+import { toast } from 'react-hot-toast'
+import { useConfirm } from '../context/ConfirmContext'
 import s from './PrStatusModal.module.css'
 import { prPoDataApi } from '../api/prPoDataApi'
 import { mappingApi } from '../api/mappingApi'
@@ -18,6 +20,7 @@ import {
 import ScrollableCell from './ScrollableCell'
 
 export default function PrStatusModal({ status, onClose }) {
+  const confirm = useConfirm()
   const [prList, setPrList] = useState([])
   const [loading, setLoading] = useState(true)
   const [processingId, setProcessingId] = useState(null)
@@ -27,39 +30,48 @@ export default function PrStatusModal({ status, onClose }) {
   const isOverPlanView = status === 'OVER_PLAN'
 
   useEffect(() => {
-    fetchData()
+    fetchPrs()
   }, [status])
 
-  async function fetchData() {
+  async function fetchPrs() {
     setLoading(true)
     try {
       const params = isCancelledPrView
         ? { per_page: 200, status_ai: 'CANCELLED' }
         : { per_page: 200, budget_status: status }
       const res = await prPoDataApi.getAll(params)
-      if (res.success) {
-        setPrList(res.data || [])
+      if (res.data?.success || res.success) {
+        setPrList(res.data?.data || res.data || [])
       }
     } catch (err) {
-      console.error('Error fetching PR status list:', err)
+      console.error('Failed to fetch status modal data:', err)
+      toast.error('Gagal memuat data status PR')
     } finally {
       setLoading(false)
     }
   }
 
   async function handleUndo(prId) {
-    if (!confirm('Batalkan status OOP item ini dan kembalikan ke antrian Review Mapping?')) return
+    const isOk = await confirm({
+      title: 'Batalkan Status OOP?',
+      message: 'Batalkan status OOP item ini dan kembalikan ke antrian Review Mapping?',
+      confirmText: 'Ya, Batalkan',
+      cancelText: 'Batal',
+      type: 'warning'
+    })
+    if (!isOk) return
 
     setProcessingId(prId)
     try {
       const res = await mappingApi.undoMapping(prId)
       if (res.data?.success) {
+        toast.success('Status OOP berhasil dibatalkan dan dikembalikan ke antrian')
         setPrList(prev => prev.filter(p => p.id !== prId))
       } else {
-        alert(res.data?.message || 'Gagal membatalkan status OOP')
+        toast.error(res.data?.message || 'Gagal membatalkan status OOP')
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Gagal membatalkan status OOP')
+      toast.error(err.response?.data?.message || 'Gagal membatalkan status OOP')
     } finally {
       setProcessingId(null)
     }

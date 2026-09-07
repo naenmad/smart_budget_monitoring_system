@@ -210,8 +210,21 @@ def get_cashflow_list():
     per_page = request.args.get("per_page", 50, type=int)
     flow_type = request.args.get("flow_type", "").strip()
     search = request.args.get("search", "").strip()
+    status = request.args.get("status", "").strip()
+    start_date = request.args.get("start_date", "").strip()
+    end_date = request.args.get("end_date", "").strip()
+    sort_order = request.args.get("sort_order", "asc").strip()
 
-    result = EntertaintService.get_cashflows(page=page, per_page=per_page, flow_type=flow_type, search=search)
+    result = EntertaintService.get_cashflows(
+        page=page,
+        per_page=per_page,
+        flow_type=flow_type,
+        search=search,
+        status=status,
+        start_date=start_date,
+        end_date=end_date,
+        sort_order=sort_order
+    )
     return jsonify(result), 200
 
 
@@ -221,6 +234,15 @@ def create_cashflow_record():
     """Catat Transaksi Arus Kas Kasbon Baru"""
     data = request.get_json(silent=True) or {}
     result, status_code = EntertaintService.create_cashflow(data)
+    return jsonify(result), status_code
+
+
+@entertaint_bp.route("/cashflow/<int:cashflow_id>", methods=["PUT"])
+@role_required("admin")
+def update_cashflow_record(cashflow_id):
+    """Perbarui Transaksi Arus Kas Kasbon"""
+    data = request.get_json(silent=True) or {}
+    result, status_code = EntertaintService.update_cashflow(cashflow_id, data)
     return jsonify(result), status_code
 
 
@@ -243,8 +265,9 @@ def get_recap_mkt_list():
     per_page = request.args.get("per_page", 100, type=int)
     search = request.args.get("search", "").strip()
     year = request.args.get("year", type=int)
+    sort_order = request.args.get("sort_order", "asc").strip()
 
-    result = EntertaintService.get_recap_mkt(page=page, per_page=per_page, search=search, year=year)
+    result = EntertaintService.get_recap_mkt(page=page, per_page=per_page, search=search, year=year, sort_order=sort_order)
     return jsonify(result), 200
 
 

@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Loader2 } from 'lucide-react'
 import { AuthProvider } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeContext'
+import { ConfirmProvider } from './context/ConfirmContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import AppShell from './components/AppShell'
 import './index.css'
@@ -59,10 +60,38 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <BrowserRouter>
-          <Toaster position="top-right" />
-          <AuthProvider>
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 3500,
+              style: {
+                background: 'var(--bg-card)',
+                color: 'var(--text-main)',
+                border: '1px solid var(--border-color)',
+                boxShadow: 'var(--shadow-lg)',
+                borderRadius: '10px',
+                fontSize: '13px',
+                fontWeight: 500,
+                fontFamily: 'Inter, -apple-system, sans-serif'
+              },
+              success: {
+                iconTheme: {
+                  primary: '#16a34a',
+                  secondary: '#ffffff',
+                },
+              },
+              error: {
+                iconTheme: {
+                  primary: '#dc2626',
+                  secondary: '#ffffff',
+                },
+              },
+            }}
+          />
+          <ConfirmProvider>
+            <AuthProvider>
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
                 {/* public */}
                 <Route path="/login" element={<Login />} />
 
@@ -98,8 +127,9 @@ export default function App() {
               </Routes>
             </Suspense>
           </AuthProvider>
-        </BrowserRouter>
-      </ThemeProvider>
-    </QueryClientProvider>
-  )
+        </ConfirmProvider>
+      </BrowserRouter>
+    </ThemeProvider>
+  </QueryClientProvider>
+)
 }

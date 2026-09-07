@@ -143,6 +143,7 @@ def get_all():
     kategori_id = request.args.get("kategori_id", type=int)
     search = request.args.get("search")
     filter_status = request.args.get("filter_status")
+    order_direction = request.args.get("order_direction", "desc")
     page = request.args.get("page", 1, type=int)
     per_page = request.args.get("per_page", 50, type=int)
 
@@ -153,6 +154,7 @@ def get_all():
         kategori_id=kategori_id,
         search=search,
         filter_status=filter_status,
+        order_direction=order_direction,
         page=page,
         per_page=per_page
     )

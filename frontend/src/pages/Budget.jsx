@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import * as XLSX from 'xlsx'
 import toast from 'react-hot-toast'
+import { useConfirm } from '../context/ConfirmContext'
 import s from './Budget.module.css'
 import { budgetApi } from '../api/budgetApi'
 import { kategoriApi } from '../api/kategoriApi'
@@ -17,6 +18,7 @@ const FORM_FIELDS = [
 ]
 
 export default function Budget() {
+  const confirm = useConfirm()
   const { user } = useAuth()
   const [activeTab, setActiveTab] = useState('manual')
   const [form, setForm] = useState({ periode: CURRENT_YEAR, capex: '', opex: '', e1: '', e9: '', i1: '' })
@@ -69,7 +71,14 @@ export default function Budget() {
   }
 
   async function handleDeletePeriode() {
-    if (!window.confirm(`Yakin ingin menghapus seluruh budget aktif untuk periode ${form.periode}?`)) return
+    const ok = await confirm({
+      title: 'Hapus Budget Periode',
+      message: `Yakin ingin menghapus seluruh budget aktif untuk periode ${form.periode}?`,
+      confirmText: 'Hapus Budget',
+      cancelText: 'Batal',
+      type: 'danger'
+    })
+    if (!ok) return
     
     setLoading(true)
     setMessage({ type: '', text: '' })

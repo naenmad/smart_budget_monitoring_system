@@ -23,6 +23,7 @@ class PrPoDataService:
     @staticmethod
     def get_all(upload_id=None, status_ai=None, perlu_review=None, budget_status=None,
                 search=None, kategori_kode=None, metode=None,
+                order_direction="desc",
                 page=1, per_page=50):
         """
         Ambil semua data PR/PO dengan filter opsional dan paginasi.
@@ -71,7 +72,10 @@ class PrPoDataService:
             else:
                 query = query.filter(PrPoData.metode_klasifikasi == metode)
 
-        query = query.order_by(PrPoData.created_at.desc())
+        if order_direction and str(order_direction).lower() == "asc":
+            query = query.order_by(PrPoData.id.asc())
+        else:
+            query = query.order_by(PrPoData.id.desc())
 
         # Paginasi
         total = query.count()

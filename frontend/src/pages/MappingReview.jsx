@@ -1,4 +1,5 @@
 import toast from 'react-hot-toast'
+import { useConfirm } from '../context/ConfirmContext'
 import { useState, useEffect, useMemo } from 'react'
 import { mappingApi } from '../api/mappingApi'
 import { 
@@ -18,14 +19,19 @@ import {
   ChevronUp,
   BrainCircuit,
   Info,
-  RotateCcw
+  RotateCcw,
+  ArrowUpDown
 } from 'lucide-react'
+import TablePagination from '../components/common/TablePagination'
 import styles from './MappingReview.module.css'
 
 export default function MappingReview() {
+  const confirm = useConfirm()
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(false)
   const [page, setPage] = useState(1)
+  const [perPage, setPerPage] = useState(20)
+  const [orderDirection, setOrderDirection] = useState('desc')
   const [totalPages, setTotalPages] = useState(1)
   const [processingId, setProcessingId] = useState(null)
   const [keyword, setKeyword] = useState('')
@@ -63,7 +69,7 @@ export default function MappingReview() {
   useEffect(() => { 
     fetchData() 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page])
+  }, [page, perPage, orderDirection])
 
   useEffect(() => {
     loadSettings()
@@ -100,7 +106,14 @@ export default function MappingReview() {
   }
 
   async function handleRunAutoApproval() {
-    if (!confirm(`Terapkan persetujuan otomatis sekarang untuk seluruh PR yang skor AI-nya ≥ ${threshold}%?`)) return
+    const ok = await confirm({
+      title: 'Jalankan Persetujuan Otomatis?',
+      message: `Terapkan persetujuan otomatis sekarang untuk seluruh PR yang skor AI-nya ≥ ${threshold}%?`,
+      confirmText: 'Jalankan',
+      cancelText: 'Batal',
+      type: 'info'
+    })
+    if (!ok) return
 
     setIsAutoApproving(true)
     try {
@@ -135,7 +148,7 @@ export default function MappingReview() {
   async function fetchData() {
     setLoading(true)
     try {
-      const res = await mappingApi.getPending({ page, per_page: 20, keyword })
+      const res = await mappingApi.getPending({ page, per_page: perPage, keyword, order_direction: orderDirection })
       const pendingItems = res.data?.data || []
       const totalCount = res.data?.total || 0
       const pagesCount = res.data?.pages || 1
@@ -173,7 +186,14 @@ export default function MappingReview() {
   }
 
   async function handleConfirm(prId, candidate) {
-    if (!confirm(`Konfirmasi pilihan: ${candidate.planning_item}?`)) return
+    const ok = await confirm({
+      title: 'Konfirmasi Mapping',
+      message: `Konfirmasi pilihan: ${candidate.planning_item}?`,
+      confirmText: 'Konfirmasi',
+      cancelText: 'Batal',
+      type: 'info'
+    })
+    if (!ok) return
 
     setProcessingId(prId)
     try {
@@ -194,7 +214,14 @@ export default function MappingReview() {
   }
 
   async function handleConfirmOop(prId) {
-    if (!confirm(`Konfirmasi item ini sebagai OOP (Out of Plan)?`)) return
+    const ok = await confirm({
+      title: 'Tandai Out of Plan',
+      message: 'Konfirmasi item ini sebagai OOP (Out of Plan)?',
+      confirmText: 'Tandai OOP',
+      cancelText: 'Batal',
+      type: 'warning'
+    })
+    if (!ok) return
 
     setProcessingId(prId)
     try {
@@ -232,7 +259,14 @@ export default function MappingReview() {
       ? `Setujui Top-1 kandidat AI untuk ${selectedIds.length} item terpilih?`
       : `Tandai ${selectedIds.length} item terpilih sebagai OOP (Out of Plan)?`
 
-    if (!confirm(confirmMsg)) return
+    const ok = await confirm({
+      title: actionType === 'approve' ? 'Konfirmasi Batch Top-1' : 'Konfirmasi Batch OOP',
+      message: confirmMsg,
+      confirmText: actionType === 'approve' ? 'Setujui Semua' : 'Tandai OOP',
+      cancelText: 'Batal',
+      type: actionType === 'approve' ? 'info' : 'warning'
+    })
+    if (!ok) return
 
     setIsBulkProcessing(true)
     try {
@@ -349,25 +383,43 @@ export default function MappingReview() {
             {total > 0 && <span> &middot; Tersisa <strong>{total}</strong> item antrean.</span>}
           </p>
         </div>
-        <div className={styles.searchWrapper}>
-          <Search size={16} className={styles.searchIcon} />
-          <input
-            type="text"
-            placeholder="Cari item PR berdasarkan nama barang atau nomor dokumen..."
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            className={styles.searchBox}
-          />
-          {keyword && (
-            <button
-              type="button"
-              className={styles.searchClearBtn}
-              onClick={() => setKeyword('')}
-              title="Hapus pencarian"
+        <div className={styles.filterControlsWrap}>
+          <div className={styles.searchWrapper}>
+            <Search size={16} className={styles.searchIcon} />
+            <input
+              type="text"
+              placeholder="Cari item PR berdasarkan nama barang atau nomor dokumen..."
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              className={styles.searchBox}
+            />
+            {keyword && (
+              <button
+                type="button"
+                className={styles.searchClearBtn}
+                onClick={() => setKeyword('')}
+                title="Hapus pencarian"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
+          <div className={styles.sortWrapper}>
+            <ArrowUpDown size={15} className={styles.sortIcon} />
+            <select
+              className={styles.sortSelect}
+              value={orderDirection}
+              onChange={(e) => {
+                setOrderDirection(e.target.value)
+                setPage(1)
+              }}
+              title="Urutan data"
             >
-              <X size={14} />
-            </button>
-          )}
+              <option value="desc">Terbaru dahulu (Akhir → Awal)</option>
+              <option value="asc">Terlama dahulu (Awal → Akhir)</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -671,25 +723,21 @@ export default function MappingReview() {
         </div>
       )}
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className={styles.pagination}>
-          <button
-            className="btn-secondary"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
-          >
-            &laquo; Sebelumnya
-          </button>
-          <span className={styles.pageInfo}>Halaman {page} dari {totalPages}</span>
-          <button
-            className="btn-secondary"
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page === totalPages}
-          >
-            Berikutnya &raquo;
-          </button>
-        </div>
+      {/* Standardized Pagination */}
+      {total > 0 && (
+        <TablePagination
+          page={page}
+          totalPages={totalPages}
+          total={total}
+          perPage={perPage}
+          onPageChange={setPage}
+          onPerPageChange={(newSize) => {
+            setPerPage(newSize)
+            setPage(1)
+          }}
+          itemName="item PR"
+          loading={loading}
+        />
       )}
 
       {/* Modal Search Manual */}

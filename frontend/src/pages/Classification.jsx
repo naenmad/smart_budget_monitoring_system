@@ -4,7 +4,8 @@ import { prPoDataApi } from '../api/prPoDataApi'
 import { kategoriApi } from '../api/kategoriApi'
 import { useAuth } from '../context/AuthContext'
 import ReviewModal from '../components/ReviewModal'
-import { AlertTriangle, Search, Loader2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { AlertTriangle, Search, Loader2, ChevronLeft, ChevronRight, ArrowUpDown } from 'lucide-react'
+import TablePagination from '../components/common/TablePagination'
 import ScrollableCell from '../components/ScrollableCell'
 
 const BADGE_CLS = {
@@ -74,6 +75,7 @@ export default function Classification() {
   const [methodFilter, setMethodFilter] = useState('ALL')
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(10)
+  const [orderDirection, setOrderDirection] = useState('desc')
 
   const { user } = useAuth()
   const [categories, setCategories] = useState([])
@@ -102,7 +104,7 @@ export default function Classification() {
   // Re-fetch when any filter, page, or perPage changes
   useEffect(() => {
     fetchData()
-  }, [codeFilter, methodFilter, page, perPage])
+  }, [codeFilter, methodFilter, page, perPage, orderDirection])
 
   // Debounce search input
   useEffect(() => {
@@ -141,6 +143,7 @@ export default function Classification() {
         status_ai: 'DONE',
         per_page: perPage,
         page,
+        order_direction: orderDirection,
       }
       if (search.trim()) params.search = search.trim()
       if (codeFilter !== 'ALL') params.kategori_kode = codeFilter
@@ -235,6 +238,16 @@ export default function Classification() {
           ))}
         </div>
         <div className={s.toolbarRight}>
+          <select
+            value={orderDirection}
+            onChange={e => { setOrderDirection(e.target.value); setPage(1); }}
+            className={s.filterBtn}
+            style={{ cursor: 'pointer', outline: 'none' }}
+            title="Urutan data"
+          >
+            <option value="desc">Terbaru dahulu (Akhir → Awal)</option>
+            <option value="asc">Terlama dahulu (Awal → Akhir)</option>
+          </select>
           {METHODS.filter(m => m !== 'ALL').map(m => (
             <button
               key={m}
@@ -345,55 +358,22 @@ export default function Classification() {
           </table>
         </div>
 
-        <div className={s.pagination}>
-          <div className={s.perPageWrap}>
-            <span className={s.perPageLabel}>Tampilkan:</span>
-            <select
-              className={s.perPageSelect}
-              value={perPage}
-              onChange={(e) => {
-                setPerPage(Number(e.target.value))
-                setPage(1)
-              }}
-            >
-              <option value={10}>10 item</option>
-              <option value={25}>25 item</option>
-              <option value={50}>50 item</option>
-              <option value={100}>100 item</option>
-            </select>
-            <span className={s.totalInfo}>dari {serverTotal} data</span>
-          </div>
-
-          <div className={s.paginationRow}>
-            <button
-              className={s.pageBtn}
-              disabled={page <= 1 || loading}
-              onClick={() => setPage(p => p - 1)}
-            >
-              <ChevronLeft size={13} style={{ display: 'inline', marginRight: 2, verticalAlign: 'middle' }} />
-              Prev
-            </button>
-            {Array.from({ length: Math.min(serverTotalPages, 7) }, (_, i) => (
-              <button
-                key={i + 1}
-                className={`${s.pageBtn} ${page === i + 1 ? s.pageBtnActive : ''}`}
-                onClick={() => setPage(i + 1)}
-                disabled={loading}
-              >
-                {i + 1}
-              </button>
-            ))}
-            {serverTotalPages > 7 && <span style={{ padding: '0 8px', color: 'var(--text-muted)' }}>... {serverTotalPages}</span>}
-            <button
-              className={s.pageBtn}
-              disabled={page >= serverTotalPages || loading}
-              onClick={() => setPage(p => p + 1)}
-            >
-              Next
-              <ChevronRight size={13} style={{ display: 'inline', marginLeft: 2, verticalAlign: 'middle' }} />
-            </button>
-          </div>
-        </div>
+        {/* Standardized Table Pagination */}
+        {serverTotal > 0 && (
+          <TablePagination
+            page={page}
+            totalPages={serverTotalPages}
+            total={serverTotal}
+            perPage={perPage}
+            onPageChange={setPage}
+            onPerPageChange={(newSize) => {
+              setPerPage(newSize)
+              setPage(1)
+            }}
+            itemName="data klasifikasi"
+            loading={loading}
+          />
+        )}
       </div>
 
       {/* Review Modal */}

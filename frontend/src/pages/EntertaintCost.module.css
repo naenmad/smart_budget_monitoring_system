@@ -422,6 +422,12 @@
   color: #b91c1c;
 }
 
+.iconBtnEdit:hover {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #2563eb;
+}
+
 /* ── Pagination Bar ── */
 .pagination {
   display: flex;
