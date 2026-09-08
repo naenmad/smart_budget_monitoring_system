@@ -217,10 +217,15 @@ export default function PrUpload() {
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <h1 className={styles.title}>Kelola File PR / PO (Upload & Download)</h1>
-        <p className={styles.subtitle}>
-          Pusat integrasi dokumen pengadaan PR ke Invoice: Unggah batch baru atau unduh laporan pipeline komprehensif
-        </p>
+        <div className={styles.titleArea}>
+          <h1 className={styles.title}>
+            <FileSpreadsheet size={26} color="var(--primary)" />
+            Kelola File PR / PO (Upload & Download)
+          </h1>
+          <p className={styles.subtitle}>
+            Pusat integrasi dokumen pengadaan PR ke Invoice: Unggah batch baru atau unduh laporan pipeline komprehensif
+          </p>
+        </div>
       </div>
 
       <div className={styles.grid}>

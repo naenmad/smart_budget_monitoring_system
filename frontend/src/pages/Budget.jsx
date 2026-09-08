@@ -6,7 +6,7 @@ import s from './Budget.module.css'
 import { budgetApi } from '../api/budgetApi'
 import { kategoriApi } from '../api/kategoriApi'
 import { useAuth } from '../context/AuthContext'
-import { CheckCircle2, AlertCircle, Save, Trash2, BarChart3, Download, FileSpreadsheet, UploadCloud, Loader2 } from 'lucide-react'
+import { CheckCircle2, AlertCircle, Save, Trash2, BarChart3, Download, FileSpreadsheet, UploadCloud, Loader2, PieChart, Sliders } from 'lucide-react'
 
 const CURRENT_YEAR = String(new Date().getFullYear())
 const YEAR_OPTIONS = Array.from({ length: 6 }, (_, i) => String(parseInt(CURRENT_YEAR, 10) - 2 + i))
@@ -346,45 +346,32 @@ export default function Budget() {
   return (
     <div className={s.page}>
       <div className={s.header}>
-        <h1>Set budget tahunan</h1>
-        <p>Input budget awal per form untuk periode berjalan</p>
-      </div>
-
-      {message.text && (
-        <div style={{
-          padding: '10px 14px',
-          borderRadius: 8,
-          marginBottom: 16,
-          fontSize: 13,
-          background: message.type === 'success' ? '#ecfdf5' : '#fef2f2',
-          color: message.type === 'success' ? '#065f46' : '#991b1b',
-          border: `1px solid ${message.type === 'success' ? '#a7f3d0' : '#fecaca'}`,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6
-        }}>
-          {message.type === 'success' ? (
-            <CheckCircle2 size={15} style={{ flexShrink: 0 }} />
-          ) : (
-            <AlertCircle size={15} style={{ flexShrink: 0 }} />
-          )}
-          <span>{message.text}</span>
+        <div className={s.titleArea}>
+          <h1 className={s.title}>
+            <PieChart size={26} color="var(--primary)" />
+            Alokasi Budget (Setup)
+          </h1>
+          <p className={s.subtitle}>
+            Input dan alokasikan pagu anggaran tahunan per form (CAPEX, OPEX, E-1, E-9, I-1) untuk periode berjalan.
+          </p>
         </div>
-      )}
 
-      <div className={s.tabs}>
-        <button
-          className={`${s.tab} ${activeTab === 'manual' ? s.tabActive : ''}`}
-          onClick={() => setActiveTab('manual')}
-        >
-          Manual
-        </button>
-        <button
-          className={`${s.tab} ${activeTab === 'upload' ? s.tabActive : ''}`}
-          onClick={() => setActiveTab('upload')}
-        >
-          Upload Excel
-        </button>
+        <div className={s.tabNav}>
+          <button
+            className={`${s.tabBtn} ${activeTab === 'manual' ? s.tabBtnActive : ''}`}
+            onClick={() => setActiveTab('manual')}
+          >
+            <Sliders size={16} />
+            <span>Alokasi Manual</span>
+          </button>
+          <button
+            className={`${s.tabBtn} ${activeTab === 'upload' ? s.tabBtnActive : ''}`}
+            onClick={() => setActiveTab('upload')}
+          >
+            <UploadCloud size={16} />
+            <span>Upload Excel</span>
+          </button>
+        </div>
       </div>
 
       {activeTab === 'manual' && (

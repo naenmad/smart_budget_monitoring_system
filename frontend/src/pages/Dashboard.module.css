@@ -7,23 +7,32 @@
 
 .header {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 16px;
     flex-wrap: wrap;
 }
 
-.headerLeft h1 {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: var(--text-main);
-    letter-spacing: -0.01em;
+.titleArea {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
 }
 
-.headerLeft p {
-    font-size: 13px;
+.title {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-main);
+    margin: 0;
+}
+
+.subtitle {
+    font-size: 0.875rem;
     color: var(--text-muted);
-    margin-top: 2px;
+    margin: 0;
 }
 
 .headerRight {

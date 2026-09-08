@@ -3,7 +3,7 @@ import { useConfirm } from '../context/ConfirmContext'
 import { useState, useEffect } from 'react'
 import { itemMappingApi } from '../api/itemMappingApi'
 import { kategoriApi } from '../api/kategoriApi'
-import { Lightbulb, Plus, Edit2, Trash2, Check, X, Search, ArrowUpDown } from 'lucide-react'
+import { Lightbulb, Plus, Edit2, Trash2, Check, X, Search, ArrowUpDown, Network } from 'lucide-react'
 import TablePagination from '../components/common/TablePagination'
 import styles from './ItemMapping.module.css'
 
@@ -126,8 +126,11 @@ export default function ItemMapping() {
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <div>
-          <h1 className={styles.title}>Item Mapping Keyword</h1>
+        <div className={styles.titleArea}>
+          <h1 className={styles.title}>
+            <Network size={26} color="var(--primary)" />
+            Aturan Item Mapping (Rules)
+          </h1>
           <p className={styles.subtitle}>Kelola aturan pencocokan kata kunci PR ke nama item planning anggaran</p>
         </div>
         <button onClick={openCreate} className={styles.btnPrimary}>

@@ -19,7 +19,7 @@ import PeriodeSwitcher from '../components/SwitchComponent'
 import { budgetApi } from '../api/budgetApi'
 import { prApi } from '../api/prApi'
 import { formatRp } from '../utils/format'
-import { Loader2, AlertTriangle, Download, FileSpreadsheet, Layers, CheckCircle2, Clock, AlertCircle, XCircle } from 'lucide-react'
+import { Loader2, AlertTriangle, Download, FileSpreadsheet, Layers, CheckCircle2, Clock, AlertCircle, XCircle, LayoutDashboard, TrendingUp, BarChart3, Table } from 'lucide-react'
 import { exportBudgetSummaryToExcel } from '../utils/exportReport'
 
 export default function Dashboard() {
@@ -276,7 +276,8 @@ export default function Dashboard() {
   const dashboardTabs = [
     {
       id: 'overview',
-      label: 'Ringkasan Utama',
+      label: 'Ringkasan & Visualisasi',
+      icon: LayoutDashboard,
       content: (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* 1. Pemisahan CAPEX & OPEX Overview (Tidak digabung) */}
@@ -470,6 +471,7 @@ export default function Dashboard() {
     {
       id: 'monthly_analytics',
       label: 'Tren Kuantitas & Aliran PR',
+      icon: TrendingUp,
       content: (
         <section className="card">
           <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--text-main)' }}>
@@ -485,6 +487,7 @@ export default function Dashboard() {
     {
       id: 'kpi_report',
       label: 'Laporan KPI Anggaran (SAI)',
+      icon: BarChart3,
       content: (
         <KpiBudgetUsageReport
           periode={periode}
@@ -495,6 +498,7 @@ export default function Dashboard() {
     {
       id: 'rincian',
       label: 'Rincian Form',
+      icon: Table,
       content: (
         <section className="card">
           <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--text-main)' }}>
@@ -509,9 +513,12 @@ export default function Dashboard() {
   return (
     <div className={s.page}>
       <div className={s.header}>
-        <div className={s.headerLeft}>
-          <h1>Dashboard Monitoring</h1>
-          <p>Monitoring budget & PR Pipeline periode {periode}</p>
+        <div className={s.titleArea}>
+          <h1 className={s.title}>
+            <LayoutDashboard size={26} color="var(--primary)" />
+            Dashboard Monitoring
+          </h1>
+          <p className={s.subtitle}>Monitoring budget & PR Pipeline periode {periode}</p>
         </div>
         <div className={s.headerRight}>
           <PeriodeSwitcher value={periode} onChange={setPeriode} />

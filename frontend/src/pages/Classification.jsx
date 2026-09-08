@@ -4,7 +4,7 @@ import { prPoDataApi } from '../api/prPoDataApi'
 import { kategoriApi } from '../api/kategoriApi'
 import { useAuth } from '../context/AuthContext'
 import ReviewModal from '../components/ReviewModal'
-import { AlertTriangle, Search, Loader2, ChevronLeft, ChevronRight, ArrowUpDown } from 'lucide-react'
+import { AlertTriangle, Search, Loader2, ChevronLeft, ChevronRight, ArrowUpDown, Cpu } from 'lucide-react'
 import TablePagination from '../components/common/TablePagination'
 import ScrollableCell from '../components/ScrollableCell'
 
@@ -180,8 +180,13 @@ export default function Classification() {
     return (
       <div className={s.page}>
         <div className={s.header}>
-          <h1>Hasil Klasifikasi</h1>
-          <p>Riwayat hasil prediksi budget code dari file PR/PO</p>
+          <div className={s.titleArea}>
+            <h1 className={s.title}>
+              <Cpu size={26} color="var(--primary)" />
+              Model Klasifikasi & Prediksi
+            </h1>
+            <p className={s.subtitle}>Evaluasi dan pantau performa klasifikasi budget code otomatis (SVM, Regex, & Rule Base)</p>
+          </div>
         </div>
         <div style={{ textAlign: 'center', padding: 60, color: '#e85d3a' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 8 }}>
@@ -199,8 +204,13 @@ export default function Classification() {
   return (
     <div className={s.page}>
       <div className={s.header}>
-        <h1>Hasil Klasifikasi</h1>
-        <p>Riwayat hasil prediksi budget code dari file PR/PO</p>
+        <div className={s.titleArea}>
+          <h1 className={s.title}>
+            <Cpu size={26} color="var(--primary)" />
+            Model Klasifikasi & Prediksi
+          </h1>
+          <p className={s.subtitle}>Evaluasi dan pantau performa klasifikasi budget code otomatis (SVM, Regex, & Rule Base)</p>
+        </div>
       </div>
 
       <div className={s.metricStrip}>

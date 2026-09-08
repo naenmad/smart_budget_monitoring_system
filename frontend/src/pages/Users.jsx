@@ -3,7 +3,7 @@ import { useConfirm } from '../context/ConfirmContext'
 import s from './Users.module.css'
 import { userApi } from '../api/userApi'
 import { useAuth } from '../context/AuthContext'
-import { CheckCircle2, AlertCircle, Loader2, KeyRound, Eye, EyeOff, X } from 'lucide-react'
+import { CheckCircle2, AlertCircle, Loader2, KeyRound, Eye, EyeOff, X, UserCog } from 'lucide-react'
 
 const USERNAME_REGEX = /^[a-z0-9_.-]{3,30}$/
 const EMPTY_FORM = { username: '', password: '', role: 'admin' }
@@ -196,8 +196,13 @@ export default function Users() {
   return (
     <div className={s.page}>
       <div className={s.header}>
-        <h1>Manajemen Akun</h1>
-        <p>Buat dan kelola akun pengguna sistem</p>
+        <div className={s.titleArea}>
+          <h1 className={s.title}>
+            <UserCog size={26} color="var(--primary)" />
+            Kelola Pengguna
+          </h1>
+          <p className={s.subtitle}>Buat dan kelola akun pengguna serta hak akses sistem</p>
+        </div>
       </div>
 
       <div className={s.grid}>

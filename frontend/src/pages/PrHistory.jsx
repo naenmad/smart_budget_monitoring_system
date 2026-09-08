@@ -6,7 +6,7 @@ import { prApi } from '../api/prApi'
 import { prPoDataApi } from '../api/prPoDataApi'
 import { uploadHistoryApi } from '../api/uploadHistoryApi'
 import { useAuth } from '../context/AuthContext'
-import { RefreshCw, Play, Trash2, Loader2, ArrowUpDown } from 'lucide-react'
+import { RefreshCw, Play, Trash2, Loader2, ArrowUpDown, History } from 'lucide-react'
 import TablePagination from '../components/common/TablePagination'
 import styles from './PrHistory.module.css'
 
@@ -165,7 +165,15 @@ export default function PrHistory() {
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <h2 className={styles.title}>PR History</h2>
+        <div className={styles.titleArea}>
+          <h1 className={styles.title}>
+            <History size={26} color="var(--primary)" />
+            PR History
+          </h1>
+          <p className={styles.subtitle}>
+            Daftar riwayat data Purchase Requisition (PR), Purchase Order (PO), dan Goods Receipt (GR)
+          </p>
+        </div>
         <div className={styles.headerActions}>
           <button 
             onClick={handleRetryMapping} 
