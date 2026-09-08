@@ -154,6 +154,12 @@
     border: 1px solid var(--border-color);
 }
 
+.badgeE6 {
+    background: var(--badge-e6-bg);
+    color: var(--badge-e6-text);
+    border: 1px solid var(--border-color);
+}
+
 .actions {
     display: flex;
     gap: 10px;

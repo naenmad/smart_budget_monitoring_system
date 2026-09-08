@@ -106,7 +106,7 @@ const QUARTAL_DATA = [
   }
 ]
 
-export default function EntertaintAnalytics() {
+export default function EntertaintAnalytics({ embedded = false }) {
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState(null)
   const [selectedYear, setSelectedYear] = useState('')
@@ -215,10 +215,12 @@ export default function EntertaintAnalytics() {
             <span>Segarkan</span>
           </button>
 
-          <Link to="/entertaint-cost" className={s.btnPrimary}>
-            <ArrowLeft size={16} />
-            <span>Ke Buku Kas & Struk</span>
-          </Link>
+          {!embedded && (
+            <Link to="/entertaint-cost" className={s.btnPrimary}>
+              <ArrowLeft size={16} />
+              <span>Ke Buku Kas & Struk</span>
+            </Link>
+          )}
         </div>
       </div>
 

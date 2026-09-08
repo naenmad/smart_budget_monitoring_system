@@ -45,7 +45,8 @@ def get_kategoris():
                     type: string
                     example: OPEX
     """
-    kategoris = KategoriService.get_all()
+    include_hidden = request.args.get("include_hidden", "false").lower() in ("true", "1")
+    kategoris = KategoriService.get_all(include_hidden=include_hidden)
 
     return jsonify({
         "success": True,

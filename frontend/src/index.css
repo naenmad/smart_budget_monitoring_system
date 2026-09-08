@@ -38,6 +38,9 @@
   --bg-card: #ffffff;
   --bg-subtle: #f1f5f9;
   --bg-muted: #e2e8f0;
+  --bg-surface: #ffffff;
+  --bg-surface-hover: #f1f5f9;
+  --bg-surface-soft: #f8fafc;
 
   --border-color: #e2e8f0;
   --border-subtle: #cbd5e1;
@@ -50,6 +53,8 @@
   /* Badges */
   --badge-e1-bg: #eff6ff;
   --badge-e1-text: #1d4ed8;
+  --badge-e6-bg: #fef3c7;
+  --badge-e6-text: #b45309;
   --badge-e9-bg: #ecfdf5;
   --badge-e9-text: #047857;
   --badge-i1-bg: #f5f3ff;
@@ -100,6 +105,9 @@
   --bg-card: #1e293b;
   --bg-subtle: #334155;
   --bg-muted: #475569;
+  --bg-surface: #1e293b;
+  --bg-surface-hover: #334155;
+  --bg-surface-soft: #0f172a;
 
   --border-color: #334155;
   --border-subtle: #475569;
@@ -112,6 +120,8 @@
   /* Badges - Dark mode variants */
   --badge-e1-bg: rgba(37, 99, 235, 0.2);
   --badge-e1-text: #93c5fd;
+  --badge-e6-bg: rgba(217, 119, 6, 0.2);
+  --badge-e6-text: #fcd34d;
   --badge-e9-bg: rgba(22, 163, 74, 0.2);
   --badge-e9-text: #86efac;
   --badge-i1-bg: rgba(109, 40, 217, 0.2);

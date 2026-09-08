@@ -113,6 +113,7 @@
 }
 
 .badge.e1 { background: var(--badge-e1-bg); color: var(--badge-e1-text); border: 1px solid var(--border-color); }
+.badge.e6 { background: var(--badge-e6-bg); color: var(--badge-e6-text); border: 1px solid var(--border-color); }
 .badge.e9 { background: var(--badge-e9-bg); color: var(--badge-e9-text); border: 1px solid var(--border-color); }
 .badge.i1 { background: var(--badge-i1-bg); color: var(--badge-i1-text); border: 1px solid var(--border-color); }
 

@@ -13,20 +13,15 @@ import './index.css'
 // Lazy-loaded pages for optimal bundle chunking and instant first load
 const Login = lazy(() => import('./pages/Login'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
-const Predict = lazy(() => import('./pages/Predict'))
 const Budget = lazy(() => import('./pages/Budget'))
 const Classification = lazy(() => import('./pages/Classification'))
 const Users = lazy(() => import('./pages/Users'))
 const ItemMapping = lazy(() => import('./pages/ItemMapping'))
-const PlanningUpload = lazy(() => import('./pages/PlanningUpload'))
-const PlanningList = lazy(() => import('./pages/PlanningList'))
+const Planning = lazy(() => import('./pages/Planning'))
 const PrUpload = lazy(() => import('./pages/PrUpload'))
 const PrHistory = lazy(() => import('./pages/PrHistory'))
-const PrResult = lazy(() => import('./pages/PrResult'))
-const MappingReview = lazy(() => import('./pages/MappingReview'))
-const MappingGraph = lazy(() => import('./pages/MappingGraph'))
+const PrVerification = lazy(() => import('./pages/PrVerification'))
 const EntertaintCost = lazy(() => import('./pages/EntertaintCost'))
-const EntertaintAnalytics = lazy(() => import('./pages/EntertaintAnalytics'))
 
 function PageLoader() {
   return (
@@ -98,7 +93,6 @@ export default function App() {
                 {/* protected — wrapped in sidebar shell */}
                 <Route element={<AppShell />}>
                   <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-                  <Route path="/predict" element={<ProtectedRoute roles={['admin']}><Predict /></ProtectedRoute>} />
                   <Route path="/budget" element={<ProtectedRoute roles={['admin']}><Budget /></ProtectedRoute>} />
                   <Route path="/classification" element={<ProtectedRoute><Classification /></ProtectedRoute>} />
                   <Route path="/users" element={<ProtectedRoute roles={['admin']}><Users /></ProtectedRoute>} />
@@ -107,19 +101,22 @@ export default function App() {
                   <Route path="/master/item-mapping" element={<ProtectedRoute roles={['admin']}><ItemMapping /></ProtectedRoute>} />
 
                   {/* Planning */}
-                  <Route path="/planning/upload" element={<ProtectedRoute roles={['admin']}><PlanningUpload /></ProtectedRoute>} />
-                  <Route path="/planning/list" element={<ProtectedRoute><PlanningList /></ProtectedRoute>} />
+                  <Route path="/planning" element={<ProtectedRoute><Planning /></ProtectedRoute>} />
+                  <Route path="/planning/upload" element={<Navigate to="/planning?tab=upload" replace />} />
+                  <Route path="/planning/list" element={<Navigate to="/planning?tab=list" replace />} />
 
                   {/* PR */}
                   <Route path="/pr/upload" element={<ProtectedRoute roles={['admin']}><PrUpload /></ProtectedRoute>} />
                   <Route path="/pr/history" element={<ProtectedRoute><PrHistory /></ProtectedRoute>} />
-                  <Route path="/pr/result" element={<ProtectedRoute><PrResult /></ProtectedRoute>} />
-                  <Route path="/pr/mapping-review" element={<ProtectedRoute><MappingReview /></ProtectedRoute>} />
-                  <Route path="/mapping/graph" element={<ProtectedRoute><MappingGraph /></ProtectedRoute>} />
+                  <Route path="/pr/verification" element={<ProtectedRoute><PrVerification /></ProtectedRoute>} />
+                  <Route path="/pr/result" element={<Navigate to="/pr/verification?tab=result" replace />} />
+                  <Route path="/pr/mapping-review" element={<Navigate to="/pr/verification?tab=review" replace />} />
+                  <Route path="/mapping/graph" element={<Navigate to="/pr/verification?tab=graph" replace />} />
 
                   {/* Operational QA / Expense Tracking */}
                   <Route path="/entertaint-cost" element={<ProtectedRoute><EntertaintCost /></ProtectedRoute>} />
-                  <Route path="/entertaint-analytics" element={<ProtectedRoute><EntertaintAnalytics /></ProtectedRoute>} />
+                  <Route path="/entertaint" element={<Navigate to="/entertaint-cost" replace />} />
+                  <Route path="/entertaint-analytics" element={<Navigate to="/entertaint-cost?tab=analytics" replace />} />
                 </Route>
 
                 {/* catch-all */}

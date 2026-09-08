@@ -141,6 +141,11 @@
   box-shadow: 0 0 0 3px rgba(26,26,26,0.1);
 }
 
+.select option {
+  background: var(--bg-card);
+  color: var(--text-main);
+}
+
 .actions {
   display: flex;
   justify-content: flex-end;

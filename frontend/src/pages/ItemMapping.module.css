@@ -325,6 +325,11 @@
   outline: none;
 }
 
+.select option {
+  background: var(--bg-card);
+  color: var(--text-main);
+}
+
 .input:focus,
 .select:focus {
   border-color: var(--primary);
@@ -411,10 +416,10 @@
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
-  background: var(--bg-card, #ffffff);
-  border: 1px solid var(--border-color, #e2e8f0);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
   padding: 10px 14px;
-  border-radius: var(--radius-md, 8px);
+  border-radius: var(--radius-md);
 }
 
 .searchWrapper {
@@ -429,25 +434,26 @@
 .searchIcon {
   position: absolute;
   left: 10px;
-  color: var(--text-muted, #94a3b8);
+  color: var(--text-muted);
   pointer-events: none;
 }
 
 .searchInput {
   width: 100%;
   padding: 7px 32px 7px 32px;
-  border: 1px solid var(--border-color, #cbd5e1);
-  border-radius: var(--radius-sm, 6px);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
   font-size: 13px;
-  color: var(--text-main, #0f172a);
-  background: var(--bg-surface, #ffffff);
+  color: var(--text-main);
+  background: var(--bg-app);
   transition: all 0.15s ease;
 }
 
 .searchInput:focus {
   outline: none;
-  border-color: var(--primary, #2563eb);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  border-color: var(--primary);
+  background: var(--bg-card);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
 .searchClearBtn {
@@ -455,7 +461,7 @@
   right: 8px;
   background: transparent;
   border: none;
-  color: var(--text-muted, #94a3b8);
+  color: var(--text-muted);
   cursor: pointer;
   padding: 2px;
   border-radius: 4px;
@@ -464,23 +470,30 @@
 }
 
 .searchClearBtn:hover {
-  color: var(--text-main, #0f172a);
+  color: var(--text-main);
 }
 
 .sortSelect {
   padding: 7px 12px;
-  border: 1px solid var(--border-color, #cbd5e1);
-  border-radius: var(--radius-sm, 6px);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
   font-size: 13px;
-  color: var(--text-main, #0f172a);
-  background: var(--bg-surface, #ffffff);
+  color: var(--text-main);
+  background: var(--bg-app);
   cursor: pointer;
   outline: none;
   transition: all 0.15s ease;
 }
 
-.sortSelect:hover {
-  border-color: var(--primary, #2563eb);
+.sortSelect:hover,
+.sortSelect:focus {
+  border-color: var(--primary);
+  background: var(--bg-card);
+}
+
+.sortSelect option {
+  background: var(--bg-card);
+  color: var(--text-main);
 }
 
 .countBadge {

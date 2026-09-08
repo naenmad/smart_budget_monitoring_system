@@ -187,6 +187,7 @@
 }
 
 .badgeE1 { background: var(--badge-e1-bg); color: var(--badge-e1-text); border: 1px solid var(--border-color); }
+.badgeE6 { background: var(--badge-e6-bg); color: var(--badge-e6-text); border: 1px solid var(--border-color); }
 .badgeE9 { background: var(--badge-e9-bg); color: var(--badge-e9-text); border: 1px solid var(--border-color); }
 .badgeI1 { background: var(--badge-i1-bg); color: var(--badge-i1-text); border: 1px solid var(--border-color); }
 .badgeCap { background: var(--badge-cap-bg); color: var(--badge-cap-text); border: 1px solid var(--border-color); }

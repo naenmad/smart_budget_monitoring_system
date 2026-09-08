@@ -21,12 +21,18 @@ class Kategori(db.Model):
     tipe_formulir= db.Column(
         db.Enum("CAPEX", "OPEX")
     )
+    is_active = db.Column(
+        db.Boolean,
+        default=True,
+        nullable=False
+    )
     def to_dict(self):
         return {
             "id": self.id,
             "kode": self.kode,
             "nama": self.nama,
             "tipe_formulir": self.tipe_formulir,
+            "is_active": bool(self.is_active) if self.is_active is not None else True,
         }
     def __repr__(self):
         return f"<Kategori {self.kode}>"

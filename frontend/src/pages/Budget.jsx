@@ -301,11 +301,11 @@ export default function Budget() {
     toast.success('Template Excel berhasil diunduh!')
   }
 
-  // Build active budget display from API data
+  // Build active budget display from API data (exclude E-6 from standard budget monitoring)
   const activeBudgets = {}
   budgets.forEach(b => {
     const kategori = kategoris.find(k => k.id === b.kategori_id)
-    if (kategori) {
+    if (kategori && kategori.kode !== 'E-6') {
       activeBudgets[kategori.kode] = formatRp(b.nominal)
     }
   })

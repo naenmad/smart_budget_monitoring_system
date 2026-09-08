@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { toast } from 'react-hot-toast'
 import { useConfirm } from '../context/ConfirmContext'
 import { entertaintApi } from '../api/entertaintApi'
+import EntertaintAnalytics from './EntertaintAnalytics'
 import s from './EntertaintCost.module.css'
 import {
   Receipt,
@@ -45,8 +46,25 @@ const formatRp = (num) => {
 
 export default function EntertaintCost() {
   const confirm = useConfirm()
-  // Navigation Tabs: 'claims' | 'cashflow' | 'masters'
-  const [currentMainTab, setCurrentMainTab] = useState('claims')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tabParam = searchParams.get('tab')
+  // Navigation Tabs: 'claims' | 'recap_mkt' | 'cashflow' | 'masters' | 'analytics'
+  const [currentMainTab, setCurrentMainTab] = useState(() => tabParam || 'claims')
+
+  useEffect(() => {
+    if (tabParam && ['claims', 'recap_mkt', 'cashflow', 'masters', 'analytics'].includes(tabParam)) {
+      setCurrentMainTab(tabParam)
+    }
+  }, [tabParam])
+
+  const handleTabChange = (tabKey) => {
+    setCurrentMainTab(tabKey)
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev)
+      next.set('tab', tabKey)
+      return next
+    }, { replace: true })
+  }
 
   // -------------------------------------------------------------
   // TAB 1: CLAIMS STATE
@@ -747,10 +765,6 @@ export default function EntertaintCost() {
         </div>
 
         <div className={s.actionButtons}>
-          <Link to="/entertaint-analytics" className={s.btnSecondary} title="Buka Dashboard Visual & Analisis Statistik">
-            <TrendingUp size={16} color="var(--primary)" />
-            <span>Statistik & Analisis</span>
-          </Link>
           <button
             onClick={() => {
               setIsImportModalOpen(true)
@@ -791,7 +805,7 @@ export default function EntertaintCost() {
       {/* ── Sub-Tab Navigation Bar ── */}
       <div className={s.tabNav}>
         <button
-          onClick={() => setCurrentMainTab('claims')}
+          onClick={() => handleTabChange('claims')}
           className={`${s.tabBtn} ${currentMainTab === 'claims' ? s.tabBtnActive : ''}`}
         >
           <Receipt size={17} />
@@ -800,7 +814,7 @@ export default function EntertaintCost() {
         </button>
 
         <button
-          onClick={() => setCurrentMainTab('recap_mkt')}
+          onClick={() => handleTabChange('recap_mkt')}
           className={`${s.tabBtn} ${currentMainTab === 'recap_mkt' ? s.tabBtnActive : ''}`}
         >
           <Landmark size={17} />
@@ -809,7 +823,7 @@ export default function EntertaintCost() {
         </button>
 
         <button
-          onClick={() => setCurrentMainTab('cashflow')}
+          onClick={() => handleTabChange('cashflow')}
           className={`${s.tabBtn} ${currentMainTab === 'cashflow' ? s.tabBtnActive : ''}`}
         >
           <Wallet size={17} />
@@ -818,16 +832,25 @@ export default function EntertaintCost() {
         </button>
 
         <button
-          onClick={() => setCurrentMainTab('masters')}
+          onClick={() => handleTabChange('masters')}
           className={`${s.tabBtn} ${currentMainTab === 'masters' ? s.tabBtnActive : ''}`}
         >
           <Database size={17} />
           <span>Master Referensi (PT & PIC)</span>
           <span className={s.tabBadge}>{masterData.total || 62}</span>
         </button>
+
+        <button
+          onClick={() => handleTabChange('analytics')}
+          className={`${s.tabBtn} ${currentMainTab === 'analytics' ? s.tabBtnActive : ''}`}
+        >
+          <TrendingUp size={17} />
+          <span>Statistik & Analisis</span>
+        </button>
       </div>
 
       {/* ── KPI Summary Cards ── */}
+      {currentMainTab !== 'analytics' && (
       <div className={s.statsGrid}>
         <div className={s.statCard}>
           <div className={s.statIcon} style={{ background: 'rgba(37, 99, 235, 0.1)', color: 'var(--primary)' }}>
@@ -877,6 +900,7 @@ export default function EntertaintCost() {
           </div>
         </div>
       </div>
+      )}
 
       {/* ========================================================= */}
       {/* VIEW 1: CLAIMS TAB                                        */}
@@ -1805,6 +1829,15 @@ export default function EntertaintCost() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* VIEW 5: ANALYTICS TAB                                     */}
+      {/* ========================================================= */}
+      {currentMainTab === 'analytics' && (
+        <div style={{ marginTop: 16 }}>
+          <EntertaintAnalytics embedded={true} />
         </div>
       )}
 

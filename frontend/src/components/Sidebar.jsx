@@ -49,9 +49,8 @@ const MENU_CONFIG = [
   { 
     group: 'Planning & Budget', 
     items: [
-      { to: '/planning/upload', label: 'Kelola File Planning', roles: ['admin'], icon: UploadCloud },
-      { to: '/planning/list', label: 'Planning List', roles: ['admin', 'manager'], icon: CalendarDays },
-      { to: '/budget', label: 'Budget Monitoring', roles: ['admin'], icon: PieChart }
+      { to: '/planning', label: 'Data & Kelola Planning', roles: ['admin', 'manager'], icon: CalendarDays },
+      { to: '/budget', label: 'Alokasi Budget (Setup)', roles: ['admin'], icon: PieChart }
     ]
   },
   { 
@@ -59,16 +58,13 @@ const MENU_CONFIG = [
     items: [
       { to: '/pr/upload', label: 'Kelola File PR', roles: ['admin'], icon: FileSpreadsheet },
       { to: '/pr/history', label: 'PR History', roles: ['admin', 'manager'], icon: History },
-      { to: '/pr/result', label: 'Result Matching', roles: ['admin', 'manager'], icon: Layers },
-      { to: '/pr/mapping-review', label: 'Mapping Review', roles: ['admin', 'manager'], icon: CheckSquare },
-      { to: '/mapping/graph', label: 'Graf Keterhubungan', roles: ['admin', 'manager'], icon: Network }
+      { to: '/pr/verification', label: 'Verifikasi & Hasil PR', roles: ['admin', 'manager'], icon: CheckSquare }
     ]
   },
   { 
     group: 'Operasional QA', 
     items: [
-      { to: '/entertaint-cost', label: 'Entertaint Cost', roles: ['admin', 'manager'], icon: Receipt },
-      { to: '/entertaint-analytics', label: 'Statistik & Analisis', roles: ['admin', 'manager'], icon: TrendingUp }
+      { to: '/entertaint-cost', label: 'Entertainment Budget (E-6)', roles: ['admin', 'manager'], icon: Receipt }
     ]
   },
   { 

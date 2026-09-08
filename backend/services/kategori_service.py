@@ -5,8 +5,11 @@ from utils.db import db
 class KategoriService:
 
     @staticmethod
-    def get_all():
-        return Kategori.query.order_by(Kategori.kode).all()
+    def get_all(include_hidden=False):
+        query = Kategori.query
+        if not include_hidden:
+            query = query.filter(Kategori.is_active.is_(True))
+        return query.order_by(Kategori.kode).all()
 
     @staticmethod
     def get_by_id(kategori_id):

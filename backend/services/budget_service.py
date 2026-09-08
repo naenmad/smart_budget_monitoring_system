@@ -176,7 +176,7 @@ class BudgetService:
         Mengembalikan total budget vs actual per tipe (CAPEX/OPEX)
         dengan dual metrics: PR (Ekspektasi Komitmen) dan GR (Realisasi Fisik).
         """
-        kategoris = Kategori.query.all()
+        kategoris = Kategori.query.filter(Kategori.is_active.is_(True), Kategori.kode != 'E-6').all()
         
         # 1. Ambil semua budget di periode ini
         budget_query = (

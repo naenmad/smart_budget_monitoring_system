@@ -11,6 +11,7 @@ import ScrollableCell from '../components/ScrollableCell'
 const BADGE_CLS = {
   'E-1': s.badgeE1, 'E-9': s.badgeE9,
   'I-1': s.badgeI1, 'CAPEX': s.badgeCap,
+  'E-6': s.badgeE6,
 }
 
 const METHOD_CLS = {
@@ -65,7 +66,7 @@ function getStatus(record) {
 
 const confFillCls = { High: s.confHigh, Mid: s.confMid, Low: s.confLow }
 
-const CODES = ['ALL', 'E-1', 'E-9', 'I-1', 'CAPEX', 'UNKNOWN']
+const CODES = ['ALL', 'E-1', 'E-9', 'I-1', 'E-6', 'CAPEX', 'UNKNOWN']
 const METHODS = ['ALL', 'RULE_BASE', 'REGEX', 'SVM', 'MANUAL']
 
 // ── Component ────────────────────────────────────────────────
