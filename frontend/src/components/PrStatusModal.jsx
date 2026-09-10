@@ -128,7 +128,7 @@ export default function PrStatusModal({ status, onClose }) {
   const title = {
     ON_PLAN: 'ON PLAN (Sesuai Budget)',
     OVER_PLAN: 'OVER BUDGET (Melebihi Pagu Anggaran)',
-    UNDER_PLAN: 'UNDER PLAN (Dibawah Pagu)',
+    UNDER_PLAN: 'ACTUAL HARGA LEBIH RENDAH (Dibawah Pagu)',
     OOP: 'OOP (Out of Plan - Tanpa Perencanaan)',
     CANCELLED_PR: 'PR Dibatalkan Langsung',
   }[status] || status

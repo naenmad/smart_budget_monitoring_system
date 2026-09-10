@@ -295,14 +295,14 @@ export default function PrResult() {
             <table className={styles.table}>
               <thead>
                 <tr className={styles.tableHeader}>
-                  {['#', 'PR Doc', 'Description', 'Kategori', 'Supplier', 'Total Price', 'Metode', 'Status', 'Aksi'].map(h => (
+                  {['#', 'PR Doc', 'Description', 'Kategori', 'Supplier', 'Total Price', 'Status', 'Aksi'].map(h => (
                     <th key={h} className={styles.th}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {prList.length === 0 && (
-                  <tr><td colSpan={9} className={styles.emptyState}>
+                  <tr><td colSpan={8} className={styles.emptyState}>
                     Belum ada hasil matching. Upload PR terlebih dahulu.
                   </td></tr>
                 )}
@@ -313,12 +313,11 @@ export default function PrResult() {
                       {pr.pr_doc_num || '-'}
                     </td>
                     <td className={styles.td}>
-                      <ScrollableCell text={pr.description} maxWidth={320} />
+                      <ScrollableCell text={pr.description} maxWidth={340} />
                     </td>
                     <td className={styles.td}>{pr.kategori_kode || pr.kategori_id || '-'}</td>
                     <td className={styles.td}>{pr.supplier_name || '-'}</td>
                     <td className={`${styles.td} ${styles.tdRight}`}>{fmt(pr.total_price)}</td>
-                    <td className={`${styles.td} ${styles.tdMethod}`}>{pr.metode_klasifikasi || '-'}</td>
                     <td className={styles.td}>
                       <StatusBadge pr={pr} />
                     </td>
@@ -403,7 +402,10 @@ export default function PrResult() {
               <div className={styles.modalPrMeta}>
                 <span>Kategori: <strong>{editTarget.kategori_kode || 'Tanpa Kategori'}</strong></span>
                 <span>Total: <strong>{fmt(editTarget.total_price)}</strong></span>
-                {editTarget.supplier_name && <span>Vendor: {editTarget.supplier_name}</span>}
+                {editTarget.supplier_name && <span>Vendor: <strong>{editTarget.supplier_name}</strong></span>}
+                {editTarget.metode_klasifikasi && (
+                  <span>Metode Deteksi: <strong style={{ color: 'var(--primary)', background: 'rgba(37, 99, 235, 0.08)', padding: '1px 6px', borderRadius: 4 }}>{editTarget.metode_klasifikasi}</strong></span>
+                )}
               </div>
             </div>
 

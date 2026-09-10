@@ -288,9 +288,19 @@ export default function PlanningList() {
                                   <tr key={d.id}>
                                     <td>{d.month}</td>
                                     <td className={s.muted}>
-                                      <strong>{d.kategori_kode || d.kategori_id || '-'}</strong>
-                                      {d.kategori_nama && <div>{d.kategori_nama}</div>}
-                                      {d.kategori_tipe_formulir && <div style={{ fontSize: '0.8em', color: '#888' }}>({d.kategori_tipe_formulir})</div>}
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                                        <span style={{ 
+                                          background: d.kategori_tipe_formulir === 'CAPEX' ? 'rgba(59, 130, 246, 0.12)' : 'rgba(16, 185, 129, 0.12)', 
+                                          color: d.kategori_tipe_formulir === 'CAPEX' ? 'var(--primary)' : 'var(--success)', 
+                                          borderRadius: 4, 
+                                          padding: '2px 6px', 
+                                          fontSize: '11px', 
+                                          fontWeight: 700 
+                                        }}>
+                                          {d.kategori_kode || d.kategori_id || '-'}
+                                        </span>
+                                        <span style={{ fontWeight: 600, color: 'var(--text-main)', fontSize: '12px' }}>{d.kategori_nama || ''}</span>
+                                      </div>
                                     </td>
                                     <td>{d.item}</td>
                                     <td className={s.right}>

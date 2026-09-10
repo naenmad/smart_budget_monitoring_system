@@ -193,6 +193,9 @@ class PrService:
             }, 200
 
         if status_type == "OOP":
+            oop_kat = Kategori.query.filter_by(kode="OOP").first()
+            if oop_kat:
+                pr.kategori_id = oop_kat.id
             pr.planning_detail_id = None
             pr.status_ai = "DONE"
             pr.budget_status = "OOP"

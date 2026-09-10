@@ -339,7 +339,7 @@ export default function Dashboard() {
                 <MetricCard
                   label="Ter-Mapping ke Budget"
                   value={matchedPr}
-                  sub={totalPr > 0 ? `${Math.round(pctMatched)}% (On / Over / Under)` : '0%'}
+                  sub={totalPr > 0 ? `${Math.round(pctMatched)}% (On / Over / Lebih Rendah)` : '0%'}
                   variant="success"
                   onClick={() => setSelectedForm('ON_PLAN')}
                 />
@@ -400,9 +400,9 @@ export default function Dashboard() {
                 onClick={() => setSelectedForm('OVER_PLAN')}
               />
               <MetricCard
-                label="Under Plan"
+                label="Actual Harga Lebih Rendah"
                 value={prSummary?.under_plan ?? 0}
-                sub="Masih tersedia saldo"
+                sub="Harga actual lebih rendah dari budget"
                 variant="info"
                 onClick={() => setSelectedForm('UNDER_PLAN')}
               />

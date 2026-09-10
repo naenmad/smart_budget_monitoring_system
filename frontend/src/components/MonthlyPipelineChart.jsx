@@ -34,7 +34,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 export default function MonthlyPipelineChart({ title, data = [] }) {
     const legends = [
         { label: 'On Plan', color: COLORS.on_plan },
-        { label: 'Under Plan', color: COLORS.under_plan },
+        { label: 'Actual Lebih Rendah', color: COLORS.under_plan },
         { label: 'Over Budget', color: COLORS.over_plan },
         { label: 'Out of Plan', color: COLORS.out_of_plan },
         { label: 'Need Mapping', color: COLORS.need_mapping },
@@ -62,7 +62,7 @@ export default function MonthlyPipelineChart({ title, data = [] }) {
                         <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--text-muted)' }} width={30} allowDecimals={false} />
                         <Tooltip content={<CustomTooltip />} />
                         <Bar dataKey="on_plan" name="On Plan" stackId="a" fill={COLORS.on_plan} />
-                        <Bar dataKey="under_plan" name="Under Plan" stackId="a" fill={COLORS.under_plan} />
+                        <Bar dataKey="under_plan" name="Actual Lebih Rendah" stackId="a" fill={COLORS.under_plan} />
                         <Bar dataKey="over_plan" name="Over Budget" stackId="a" fill={COLORS.over_plan} />
                         <Bar dataKey="out_of_plan" name="Out of Plan" stackId="a" fill={COLORS.out_of_plan} />
                         <Bar dataKey="need_mapping" name="Need Mapping" stackId="a" fill={COLORS.need_mapping} radius={[4, 4, 0, 0]} />
@@ -77,7 +77,7 @@ export default function MonthlyPipelineChart({ title, data = [] }) {
                             <th>Bulan</th>
                             <th>Total PR</th>
                             <th>On Plan</th>
-                            <th>Under Plan</th>
+                            <th>Actual Lebih Rendah</th>
                             <th>Over Budget</th>
                             <th>Out of Plan</th>
                             <th>Need Mapping</th>

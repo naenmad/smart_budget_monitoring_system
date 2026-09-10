@@ -4,11 +4,11 @@ from utils.db import db
 
 def seed_kategori():
     categories = [
-        {"kode": "E-1",     "nama": "Direct Material",    "tipe_formulir": "OPEX"},
-        {"kode": "E-9",     "nama": "Indirect Material",  "tipe_formulir": "OPEX"},
-        {"kode": "I-1",     "nama": "Inventory",          "tipe_formulir": "CAPEX"},
-       
-
+        {"kode": "E-1",     "nama": "Consumable",                  "tipe_formulir": "OPEX"},
+        {"kode": "E-9",     "nama": "Calibration + Preventif CF",  "tipe_formulir": "OPEX"},
+        {"kode": "I-1",     "nama": "Investment Asset",            "tipe_formulir": "CAPEX"},
+        {"kode": "E-6",     "nama": "Entertainment Budget",        "tipe_formulir": "OPEX"},
+        {"kode": "OOP",     "nama": "Out of Plan",                 "tipe_formulir": "OPEX"},
     ]
 
     for cat_data in categories:

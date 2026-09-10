@@ -5,7 +5,7 @@ import {
 } from 'recharts'
 import s from './KpiBudgetUsageReport.module.css'
 import { formatRp } from '../utils/format'
-import { ArrowUp, ArrowDown, CheckCircle2, AlertTriangle, Target, Layers } from 'lucide-react'
+import { ArrowUp, ArrowDown, CheckCircle2, AlertTriangle, Target } from 'lucide-react'
 import saiLogo from '../assets/sai_logo.webp'
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agus', 'Sep', 'Okt', 'Nov', 'Des']
@@ -16,23 +16,61 @@ export default function KpiBudgetUsageReport({
     monthlyData = []
 }) {
     const [themeType, setThemeType] = useState('opex') // 'opex' (Target ≤90%) | 'capex' (Target 100%)
-    const [usageSource, setUsageSource] = useState('pr') // 'pr' (Planning PR) | 'gr' (Realisasi Fisik GR)
+    const [opexSubTab, setOpexSubTab] = useState('ALL') // 'ALL' | 'E1' | 'E9_CAL' | 'E9_PREV'
 
     const isOpex = themeType === 'opex'
     const targetKpi = isOpex ? 90 : 100
-    const themeLabel = isOpex ? 'EXPENSES BUDGET USAGE - DEPT (OPEX)' : 'ASSET BUDGET USAGE DEPT. (CAPEX)'
 
-    // Map the monthly data into standard 12 months array
+    // Theme label based on active selection
+    let themeLabel = 'ASSET BUDGET USAGE DEPT. (CAPEX - I-1)'
+    if (isOpex) {
+        if (opexSubTab === 'E1') themeLabel = 'EXPENSES BUDGET USAGE - E-1 CONSUMABLES'
+        else if (opexSubTab === 'E9_CAL') themeLabel = 'EXPENSES BUDGET USAGE - E-9 KALIBRASI ALAT UKUR'
+        else if (opexSubTab === 'E9_PREV') themeLabel = 'EXPENSES BUDGET USAGE - E-9 PREVENTIVE C/F'
+        else themeLabel = 'EXPENSES BUDGET USAGE - DEPT (OPEX - ALL)'
+    }
+
+    // Map the monthly data into standard 12 months array (Fokus pada Realisasi Fisik GR)
     let totalApproved = 0
     let totalUsage = 0
+    let totalE1Usage = 0
+    let totalE9CalUsage = 0
+    let totalE9PrevUsage = 0
 
     const matrix = MONTH_NAMES.map((name, idx) => {
         const key = MONTH_KEYS[idx]
         const mObj = monthlyData.find(m => m.month === key)
-        const budgetItem = isOpex ? mObj?.opex : mObj?.capex
+        
+        const e1Usage = Number(mObj?.opex?.e1_expense?.actual_gr || 0)
+        const e9CalUsage = Number(mObj?.opex?.e9_calibration?.actual_gr || 0)
+        const e9PrevUsage = Number(mObj?.opex?.e9_preventive?.actual_gr || 0)
 
-        const approved = Number(budgetItem?.plan || 0)
-        const usage = Number(usageSource === 'pr' ? (budgetItem?.actual_pr || 0) : (budgetItem?.actual_gr || 0))
+        totalE1Usage += e1Usage
+        totalE9CalUsage += e9CalUsage
+        totalE9PrevUsage += e9PrevUsage
+
+        let approved = 0
+        let usage = 0
+
+        if (!isOpex) {
+            approved = Number(mObj?.capex?.plan || 0)
+            usage = Number(mObj?.capex?.actual_gr || 0)
+        } else {
+            if (opexSubTab === 'E1') {
+                approved = Number(mObj?.opex?.e1_expense?.plan || 0)
+                usage = e1Usage
+            } else if (opexSubTab === 'E9_CAL') {
+                approved = Number(mObj?.opex?.e9_calibration?.plan || 0)
+                usage = e9CalUsage
+            } else if (opexSubTab === 'E9_PREV') {
+                approved = Number(mObj?.opex?.e9_preventive?.plan || 0)
+                usage = e9PrevUsage
+            } else {
+                approved = Number(mObj?.opex?.plan || 0)
+                usage = Number(mObj?.opex?.actual_gr || 0)
+            }
+        }
+
         const pct = approved > 0 ? Math.round((usage / approved) * 100) : (usage > 0 ? 100 : 0)
         const isRecorded = approved > 0 || usage > 0
         const isSesuai = isRecorded ? pct <= targetKpi : true
@@ -46,6 +84,9 @@ export default function KpiBudgetUsageReport({
             target: targetKpi,
             approved,
             usage,
+            e1Usage,
+            e9CalUsage,
+            e9PrevUsage,
             pct: isRecorded ? pct : 0,
             isRecorded,
             isSesuai
@@ -82,10 +123,10 @@ export default function KpiBudgetUsageReport({
                     <div style={{ color: 'var(--primary)' }}>Target KPI: {d?.Target}%</div>
                     <div style={{ color: isGood ? 'var(--success)' : 'var(--danger)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
                         {isGood ? <CheckCircle2 size={13} /> : <AlertTriangle size={13} />}
-                        <span>Realisasi: {d?.Actual}% ({isGood ? 'Sesuai Target' : 'Over Target'})</span>
+                        <span>Realisasi GR: {d?.Actual}% ({isGood ? 'Sesuai Target' : 'Over Target'})</span>
                     </div>
                     <div style={{ color: 'var(--text-muted)', fontSize: '11px', marginTop: 4 }}>
-                        Budget: {formatRp(d?.approved)} · Pakai: {formatRp(d?.usage)}
+                        Budget: {formatRp(d?.approved)} · Realisasi GR: {formatRp(d?.usage)}
                     </div>
                 </div>
             )
@@ -123,31 +164,51 @@ export default function KpiBudgetUsageReport({
                 </div>
             </div>
 
-            {/* Banner Tema & Mode Switcher */}
+            {/* Sub-Filter Khusus OPEX (E-1 Expense, E-9 Calibration, E-9 Preventive) */}
+            {isOpex && (
+                <div className={s.opexSubBar}>
+                    <span className={s.subBarLabel}>Komponen OPEX:</span>
+                    <button
+                        className={`${s.subTabBtn} ${opexSubTab === 'ALL' ? s.active : ''}`}
+                        onClick={() => setOpexSubTab('ALL')}
+                        title="Gabungan seluruh komponen pengeluaran operasional (OPEX)"
+                    >
+                        Semua OPEX (Gabungan)
+                    </button>
+                    <button
+                        className={`${s.subTabBtn} ${opexSubTab === 'E1' ? s.active : ''}`}
+                        onClick={() => setOpexSubTab('E1')}
+                        title="Form E-1: Consumables & Perlengkapan Kerja"
+                    >
+                        E-1 Expense
+                    </button>
+                    <button
+                        className={`${s.subTabBtn} ${opexSubTab === 'E9_CAL' ? s.active : ''}`}
+                        onClick={() => setOpexSubTab('E9_CAL')}
+                        title="Form E-9: Kalibrasi Alat Ukur / Inspection Tools"
+                    >
+                        E-9 Calibration
+                    </button>
+                    <button
+                        className={`${s.subTabBtn} ${opexSubTab === 'E9_PREV' ? s.active : ''}`}
+                        onClick={() => setOpexSubTab('E9_PREV')}
+                        title="Form E-9: Pemeliharaan Rutin / Preventive C/F"
+                    >
+                        E-9 Preventive
+                    </button>
+                </div>
+            )}
+
+            {/* Banner Tema & Basis Evaluasi */}
             <div className={s.themeBanner}>
                 <div className={s.themeTitle}>
                     <Target size={16} />
                     <span>Tema : {themeLabel}</span>
                 </div>
 
-                <div className={s.modeToggle}>
-                    <span>Basis Terpakai:</span>
-                    <button
-                        className={`${s.tabBtn} ${usageSource === 'pr' ? s.active : ''}`}
-                        style={{ padding: '4px 10px', fontSize: '11px' }}
-                        onClick={() => setUsageSource('pr')}
-                        title="Berdasarkan pengajuan Purchase Requisition"
-                    >
-                        Planning PR
-                    </button>
-                    <button
-                        className={`${s.tabBtn} ${usageSource === 'gr' ? s.active : ''}`}
-                        style={{ padding: '4px 10px', fontSize: '11px' }}
-                        onClick={() => setUsageSource('gr')}
-                        title="Berdasarkan faktur penerimaan Goods Receipt"
-                    >
-                        Realisasi Fisik GR
-                    </button>
+                <div className={s.basisBadge}>
+                    <CheckCircle2 size={13} color="var(--primary)" />
+                    <span>Basis Evaluasi: <strong>Realisasi Fisik GR</strong></span>
                 </div>
             </div>
 
@@ -233,7 +294,7 @@ export default function KpiBudgetUsageReport({
                         {/* Baris 2: Budget Usage (IDR) */}
                         <tr className={s.usageRow}>
                             <td className={s.rowHeader}>
-                                {isOpex ? 'Expenses' : 'Asset'} Budget Usage (IDR)
+                                {isOpex ? 'Expenses' : 'Asset'} Budget Usage (Realisasi GR)
                             </td>
                             {matrix.map(m => (
                                 <td key={m.monthName}>
@@ -242,6 +303,33 @@ export default function KpiBudgetUsageReport({
                             ))}
                             <td><strong>{formatRp(totalUsage)}</strong></td>
                         </tr>
+
+                        {/* Rincian 3 Komponen OPEX jika dalam mode Semua OPEX */}
+                        {isOpex && opexSubTab === 'ALL' && (
+                            <>
+                                <tr className={s.subRow}>
+                                    <td className={s.rowHeaderSub}>&nbsp;&nbsp;↳ E-1 Expense</td>
+                                    {matrix.map(m => (
+                                        <td key={m.monthName}>{m.e1Usage > 0 ? formatRp(m.e1Usage) : '-'}</td>
+                                    ))}
+                                    <td>{formatRp(totalE1Usage)}</td>
+                                </tr>
+                                <tr className={s.subRow}>
+                                    <td className={s.rowHeaderSub}>&nbsp;&nbsp;↳ E-9 Calibration</td>
+                                    {matrix.map(m => (
+                                        <td key={m.monthName}>{m.e9CalUsage > 0 ? formatRp(m.e9CalUsage) : '-'}</td>
+                                    ))}
+                                    <td>{formatRp(totalE9CalUsage)}</td>
+                                </tr>
+                                <tr className={s.subRow}>
+                                    <td className={s.rowHeaderSub}>&nbsp;&nbsp;↳ E-9 Preventive</td>
+                                    {matrix.map(m => (
+                                        <td key={m.monthName}>{m.e9PrevUsage > 0 ? formatRp(m.e9PrevUsage) : '-'}</td>
+                                    ))}
+                                    <td>{formatRp(totalE9PrevUsage)}</td>
+                                </tr>
+                            </>
+                        )}
 
                         {/* Baris 3: Budget Approved in a month (IDR) */}
                         <tr className={s.approvedRow}>
@@ -318,7 +406,7 @@ export default function KpiBudgetUsageReport({
                     <span>Tidak sesuai target (&gt; {targetKpi}%)</span>
                 </div>
                 <div style={{ marginLeft: 'auto', color: 'var(--text-muted)' }}>
-                    PT Summit Adyawinsa Indonesia · KPI Monitoring
+                    PT Summit Adyawinsa Indonesia · KPI Monitoring (Fisik GR)
                 </div>
             </div>
         </div>

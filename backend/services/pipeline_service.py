@@ -307,80 +307,103 @@ class PipelineService:
         year_filter = extract('year', PrPoData.request_date) == year
 
         # 1. Ambil data Planned Budget dari PlanningDetail per bulan & per tipe form
+        # 1. Ambil data Planned Budget dari PlanningDetail per bulan & per tipe form (E-1, E-9, I-1)
         planning_rows = (
             db.session.query(
                 PlanningDetail.month,
                 Kategori.tipe_formulir,
-                func.sum(PlanningDetail.planning_amount).label('total_plan')
+                Kategori.kode.label('kat_kode'),
+                PlanningDetail.item,
+                PlanningDetail.planning_amount
             )
             .join(PlanningHeader, PlanningDetail.planning_header_id == PlanningHeader.id)
             .outerjoin(Kategori, PlanningDetail.kategori_id == Kategori.id)
             .filter(
                 PlanningHeader.periode == periode,
                 PlanningHeader.status.in_(["SUCCES", "SUCCESS"]),
-                PlanningDetail.status_realisasi != "CANCELLED"
+                PlanningDetail.status_realisasi != "CANCELLED",
+                Kategori.kode.in_(["E-1", "E-9", "I-1"])
             )
-            .group_by(PlanningDetail.month, Kategori.tipe_formulir)
             .all()
         )
 
-        # Map planned budget: monthly_plan[month_num]['CAPEX'|'OPEX']
         monthly_plan = {m: {'CAPEX': 0.0, 'OPEX': 0.0} for m in range(1, 13)}
+        monthly_plan_sub = {
+            m: {'e1_expense': 0.0, 'e9_calibration': 0.0, 'e9_preventive': 0.0}
+            for m in range(1, 13)
+        }
         for row in planning_rows:
             raw_month = str(row.month).strip().lower() if row.month else ''
             m_num = MONTH_ABBR_TO_NUM.get(raw_month)
             if m_num and 1 <= m_num <= 12:
+                amt = float(row.planning_amount or 0)
                 tipe = 'CAPEX' if row.tipe_formulir == 'CAPEX' else 'OPEX'
-                monthly_plan[m_num][tipe] += float(row.total_plan or 0)
+                monthly_plan[m_num][tipe] += amt
+                if row.kat_kode == 'E-1':
+                    monthly_plan_sub[m_num]['e1_expense'] += amt
+                elif row.kat_kode == 'E-9':
+                    if 'PREVENTIVE' in (row.item or '').upper():
+                        monthly_plan_sub[m_num]['e9_preventive'] += amt
+                    else:
+                        monthly_plan_sub[m_num]['e9_calibration'] += amt
 
-        # 2. Ambil data Actual PR (semua PR berstatus DONE) per bulan & per tipe form
-        actual_pr_rows = (
+        # 2. Ambil data Actual PR & GR (semua PR berstatus DONE) per bulan & per tipe form
+        actual_rows = (
             db.session.query(
                 extract('month', PrPoData.request_date).label('month_num'),
                 Kategori.tipe_formulir,
-                func.sum(PrPoData.total_price).label('total_actual_pr'),
-                func.count(PrPoData.id).label('pr_count')
+                Kategori.kode.label('kat_kode'),
+                PrPoData.total_price,
+                PrPoData.gr_legal_number,
+                PrPoData.description,
+                PlanningDetail.item.label('plan_item')
             )
             .outerjoin(Kategori, PrPoData.kategori_id == Kategori.id)
+            .outerjoin(PlanningDetail, PrPoData.planning_detail_id == PlanningDetail.id)
             .filter(
                 year_filter,
-                PrPoData.status_ai == "DONE"
+                PrPoData.status_ai == "DONE",
+                Kategori.kode.in_(["E-1", "E-9", "I-1"])
             )
-            .group_by('month_num', Kategori.tipe_formulir)
             .all()
         )
 
         monthly_pr = {m: {'CAPEX': 0.0, 'OPEX': 0.0, 'count': 0} for m in range(1, 13)}
-        for row in actual_pr_rows:
-            m_num = int(row.month_num) if row.month_num else None
-            if m_num and 1 <= m_num <= 12:
-                tipe = 'CAPEX' if row.tipe_formulir == 'CAPEX' else 'OPEX'
-                monthly_pr[m_num][tipe] += float(row.total_actual_pr or 0)
-                monthly_pr[m_num]['count'] += int(row.pr_count or 0)
-
-        # 3. Ambil data Actual GR (PR berstatus DONE dengan nomor GR) per bulan & per tipe form
-        actual_gr_rows = (
-            db.session.query(
-                extract('month', PrPoData.request_date).label('month_num'),
-                Kategori.tipe_formulir,
-                func.sum(PrPoData.total_price).label('total_actual_gr')
-            )
-            .outerjoin(Kategori, PrPoData.kategori_id == Kategori.id)
-            .filter(
-                year_filter,
-                PrPoData.status_ai == "DONE",
-                PrPoData.gr_legal_number.isnot(None)
-            )
-            .group_by('month_num', Kategori.tipe_formulir)
-            .all()
-        )
-
         monthly_gr = {m: {'CAPEX': 0.0, 'OPEX': 0.0} for m in range(1, 13)}
-        for row in actual_gr_rows:
+        monthly_pr_sub = {
+            m: {'e1_expense': 0.0, 'e9_calibration': 0.0, 'e9_preventive': 0.0}
+            for m in range(1, 13)
+        }
+        monthly_gr_sub = {
+            m: {'e1_expense': 0.0, 'e9_calibration': 0.0, 'e9_preventive': 0.0}
+            for m in range(1, 13)
+        }
+
+        for row in actual_rows:
             m_num = int(row.month_num) if row.month_num else None
             if m_num and 1 <= m_num <= 12:
+                amt = float(row.total_price or 0)
                 tipe = 'CAPEX' if row.tipe_formulir == 'CAPEX' else 'OPEX'
-                monthly_gr[m_num][tipe] += float(row.total_actual_gr or 0)
+                has_gr = bool(row.gr_legal_number)
+
+                monthly_pr[m_num][tipe] += amt
+                monthly_pr[m_num]['count'] += 1
+                if has_gr:
+                    monthly_gr[m_num][tipe] += amt
+
+                # OPEX sub-component
+                if row.kat_kode == 'E-1':
+                    monthly_pr_sub[m_num]['e1_expense'] += amt
+                    if has_gr:
+                        monthly_gr_sub[m_num]['e1_expense'] += amt
+                elif row.kat_kode == 'E-9':
+                    p_item = (row.plan_item or '').upper()
+                    desc = (row.description or '').upper()
+                    is_prev = 'PREVENTIVE' in p_item or (row.plan_item is None and 'KALIBRASI' not in desc and 'CALIBRATION' not in desc)
+                    sub_key = 'e9_preventive' if is_prev else 'e9_calibration'
+                    monthly_pr_sub[m_num][sub_key] += amt
+                    if has_gr:
+                        monthly_gr_sub[m_num][sub_key] += amt
 
         # 4. Ambil status counts PR per bulan (Need Mapping, OOP, On Plan, Over Plan)
         status_rows = (
@@ -415,6 +438,18 @@ class PipelineService:
             o_persen_pr = round((o_pr / o_plan) * 100) if o_plan > 0 else 0
             o_persen_gr = round((o_gr / o_plan) * 100) if o_plan > 0 else 0
 
+            e1_plan = monthly_plan_sub[m]['e1_expense']
+            e1_pr = monthly_pr_sub[m]['e1_expense']
+            e1_gr = monthly_gr_sub[m]['e1_expense']
+
+            e9_cal_plan = monthly_plan_sub[m]['e9_calibration']
+            e9_cal_pr = monthly_pr_sub[m]['e9_calibration']
+            e9_cal_gr = monthly_gr_sub[m]['e9_calibration']
+
+            e9_prev_plan = monthly_plan_sub[m]['e9_preventive']
+            e9_prev_pr = monthly_pr_sub[m]['e9_preventive']
+            e9_prev_gr = monthly_gr_sub[m]['e9_preventive']
+
             tot_plan = c_plan + o_plan
             tot_pr = c_pr + o_pr
             tot_gr = c_gr + o_gr
@@ -439,6 +474,30 @@ class PipelineService:
                     "actual_gr": o_gr,
                     "persen_pr": o_persen_pr,
                     "persen_gr": o_persen_gr,
+                    "e1_expense": {
+                        "name": "E-1 Expense",
+                        "plan": e1_plan,
+                        "actual_pr": e1_pr,
+                        "actual_gr": e1_gr,
+                        "persen_pr": round((e1_pr / e1_plan) * 100) if e1_plan > 0 else 0,
+                        "persen_gr": round((e1_gr / e1_plan) * 100) if e1_plan > 0 else 0,
+                    },
+                    "e9_calibration": {
+                        "name": "E-9 Calibration",
+                        "plan": e9_cal_plan,
+                        "actual_pr": e9_cal_pr,
+                        "actual_gr": e9_cal_gr,
+                        "persen_pr": round((e9_cal_pr / e9_cal_plan) * 100) if e9_cal_plan > 0 else 0,
+                        "persen_gr": round((e9_cal_gr / e9_cal_plan) * 100) if e9_cal_plan > 0 else 0,
+                    },
+                    "e9_preventive": {
+                        "name": "E-9 Preventive",
+                        "plan": e9_prev_plan,
+                        "actual_pr": e9_prev_pr,
+                        "actual_gr": e9_prev_gr,
+                        "persen_pr": round((e9_prev_pr / e9_prev_plan) * 100) if e9_prev_plan > 0 else 0,
+                        "persen_gr": round((e9_prev_gr / e9_prev_plan) * 100) if e9_prev_plan > 0 else 0,
+                    }
                 },
                 "total": {
                     "plan": tot_plan,

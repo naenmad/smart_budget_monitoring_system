@@ -492,6 +492,9 @@ class AdvancedMappingService:
                     top_candidates.sort(key=lambda x: x["score"], reverse=True)
 
         if not top_candidates:
+            oop_kat = Kategori.query.filter_by(kode="OOP").first()
+            if oop_kat:
+                pr.kategori_id = oop_kat.id
             pr.status_ai = "DONE"
             pr.budget_status = "OOP"
             pr.perlu_review = False

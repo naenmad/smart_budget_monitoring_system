@@ -292,25 +292,25 @@ export default function PrHistory() {
             <table className={styles.table}>
               <thead>
                 <tr className={styles.tableHeader}>
-                  {['#', 'Upload ID', 'PR Doc', 'Description', 'Supplier', 'Total Price', 'Tahapan', 'Status AI', 'Request Date', 'Aksi'].map(h => (
+                  {['#', 'PR Doc', 'Description', 'Supplier', 'Total Price', 'Tahapan', 'Request Date', 'Aksi'].map(h => (
                     <th key={h} className={styles.th}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {prList.length === 0 && (
-                  <tr><td colSpan={10} className={styles.emptyState}>Belum ada data</td></tr>
+                  <tr><td colSpan={8} className={styles.emptyState}>Belum ada data</td></tr>
                 )}
                 {prList.map((pr, i) => (
                   <tr key={pr.id} className={styles.tr}>
                     <td className={styles.td}>{(page - 1) * perPage + i + 1}</td>
-                    <td className={styles.td}>{pr.upload_id}</td>
-                    <td className={`${styles.td} ${styles.tdCode}`}>{pr.pr_doc_num || '-'}</td>
+                    <td className={`${styles.td} ${styles.tdCode}`} title={pr.upload_id ? `Batch Upload #${pr.upload_id}` : ''}>
+                      {pr.pr_doc_num || '-'}
+                    </td>
                     <td className={`${styles.td} ${styles.tdDesc}`} title={pr.description}>{pr.description || '-'}</td>
                     <td className={styles.td}>{pr.supplier_name || '-'}</td>
                     <td className={`${styles.td} ${styles.tdRight}`}>{fmt(pr.total_price)}</td>
                     <td className={styles.td}>{badge(pr.tracking_stage, stageColor)}</td>
-                    <td className={styles.td}>{badge(pr.status_ai, statusColor)}</td>
                     <td className={styles.td}>{pr.request_date || '-'}</td>
                     <td className={styles.td}>
                       {user?.role === 'admin' && (
