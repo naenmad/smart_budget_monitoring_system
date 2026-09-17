@@ -1,11 +1,11 @@
 import s from './FormTable.module.css'
 import { formatRp } from '../utils/format'
-import { AlertTriangle, FileText, CheckCircle2 } from 'lucide-react'
+import { AlertTriangle } from 'lucide-react'
 
 const FORMS = [
-    { code: 'E-1', name: 'Biaya Pemeliharaan & Perbaikan', type: 'OPEX', color: '#2563eb', cls: 'e1' },
-    { code: 'E-9', name: 'Biaya Non-Produksi / Tooling', type: 'OPEX', color: '#16a34a', cls: 'e9' },
-    { code: 'I-1', name: 'Alat & Peralatan Tetap / Inventory', type: 'CAPEX', color: '#7c3aed', cls: 'i1' },
+    { code: 'E-1', displayName: 'E1 - Consumable', name: 'Direct Material & Consumables', type: 'OPEX', color: '#2563eb', cls: 'e1' },
+    { code: 'E-9', displayName: 'E-9', name: 'Maintenance, Tooling & Calibration', type: 'OPEX', color: '#16a34a', cls: 'e9' },
+    { code: 'I-1', displayName: 'I-1', name: 'Fixed Assets & Capital Investment', type: 'CAPEX', color: '#7c3aed', cls: 'i1' },
 ]
 
 export default function FormTable({ data = {}, onRowClick }) {
@@ -13,13 +13,13 @@ export default function FormTable({ data = {}, onRowClick }) {
         <div className={s.wrapper}>
             <div className={s.header}>
                 <div className={s.headerTitle}>
-                    Monitoring Realisasi per Formulir Anggaran <span className={s.hint}>— klik baris untuk rincian bulanan</span>
+                    Budget Realization by Form <span className={s.hint}>— click row for monthly details</span>
                 </div>
                 <button
                     className={s.headerDetailBtn}
                     onClick={(e) => { e.stopPropagation(); onRowClick?.('ALL'); }}
                 >
-                    Lihat Semua Detail
+                    View All Details
                 </button>
             </div>
 
@@ -27,14 +27,14 @@ export default function FormTable({ data = {}, onRowClick }) {
                 <table className={s.table}>
                     <thead>
                         <tr>
-                            <th>Kode Form</th>
-                            <th>Kategori & Tipe</th>
-                            <th>Budget</th>
-                            <th>Planning PR</th>
-                            <th>Realisasi GR</th>
-                            <th>Budget PR</th>
-                            <th>% Pakai PR</th>
-                            <th>% Selesai GR</th>
+                            <th>Form Code</th>
+                            <th>Category & Description</th>
+                            <th>Total Budget</th>
+                            <th>Planned PR</th>
+                            <th>Actual GR</th>
+                            <th>Remaining Balance</th>
+                            <th>PR Usage %</th>
+                            <th>GR Completed %</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -60,7 +60,7 @@ export default function FormTable({ data = {}, onRowClick }) {
                                 >
                                     <td>
                                         <div className={s.formBadgeArea}>
-                                            <span className={`${s.badge} ${s[f.cls]}`}>{f.code}</span>
+                                            <span className={`${s.badge} ${s[f.cls]}`}>{f.displayName}</span>
                                             {isOver && <span className={s.overTag}>Over</span>}
                                             {isWarning && <span className={s.warningTag}>≥80%</span>}
                                         </div>

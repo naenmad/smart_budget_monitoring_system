@@ -262,6 +262,11 @@ class PrPoData(db.Model):
             return "PR"
         return "UNKNOWN"
 
+    @property
+    def extracted_pic(self):
+        from services.pareto_service import ParetoService
+        return ParetoService.extract_user_from_comment(self.comment_text)
+
     def to_dict(self):
         conf_score = None
         if getattr(self, 'klasifikasi_logs', None):
@@ -287,6 +292,7 @@ class PrPoData(db.Model):
             ),
             "description": self.description,
             "comment_text": self.comment_text,
+            "pic": self.extracted_pic,
             "supplier_name": self.supplier_name,
             "qty": float(self.qty) if self.qty else None,
             "uom": self.uom,
@@ -297,6 +303,9 @@ class PrPoData(db.Model):
                 float(self.total_price) if self.total_price else None
             ),
             "gr_legal_number": self.gr_legal_number,
+            "actual_gr_amount": (
+                float(self.total_price) if self.gr_legal_number and self.total_price else 0.0
+            ),
             "packing_slip": self.packing_slip,
             "receipt_date": (
                 self.receipt_date.isoformat()

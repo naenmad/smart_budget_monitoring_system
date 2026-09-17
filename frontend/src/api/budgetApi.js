@@ -11,6 +11,25 @@ export const budgetApi = {
   },
 
   /**
+   * Get Pareto analysis per Section/User and by Item with category filter
+   * @param {string} [periode]
+   * @param {string} [category]
+   */
+  getParetoAnalysis(periode, category = 'ALL') {
+    return api.get('/dashboard/pareto', { params: { periode, category } })
+      .then(res => res.data)
+  },
+
+  /**
+   * Get Procurement Commitment chart data aggregated by User / PIC
+   * @param {string} [periode]
+   */
+  getUserCommitment(periode) {
+    return api.get('/dashboard/pareto/user-commitment', { params: { periode } })
+      .then(res => res.data)
+  },
+
+  /**
    * Get all budgets, optionally filtered by periode
    * @param {string} [periode]
    */

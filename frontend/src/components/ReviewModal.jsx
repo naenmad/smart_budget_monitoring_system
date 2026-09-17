@@ -88,7 +88,7 @@ export default function ReviewModal({ record, categories, onClose, onSuccess }) 
             </div>
             <div className={s.infoRow}>
               <span className={s.infoLabel}>Saran AI</span>
-              <span className={s.infoValue}>{record.kategori_kode || 'UNKNOWN'} ({record.metode_klasifikasi || '—'})</span>
+              <span className={s.infoValue} title={`Metode deteksi AI: ${record.metode_klasifikasi || '—'}`}>{record.kategori_kode || 'UNKNOWN'}</span>
             </div>
           </div>
 

@@ -1,5 +1,5 @@
 from datetime import datetime
-from app import db
+from utils.db import db
 
 class EntertaintRecapMkt(db.Model):
     __tablename__ = "entertaint_recap_mkt"

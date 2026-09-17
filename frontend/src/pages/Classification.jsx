@@ -287,7 +287,6 @@ export default function Classification() {
                 <th>Komentar</th>
                 <th className={s.cellRight}>Total</th>
                 <th className={s.cellCenter}>Kode</th>
-                <th className={s.cellCenter}>Method</th>
                 <th>Confidence</th>
                 <th className={s.cellCenter}>Status</th>
                 <th>Tanggal</th>
@@ -297,13 +296,13 @@ export default function Classification() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={11} style={{ textAlign: 'center', padding: '40px', color: '#73726c' }}>
+                  <td colSpan={10} style={{ textAlign: 'center', padding: '40px', color: '#73726c' }}>
                     <Loader2 size={16} className="animate-spin" style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
                     Memuat data...
                   </td>
                 </tr>
               ) : data.length === 0 ? (
-                <tr><td colSpan={11} style={{ textAlign: 'center', padding: '40px', color: '#73726c' }}>Tidak ada data ditemukan</td></tr>
+                <tr><td colSpan={10} style={{ textAlign: 'center', padding: '40px', color: '#73726c' }}>Tidak ada data ditemukan</td></tr>
               ) : data.map((r, i) => {
                 const total = r.total_price || ((r.unit_price || 0) * (r.qty || 1))
                 const confidence = r.perlu_review ? 0 : (r.confidence_score || 0)
@@ -324,13 +323,8 @@ export default function Classification() {
                     </td>
                     <td className={s.cellRight}>{fmt(total)}</td>
                     <td className={s.cellCenter}>
-                      <span className={`${s.badge} ${BADGE_CLS[budgetCode] || s.badgeUnk}`}>
+                      <span className={`${s.badge} ${BADGE_CLS[budgetCode] || s.badgeUnk}`} title={`Metode deteksi AI: ${method}`}>
                         {budgetCode}
-                      </span>
-                    </td>
-                    <td className={s.cellCenter}>
-                      <span className={`${s.methodTag} ${METHOD_CLS[method] || ''}`}>
-                        {METHOD_LABEL[method] || method}
                       </span>
                     </td>
                     <td>

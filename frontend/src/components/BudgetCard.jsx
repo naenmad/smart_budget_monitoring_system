@@ -26,28 +26,39 @@ export default function BudgetCard({
                     <span className={`${s.badge} ${s[variant]}`}>{type}</span>
                     <span className={s.subTitle}>{title}</span>
                 </div>
-                <span className={`${s.detailLink} ${s[variant]}`}>
-                    Detail <ArrowRight size={12} />
-                </span>
+
+                {/* Sisa Budget at Top Right with Vibrant Highlight */}
+                <div className={s.headerRight}>
+                    <div className={`${s.sisaSaldoBadge} ${saldoPr < 0 ? s.sisaSaldoDanger : s.sisaSaldoSafe}`} title="Committed Remaining Budget (PR)">
+                        <div className={s.sisaSaldoHeader}>
+                            {saldoPr < 0 ? <AlertTriangle size={11} /> : <CheckCircle2 size={11} />}
+                            <span className={s.sisaSaldoLabel}>Sisa Budget</span>
+                        </div>
+                        <span className={s.sisaSaldoVal}>{formatRp(saldoPr)}</span>
+                    </div>
+                    <span className={`${s.detailLink} ${s[variant]}`}>
+                        Detail <ArrowRight size={12} />
+                    </span>
+                </div>
             </div>
 
-            {/* Plafon Anggaran */}
+            {/* Total Budget Row */}
             <div className={s.budgetRow}>
-                <span className={s.budgetLabel}>Jumlah Budget ({type})</span>
+                <span className={s.budgetLabel}>Total Budget ({type})</span>
                 <span className={`${s.budgetValue} ${s[variant]}`}>{formatRp(budget)}</span>
             </div>
 
             {/* Dual Usage Blocks: PR vs GR */}
             <div className={s.metricsGrid}>
-                {/* 1. Komitmen Pengadaan (PR) */}
+                {/* 1. Committed Procurement (PR) */}
                 <div className={`${s.metricBlock} ${s.pr}`}>
                     <div className={s.metricLabel}>
                         <FileText size={13} style={{ color: '#2563eb' }} />
-                        <span>Planning PR (Ekspektasi)</span>
+                        <span>Planned PR (Committed)</span>
                     </div>
                     <div className={`${s.metricVal} ${s[variant]}`}>{formatRp(actualPr)}</div>
                     <div className={s.metricSub}>
-                        Budget: <strong className={`${s.metricBudget} ${saldoPr < 0 ? s.dangerText : s[variant]}`}>{formatRp(saldoPr)}</strong>
+                        Sisa Budget: <strong className={`${s.metricBudget} ${saldoPr < 0 ? s.dangerText : s[variant]}`}>{formatRp(saldoPr)}</strong>
                     </div>
 
                     <div className={s.progBg}>
@@ -57,22 +68,22 @@ export default function BudgetCard({
                         />
                     </div>
                     <div className={s.usageRow}>
-                        <span className={s.usageText}>Terpakai PR</span>
+                        <span className={s.usageText}>PR Usage</span>
                         <span style={{ color: isOverPr ? 'var(--danger)' : '#2563eb' }}>
                             {pctPr}% {isOverPr && <AlertTriangle size={11} style={{ display: 'inline', verticalAlign: 'middle' }} />}
                         </span>
                     </div>
                 </div>
 
-                {/* 2. Realisasi Fisik (GR) */}
+                {/* 2. Physical Receipt (GR) */}
                 <div className={`${s.metricBlock} ${s.gr}`}>
                     <div className={s.metricLabel}>
                         <CheckCircle2 size={13} style={{ color: '#10b981' }} />
-                        <span>Realisasi GR (Fisik Diterima)</span>
+                        <span>Actual GR (Received)</span>
                     </div>
                     <div className={`${s.metricVal} ${s[variant]}`}>{formatRp(actualGr)}</div>
                     <div className={s.metricSub}>
-                        Budget: <strong className={`${s.metricBudget} ${s[variant]}`}>{formatRp(saldoGr)}</strong>
+                        Sisa Budget: <strong className={`${s.metricBudget} ${s[variant]}`}>{formatRp(saldoGr)}</strong>
                     </div>
 
                     <div className={s.progBg}>
@@ -82,7 +93,7 @@ export default function BudgetCard({
                         />
                     </div>
                     <div className={s.usageRow}>
-                        <span className={s.usageText}>Selesai GR</span>
+                        <span className={s.usageText}>GR Completed</span>
                         <span style={{ color: '#10b981' }}>
                             {pctGr}%
                         </span>

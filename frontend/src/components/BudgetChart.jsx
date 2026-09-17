@@ -38,7 +38,7 @@ export default function BudgetChart({ title, data = [] }) {
     const legends = [
         { label: 'Budget', color: COLORS.budget },
         { label: 'Actual', color: COLORS.actual },
-        { label: 'Budget', color: COLORS.saldo },
+        { label: 'Remaining', color: COLORS.saldo },
     ]
 
     return (
