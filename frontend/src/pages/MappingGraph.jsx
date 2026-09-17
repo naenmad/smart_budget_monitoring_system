@@ -878,7 +878,7 @@ export default function MappingGraph() {
         <div style="font-size:11.5px;color:var(--text-muted);line-height:1.5;">
           <div>Dokumen PR: <strong>${node.prCount} Dokumen</strong></div>
           <div>Item Planning: <strong>${node.planCount} Item</strong></div>
-          <div>Pagu Disetujui: <strong>${formatRp(node.pagu)}</strong></div>
+          <div>Budget Disetujui: <strong>${formatRp(node.pagu)}</strong></div>
           <div>Realisasi: <strong>${formatRp(node.consumed)}</strong></div>
         </div>
         <div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border-color);color:#2563eb;font-weight:700;font-size:11px;">
@@ -895,7 +895,7 @@ export default function MappingGraph() {
         <div style="font-size:10px;text-transform:uppercase;color:#64748b;font-weight:700;">Item Planning (${node.month})</div>
         <strong style="color:var(--text-main);display:block;margin:2px 0 4px;">${node.label}</strong>
         <div style="font-size:11px;color:var(--text-muted);line-height:1.4;">
-          <div>Pagu: ${formatRp(node.pagu)}</div>
+          <div>Budget: ${formatRp(node.pagu)}</div>
           <div>Terpakai: ${formatRp(node.consumed)} (${node.consumption_pct}%)</div>
           <div>Sisa: ${formatRp(node.remaining)}</div>
         </div>
@@ -1061,8 +1061,8 @@ export default function MappingGraph() {
 
             <select value={budgetStatus} onChange={e => setBudgetStatus(e.target.value)} className={s.selectInput}>
               <option value="ALL">Semua Status Realisasi</option>
-              <option value="ON_PLAN">On Plan (Sesuai Pagu)</option>
-              <option value="OVER_PLAN">Over Budget (Melebihi Pagu)</option>
+              <option value="ON_PLAN">On Plan (Sesuai Budget)</option>
+              <option value="OVER_PLAN">Over Budget (Melebihi Budget)</option>
               <option value="OOP">OOP (Out of Plan)</option>
               <option value="NEED_MAPPING">Need Mapping (Review)</option>
             </select>
@@ -1073,11 +1073,11 @@ export default function MappingGraph() {
       {/* ── Quick KPI Strip ── */}
       <div className={s.kpiStrip}>
         <div className={s.kpiCard}>
-          <span className={s.kpiLabel}>Total Pagu Planning</span>
+          <span className={s.kpiLabel}>Total Budget Planning</span>
           <span className={s.kpiValue}>{formatRp(metrics.total_planned || 0)}</span>
         </div>
         <div className={s.kpiCard}>
-          <span className={s.kpiLabel}>Terserap Sesuai Pagu</span>
+          <span className={s.kpiLabel}>Terserap Sesuai Budget</span>
           <span className={s.kpiValue} style={{ color: '#10b981' }}>{formatRp(metrics.total_consumed || 0)}</span>
         </div>
         <div className={s.kpiCard}>
@@ -1204,7 +1204,7 @@ export default function MappingGraph() {
                       <span className={s.drawerVal}>{selectedNode.planCount} Item</span>
                     </div>
                     <div className={s.drawerItem}>
-                      <span className={s.drawerLabel}>Total Pagu</span>
+                      <span className={s.drawerLabel}>Total Budget</span>
                       <span className={s.drawerVal}>{formatRp(selectedNode.pagu)}</span>
                     </div>
                     <div className={s.drawerItem}>
@@ -1249,7 +1249,7 @@ export default function MappingGraph() {
                   </div>
                   <div className={s.drawerGrid}>
                     <div className={s.drawerItem}>
-                      <span className={s.drawerLabel}>Pagu Anggaran</span>
+                      <span className={s.drawerLabel}>Budget</span>
                       <span className={s.drawerVal}>{formatRp(selectedNode.pagu)}</span>
                     </div>
                     <div className={s.drawerItem}>
@@ -1259,7 +1259,7 @@ export default function MappingGraph() {
                       </span>
                     </div>
                     <div className={s.drawerItem}>
-                      <span className={s.drawerLabel}>Sisa Saldo</span>
+                      <span className={s.drawerLabel}>Budget</span>
                       <span className={s.drawerVal}>{formatRp(selectedNode.remaining)}</span>
                     </div>
                     <div className={s.drawerItem}>
@@ -1305,12 +1305,12 @@ export default function MappingGraph() {
               {selectedNode.type === 'center_year' && (
                 <div className={s.drawerSection}>
                   <div style={{ marginBottom: 12 }}>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Pusat Anggaran</div>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-main)' }}>Tahun Anggaran {periode}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Pusat Budget</div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-main)' }}>Tahun Budget {periode}</div>
                   </div>
                   <div className={s.drawerGrid}>
                     <div className={s.drawerItem}>
-                      <span className={s.drawerLabel}>Total Pagu</span>
+                      <span className={s.drawerLabel}>Total Budget</span>
                       <span className={s.drawerVal}>{formatRp(metrics.total_planned || 0)}</span>
                     </div>
                     <div className={s.drawerItem}>

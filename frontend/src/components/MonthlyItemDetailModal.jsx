@@ -76,7 +76,7 @@ export default function MonthlyItemDetailModal({ periode = '2026', month = 'Jan'
         {/* Summary Chips */}
         <div className={s.summaryRow}>
           <div className={s.summaryChip}>
-            <span className={s.chipLabel}>Anggaran Planned</span>
+            <span className={s.chipLabel}>Planned Budget</span>
             <span className={`${s.chipValue} ${s.chipPlanned}`}>{formatRp(summary.total_planned)}</span>
           </div>
           <div className={s.summaryChip}>
@@ -88,7 +88,7 @@ export default function MonthlyItemDetailModal({ periode = '2026', month = 'Jan'
             <span className={`${s.chipValue} ${s.chipGr}`}>{formatRp(summary.total_gr)}</span>
           </div>
           <div className={s.summaryChip}>
-            <span className={s.chipLabel}>Sisa Saldo PR</span>
+            <span className={s.chipLabel}>Budget PR</span>
             <span className={`${s.chipValue} ${isOver ? s.chipSaldoOver : s.chipSaldoSafe}`}>
               {formatRp(summary.saldo_pr)}
             </span>
@@ -140,9 +140,9 @@ export default function MonthlyItemDetailModal({ periode = '2026', month = 'Jan'
                   <th style={{ width: 36 }}>#</th>
                   <th>Nama Barang / Item Planning</th>
                   <th>Kategori</th>
-                  <th style={{ textAlign: 'right' }}>Pagu Anggaran</th>
+                  <th style={{ textAlign: 'right' }}>Budget</th>
                   <th style={{ textAlign: 'right' }}>Terpakai PR</th>
-                  <th style={{ textAlign: 'right' }}>Sisa Saldo</th>
+                  <th style={{ textAlign: 'right' }}>Budget</th>
                   <th style={{ textAlign: 'center' }}>Jml PR</th>
                   <th style={{ textAlign: 'center' }}>Status</th>
                 </tr>

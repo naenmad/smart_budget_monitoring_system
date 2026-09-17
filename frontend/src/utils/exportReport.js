@@ -43,7 +43,7 @@ export async function exportBudgetSummaryToExcel({
     [`Tanggal Export: ${currentDateStr}`],
     [],
     ['1. RINGKASAN ANGGARAN CAPEX vs OPEX (Planning PR vs REALISASI FISIK GR)'],
-    ['Tipe Anggaran', 'Pagu Budget (Rp)', 'Planning PR (Rp)', 'Realisasi GR (Rp)', 'Sisa Saldo PR (Rp)', '% Pakai PR', '% Selesai GR', 'Status'],
+    ['Tipe Budget', 'Budget (Rp)', 'Planning PR (Rp)', 'Realisasi GR (Rp)', 'Budget PR (Rp)', '% Pakai PR', '% Selesai GR', 'Status'],
     [
       'CAPEX (Capital Expenditure)',
       capexBudget,
@@ -66,7 +66,7 @@ export async function exportBudgetSummaryToExcel({
     ],
     [],
     ['2. RINCIAN REALISASI PER FORMULIR'],
-    ['Kode Form', 'Nama Kategori', 'Tipe', 'Pagu Budget (Rp)', 'Planning PR (Rp)', 'Realisasi GR (Rp)', 'Sisa Saldo PR (Rp)', '% Pakai PR', '% Selesai GR', 'Status']
+    ['Kode Form', 'Nama Kategori', 'Tipe', 'Budget (Rp)', 'Planning PR (Rp)', 'Realisasi GR (Rp)', 'Budget PR (Rp)', '% Pakai PR', '% Selesai GR', 'Status']
   ]
 
   // 2. Tambahkan Baris Data per Form (E-1, E-9, I-1, dll)

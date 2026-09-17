@@ -40,9 +40,9 @@ const STATIC_ITEMS = [
   { path: '/dashboard', label: 'Dashboard Monitoring', type: 'page', category: 'Halaman', icon: LayoutDashboard, keywords: 'overview ringkasan beranda home summary statistik realisasi budget' },
   { path: '/master/item-mapping', label: 'Item Mapping Rules', type: 'page', category: 'Halaman', icon: Database, keywords: 'master data keyword aturan kata kunci mapping kamus sinonim pencocokan' },
   { path: '/classification', label: 'Model Klasifikasi AI (SVM & TF-IDF)', type: 'page', category: 'Halaman', icon: Cpu, keywords: 'machine learning ai klasifikasi kategori svm support vector machine akurasi confidence matrix' },
-  { path: '/planning/upload', label: 'Upload Planning Anggaran', type: 'page', category: 'Halaman', icon: UploadCloud, keywords: 'import excel upload planning anggaran master pagu tahunan template rencana' },
-  { path: '/planning/list', label: 'Daftar Planning Anggaran', type: 'page', category: 'Halaman', icon: ListFilter, keywords: 'list planning daftar rencana anggaran e-1 e-9 i-1 bulanan pagu detail' },
-  { path: '/budget', label: 'Budget Monitoring & Setup', type: 'page', category: 'Halaman', icon: DollarSign, keywords: 'budget setting setup anggaran tahunan pagu capex opex saldo sisa' },
+  { path: '/planning/upload', label: 'Upload Planning Anggaran', type: 'page', category: 'Halaman', icon: UploadCloud, keywords: 'import excel upload planning anggaran master budget tahunan template rencana' },
+  { path: '/planning/list', label: 'Daftar Planning Anggaran', type: 'page', category: 'Halaman', icon: ListFilter, keywords: 'list planning daftar rencana anggaran e-1 e-9 i-1 bulanan budget detail' },
+  { path: '/budget', label: 'Budget Monitoring & Setup', type: 'page', category: 'Halaman', icon: DollarSign, keywords: 'budget setting setup anggaran tahunan budget capex opex saldo sisa' },
   { path: '/pr/upload', label: 'Upload Purchase Requisition', type: 'page', category: 'Halaman', icon: FileText, keywords: 'upload import pr purchase requisition po purchase order data excel' },
   { path: '/pr/history', label: 'Riwayat PR / PO Upload', type: 'page', category: 'Halaman', icon: History, keywords: 'history riwayat log unggahan pr po tanggal pengupload batch data' },
   { path: '/pr/result', label: 'Result Matching & Validasi', type: 'page', category: 'Halaman', icon: FileCheck, keywords: 'result matching hasil validasi status pr planning oop overplan underplan' },
@@ -50,12 +50,12 @@ const STATIC_ITEMS = [
   { path: '/users', label: 'Kelola Pengguna Sistem', type: 'page', category: 'Halaman', icon: Users, keywords: 'user manajemen role admin viewer manager user pengaturan hak akses akun' },
 
   // ── Card & Widget ──
-  { path: '/dashboard', label: 'Card: Budget Overview (Total, Terpakai, Saldo)', type: 'card', category: 'Card & Widget', icon: Layers, keywords: 'card total budget terpakai saldo overview ringkasan metrik dashboard pagu' },
+  { path: '/dashboard', label: 'Card: Budget Overview (Total, Terpakai, Budget)', type: 'card', category: 'Card & Widget', icon: Layers, keywords: 'card total budget terpakai budget overview ringkasan metrik dashboard' },
   { path: '/dashboard', label: 'Card: Analisis CAPEX & OPEX', type: 'card', category: 'Card & Widget', icon: PieChart, keywords: 'card capex opex capital operational perbandingan grafik budget modal operasional' },
   { path: '/dashboard', label: 'Card: Status PR Pipeline (On Plan, Over, Under, OOP)', type: 'card', category: 'Card & Widget', icon: BarChart3, keywords: 'card status pipeline pr on plan over plan under plan out of plan need mapping cancelled' },
   { path: '/dashboard', label: 'Card: PR Tracking Stages (Stage PR, PO, GR)', type: 'card', category: 'Card & Widget', icon: TrendingUp, keywords: 'card tracking tahapan stage pr purchase requisition stage po order stage gr goods receipt' },
   { path: '/classification', label: 'Card: Metrik Akurasi & Confusion Matrix SVM', type: 'card', category: 'Card & Widget', icon: Cpu, keywords: 'card akurasi model svm precision recall f1-score confusion matrix tf-idf ai' },
-  { path: '/budget', label: 'Card: Status Pagu Anggaran Aktif per Kategori', type: 'card', category: 'Card & Widget', icon: DollarSign, keywords: 'card pagu aktif e-1 e-9 i-1 limit budget monitoring' },
+  { path: '/budget', label: 'Card: Status Budget Aktif per Kategori', type: 'card', category: 'Card & Widget', icon: DollarSign, keywords: 'card budget aktif e-1 e-9 i-1 limit budget monitoring' },
 
   // ── Tabel & Data ──
   { path: '/dashboard', label: 'Tabel: Rincian Form Budget (E-1, E-9, I-1)', type: 'table', category: 'Tabel & Data', icon: Table, keywords: 'tabel rincian form budget data realisasi persen persentase warning over saldo' },

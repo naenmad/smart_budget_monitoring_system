@@ -665,9 +665,9 @@ export default function MappingReview() {
                                 {cand.planning_item}
                               </span>
                               {cand.price_anomaly && (
-                                <span className={styles.priceAnomalyBadge} title="Nominal PR menyimpang dari pagu perencanaan">
+                                <span className={styles.priceAnomalyBadge} title="Nominal PR menyimpang dari budget perencanaan">
                                   <AlertTriangle size={11} />
-                                  {cand.price_status === 'WARNING_EXCEEDS_BUDGET' ? 'Pagu Terlampaui (>300%)' : 'Anomali Skala Harga'}
+                                  {cand.price_status === 'WARNING_EXCEEDS_BUDGET' ? 'Budget Terlampaui (>300%)' : 'Anomali Skala Harga'}
                                 </span>
                               )}
                             </div>
@@ -826,7 +826,7 @@ export default function MappingReview() {
                         {item.month || '-'}
                       </span>
                       <span className={styles.modalResultAmount}>
-                        Pagu: {fmt(item.planning_amount)}
+                        Budget: {fmt(item.planning_amount)}
                         {item.remarks ? ` · ${item.remarks}` : ''}
                       </span>
                       {item.kategori_kode && (

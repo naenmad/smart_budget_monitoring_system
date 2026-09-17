@@ -163,12 +163,12 @@ export default function Dashboard() {
   if (capexActualPr > capexBudget && capexBudget > 0) {
     alerts.push({
       type: 'danger',
-      message: `Kritis: Planning PR CAPEX telah melebihi pagu anggaran sebesar ${formatRp(capexActualPr - capexBudget)} (${Math.round((capexActualPr / capexBudget) * 100)}%)`
+      message: `Kritis: Planning PR CAPEX telah melebihi budget anggaran sebesar ${formatRp(capexActualPr - capexBudget)} (${Math.round((capexActualPr / capexBudget) * 100)}%)`
     })
   } else if (capexBudget > 0 && (capexActualPr / capexBudget) >= 0.8) {
     alerts.push({
       type: 'warning',
-      message: `Peringatan Plafon: Planning PR CAPEX telah mencapai ${Math.round((capexActualPr / capexBudget) * 100)}% dari total pagu anggaran.`
+      message: `Peringatan Plafon: Planning PR CAPEX telah mencapai ${Math.round((capexActualPr / capexBudget) * 100)}% dari total budget anggaran.`
     })
   }
 
@@ -177,12 +177,12 @@ export default function Dashboard() {
   if (opexActualPr > opexBudget && opexBudget > 0) {
     alerts.push({
       type: 'danger',
-      message: `Kritis: Planning PR OPEX telah melebihi pagu anggaran sebesar ${formatRp(opexActualPr - opexBudget)} (${Math.round((opexActualPr / opexBudget) * 100)}%)`
+      message: `Kritis: Planning PR OPEX telah melebihi budget anggaran sebesar ${formatRp(opexActualPr - opexBudget)} (${Math.round((opexActualPr / opexBudget) * 100)}%)`
     })
   } else if (opexBudget > 0 && (opexActualPr / opexBudget) >= 0.8) {
     alerts.push({
       type: 'warning',
-      message: `Peringatan Plafon: Planning PR OPEX telah mencapai ${Math.round((opexActualPr / opexBudget) * 100)}% dari total pagu anggaran.`
+      message: `Peringatan Plafon: Planning PR OPEX telah mencapai ${Math.round((opexActualPr / opexBudget) * 100)}% dari total budget anggaran.`
     })
   }
 
@@ -200,7 +200,7 @@ export default function Dashboard() {
       } else if (pct >= 80) {
         alerts.push({
           type: 'warning',
-          message: `Peringatan Dini: Form ${item.kode} (${item.nama || ''}) telah mencapai ${pct}% dari pagu anggaran (${formatRp(a)} / ${formatRp(b)}).`
+          message: `Peringatan Dini: Form ${item.kode} (${item.nama || ''}) telah mencapai ${pct}% dari budget anggaran (${formatRp(a)} / ${formatRp(b)}).`
         })
       }
     }
@@ -283,7 +283,7 @@ export default function Dashboard() {
           {/* 1. Pemisahan CAPEX & OPEX Overview (Tidak digabung) */}
           <section className="card">
             <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem', color: 'var(--text-main)' }}>
-              Monitoring Pagu Anggaran (CAPEX vs OPEX)
+              Monitoring Budget (CAPEX vs OPEX)
             </h2>
             <div className={s.budgetGrid}>
               <BudgetCard

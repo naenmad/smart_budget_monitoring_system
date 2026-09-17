@@ -62,7 +62,7 @@ export default function Planning() {
       </div>
 
       {/* ── Tab Content ── */}
-      <div className={s.tabContent}>
+      <div className={s.tabContent} key={activeTab}>
         {activeTab === 'list' && <PlanningList />}
         {activeTab === 'upload' && <PlanningUpload />}
       </div>

@@ -32,6 +32,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'react-hot-toast'
 import { entertaintApi } from '../api/entertaintApi'
+import EntertaintStatsCards from '../components/EntertaintStatsCards'
 import s from './EntertaintAnalytics.module.css'
 
 const formatRp = (num) => {
@@ -106,11 +107,24 @@ const QUARTAL_DATA = [
   }
 ]
 
-export default function EntertaintAnalytics({ embedded = false }) {
+export default function EntertaintAnalytics({ embedded = false, recapMktSummary: propRecapMktSummary }) {
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState(null)
+  const [recapMktSummary, setRecapMktSummary] = useState(propRecapMktSummary || null)
   const [selectedYear, setSelectedYear] = useState('')
   const [activeTableTab, setActiveTableTab] = useState('customer') // 'customer' | 'pic' | 'quartal'
+
+  useEffect(() => {
+    if (propRecapMktSummary) {
+      setRecapMktSummary(propRecapMktSummary)
+    } else {
+      entertaintApi.getRecapMkt().then((res) => {
+        if (res.data?.success) {
+          setRecapMktSummary(res.data.summary)
+        }
+      }).catch(console.error)
+    }
+  }, [propRecapMktSummary])
 
   const fetchAnalytics = useCallback(async (year = selectedYear) => {
     setLoading(true)
@@ -225,65 +239,7 @@ export default function EntertaintAnalytics({ embedded = false }) {
       </div>
 
       {/* ── KPI Hero Cards ── */}
-      <div className={s.statsGrid}>
-        <div className={s.statCard}>
-          <div className={s.statIcon} style={{ background: 'rgba(37, 99, 235, 0.1)', color: 'var(--primary)' }}>
-            <Receipt size={24} />
-          </div>
-          <div className={s.statInfo}>
-            <span className={s.statLabel}>Akumulasi Pengeluaran</span>
-            <span className={s.statVal}>{formatRp(data?.total_amount || 0)}</span>
-            <span className={s.statSub}>
-              <Calendar size={12} /> {data?.count_total || 0} Total Aktivitas Terdata
-            </span>
-          </div>
-        </div>
-
-        <div className={s.statCard}>
-          <div className={s.statIcon} style={{ background: 'rgba(22, 163, 74, 0.1)', color: '#16a34a' }}>
-            <CheckCircle2 size={24} />
-          </div>
-          <div className={s.statInfo}>
-            <span className={s.statLabel}>Klaim Lunas ({data?.lunas_percentage || 0}%)</span>
-            <span className={s.statVal} style={{ color: '#16a34a' }}>
-              {formatRp(data?.total_lunas || 0)}
-            </span>
-            <span className={s.statSub}>
-              {data?.count_lunas || 0} Klaim Sudah Terbayarkan
-            </span>
-          </div>
-        </div>
-
-        <div className={s.statCard}>
-          <div className={s.statIcon} style={{ background: 'rgba(220, 38, 38, 0.1)', color: '#dc2626' }}>
-            <Clock size={24} />
-          </div>
-          <div className={s.statInfo}>
-            <span className={s.statLabel}>Belum Dibayar ({data?.belum_lunas_percentage || 0}%)</span>
-            <span className={s.statVal} style={{ color: '#dc2626' }}>
-              {formatRp(data?.total_belum_lunas || 0)}
-            </span>
-            <span className={s.statSub}>
-              {data?.count_belum_dibayar || 0} Klaim Menunggu Reimburse
-            </span>
-          </div>
-        </div>
-
-        <div className={s.statCard}>
-          <div className={s.statIcon} style={{ background: 'rgba(217, 119, 6, 0.1)', color: '#d97706' }}>
-            <Wallet size={24} />
-          </div>
-          <div className={s.statInfo}>
-            <span className={s.statLabel}>Sisa Saldo Kasbon QC</span>
-            <span className={s.statVal} style={{ color: '#d97706' }}>
-              {formatRp(data?.cashflow_balance || 0)}
-            </span>
-            <span className={s.statSub}>
-              Masuk: {formatJuta(data?.cashflow_in)} | Keluar: {formatJuta(data?.cashflow_out)}
-            </span>
-          </div>
-        </div>
-      </div>
+      <EntertaintStatsCards summary={data} recapMktSummary={recapMktSummary} />
 
       {/* ── Charts Grid ── */}
       <div className={s.chartsGrid}>

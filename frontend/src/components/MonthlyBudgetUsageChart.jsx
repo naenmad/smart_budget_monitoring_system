@@ -33,7 +33,7 @@ const CustomTooltip = ({ active, payload, label, activeTab }) => {
             <div className={s.tooltip}>
                 <div className={s.tooltipLabel}>Bulan {label} ({activeTab.toUpperCase()})</div>
                 <div className={s.tooltipRow} style={{ color: COLORS.plan }}>
-                    <span>Anggaran Planned:</span>
+                    <span>Planned Budget:</span>
                     <strong>{formatRp(plan)}</strong>
                 </div>
                 <div className={s.tooltipRow} style={{ color: COLORS.actual_pr }}>
@@ -80,7 +80,7 @@ export default function MonthlyBudgetUsageChart({ title = 'Monitoring Penggunaan
     })
 
     const legends = [
-        { label: 'Planned Budget (Anggaran)', color: COLORS.plan },
+        { label: 'Planned Budget', color: COLORS.plan },
         { label: 'Terpakai PR (Komitmen)', color: COLORS.actual_pr },
         { label: 'Realisasi GR (Barang Diterima)', color: COLORS.actual_gr },
     ]
@@ -159,10 +159,10 @@ export default function MonthlyBudgetUsageChart({ title = 'Monitoring Penggunaan
                     <thead>
                         <tr>
                             <th>Bulan</th>
-                            <th>Anggaran Planned</th>
+                            <th>Planned Budget</th>
                             <th>Planning PR (Ekspektasi)</th>
                             <th>Realisasi GR (Barang Tiba)</th>
-                            <th>Sisa Saldo PR</th>
+                            <th>Budget PR</th>
                             <th>% Pakai PR</th>
                             <th>% Selesai GR</th>
                         </tr>

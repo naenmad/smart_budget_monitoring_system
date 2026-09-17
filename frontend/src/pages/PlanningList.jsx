@@ -1,12 +1,13 @@
 import toast from 'react-hot-toast'
 import { useConfirm } from '../context/ConfirmContext'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { planningApi } from '../api/planningApi'
 import s from './PlanningList.module.css'
 import { formatRp } from '../utils/format'
 import { Calendar, X, ChevronUp, ChevronDown, ArrowUpDown, Search } from 'lucide-react'
 import TablePagination from '../components/common/TablePagination'
+import TableSkeleton from '../components/common/TableSkeleton'
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
@@ -39,12 +40,25 @@ export default function PlanningList() {
   const [periode, setPeriode] = useState('')
   const [filterMonth, setFilterMonth] = useState('')
   const [search, setSearch] = useState('')
+  const searchInputRef = useRef(null)
   const [expanded, setExpanded] = useState(null)
   const [details, setDetails] = useState({})
   const [detailLoading, setDetailLoading] = useState(false)
   const [detailPage, setDetailPage] = useState(1)
   const [detailPerPage, setDetailPerPage] = useState(20)
   const [detailSortOrder, setDetailSortOrder] = useState('asc')
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === '/' && document.activeElement !== searchInputRef.current) {
+        if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return
+        e.preventDefault()
+        searchInputRef.current?.focus()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   // Fetch Headers Query
   const { data: headersData, isLoading: loading } = useQuery({
@@ -130,11 +144,13 @@ export default function PlanningList() {
         <h2>Planning List</h2>
         <div className={s.controls}>
           <input
-            placeholder="Cari item, kode, nama..."
+            ref={searchInputRef}
+            placeholder="Cari item, kode, nama... (Tekan /)"
+            title="Tekan [/] untuk langsung mencari"
             value={search}
             onChange={e => setSearch(e.target.value)}
             className={s.input}
-            style={{ width: 220 }}
+            style={{ width: 240 }}
           />
           <input
             placeholder="Filter Periode (cth: 2026)"
@@ -195,7 +211,9 @@ export default function PlanningList() {
         )}
 
         {/* ── Card list ── */}
-        {loading ? <p>Memuat...</p> : (
+        {loading ? (
+          <TableSkeleton rows={4} columns={['80px', '160px', '260px', '100px', '100px']} />
+        ) : (
           <div className={s.list}>
             {headers.length === 0 && (
               <p style={{ color: '#888', textAlign: 'center' }}>Belum ada data planning</p>
@@ -231,7 +249,9 @@ export default function PlanningList() {
                 {/* Detail Panel */}
                 {expanded === h.id && (
                   <div className={s.detailPanel}>
-                    {detailLoading && !details[h.id] ? <p>Memuat detail...</p> : (
+                    {detailLoading && !details[h.id] ? (
+                      <TableSkeleton rows={5} columns={['80px', '180px', '260px', '140px', '160px', '100px', '80px']} />
+                    ) : (
                       <>
                         {filterMonth && (
                           <p className={s.detailNote}>

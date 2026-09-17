@@ -1,6 +1,8 @@
 # Panduan Deployment — Smart Budget Monitoring & QC System
 
-> Opsi deployment: Docker Compose (Self-hosted), Render, Railway, Vercel
+> Opsi deployment: Docker Compose (Self-hosted PT SAI), Render, Railway, Vercel
+>
+> 📌 **PANDUAN RESMI TIM ICT PT SAI**: Untuk panduan deployment on-premise server lokal PT SAI yang lengkap, mudah dipahami, dan disertai diagram alur Mermaid, silakan buka: **[PANDUAN_DEPLOYMENT_ICT_SAI.md](./PANDUAN_DEPLOYMENT_ICT_SAI.md)**.
 
 ---
 

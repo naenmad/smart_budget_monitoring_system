@@ -110,7 +110,7 @@ export default function DetailModal({ type, periode, summaryItems, onClose }) {
                 <div className={s.header}>
                     <div className={s.headerLeft}>
                         <h2>Detail {type}</h2>
-                        <p>Budget {formatRp(budget)} · Actual {formatRp(actual)} · Saldo {formatRp(saldo)}</p>
+                        <p>Budget {formatRp(budget)} · Actual {formatRp(actual)} · Budget {formatRp(saldo)}</p>
                     </div>
                     <button className={s.closeBtn} onClick={onClose} aria-label="Tutup">
                         <X size={18} />
@@ -217,7 +217,7 @@ export default function DetailModal({ type, periode, summaryItems, onClose }) {
                         <div className={`${s.metricValue} ${s.warning}`}>{formatRp(actual)}</div>
                     </div>
                     <div className={s.metric}>
-                        <div className={s.metricLabel}>Saldo</div>
+                        <div className={s.metricLabel}>Budget</div>
                         <div className={`${s.metricValue} ${saldo < 0 ? s.danger : s.success}`}>
                             {formatRp(saldo)}
                         </div>

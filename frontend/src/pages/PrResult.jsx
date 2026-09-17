@@ -1,5 +1,5 @@
 import toast from 'react-hot-toast'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { prApi } from '../api/prApi'
 import { mappingApi } from '../api/mappingApi'
 import { kategoriApi } from '../api/kategoriApi'
@@ -16,9 +16,15 @@ import {
   Database, 
   CheckCircle2, 
   Sliders,
-  ArrowUpDown
+  ArrowUpDown,
+  Download,
+  SlidersHorizontal
 } from 'lucide-react'
 import TablePagination from '../components/common/TablePagination'
+import TableSkeleton from '../components/common/TableSkeleton'
+import CopyButton from '../components/common/CopyButton'
+import EmptyState from '../components/common/EmptyState'
+import { exportJsonToExcel } from '../utils/excelExport'
 import styles from './PrResult.module.css'
 
 const STATUS_CONFIG = {
@@ -45,6 +51,49 @@ export default function PrResult() {
   const [filterKategori, setFilterKategori] = useState('')
   const [searchItem, setSearchItem] = useState('')
   const [filterStatus, setFilterStatus] = useState('DONE')
+  const [density, setDensity] = useState(() => localStorage.getItem('sbms_table_density') || 'comfortable')
+  const searchInputRef = useRef(null)
+
+  const handleDensityChange = () => {
+    setDensity(prev => {
+      const next = prev === 'compact' ? 'comfortable' : 'compact'
+      localStorage.setItem('sbms_table_density', next)
+      return next
+    })
+  }
+
+  const handleExportExcel = () => {
+    if (!prList.length) {
+      toast.error('Tidak ada data untuk diexport')
+      return
+    }
+    const exportRows = prList.map((p, idx) => ({
+      'No': (page - 1) * perPage + idx + 1,
+      'No PR Doc': p.pr_doc_num || '-',
+      'Deskripsi': p.description || '-',
+      'Kategori': p.kategori_kode || p.kategori_nama || '-',
+      'Supplier': p.supplier_name || '-',
+      'Total Harga (IDR)': Number(p.total_price || 0),
+      'Status Anggaran': p.budget_status || p.status_ai || '-',
+      'Metode Deteksi': p.metode_klasifikasi || '-',
+      'Item Planning Terhubung': p.planning_item || '-',
+      'Tanggal Permintaan': p.request_date || '-'
+    }))
+    exportJsonToExcel(exportRows, 'Hasil_Matching_PR', 'Matching Result')
+    toast.success(`${exportRows.length} baris data berhasil diexport ke Excel!`)
+  }
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === '/' && document.activeElement !== searchInputRef.current) {
+        if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return
+        e.preventDefault()
+        searchInputRef.current?.focus()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   // Edit status modal state
   const [editTarget, setEditTarget] = useState(null)
@@ -246,13 +295,56 @@ export default function PrResult() {
         Hasil klasifikasi dan monitoring anggaran PR: <strong>PLANNING</strong> / <strong>OVER BUDGET</strong> / <strong>OOP</strong>
       </p>
 
+      {/* Quick Status Filter Chips */}
+      <div className={styles.statusChips}>
+        {[
+          { label: 'Semua', val: '' },
+          { label: 'Approved (DONE)', val: 'DONE' },
+          { label: 'Planning', val: 'ON_PLAN', color: '#166534' },
+          { label: 'Over Budget', val: 'OVER_PLAN', color: '#854d0e' },
+          { label: 'Out of Plan (OOP)', val: 'OOP', color: '#991b1b' },
+          { label: 'Perlu Review', val: 'PENDING', color: '#92400e' },
+          { label: 'Dibatalkan', val: 'CANCELLED', color: '#64748b' },
+        ].map(item => {
+          const active = filterStatus === item.val
+          return (
+            <button
+              key={item.val}
+              type="button"
+              className={`${styles.statusChip} ${active ? styles.statusChipActive : ''}`}
+              onClick={() => {
+                setFilterStatus(item.val)
+                setPage(1)
+              }}
+            >
+              {item.color && (
+                <span
+                  style={{
+                    display: 'inline-block',
+                    width: 7,
+                    height: 7,
+                    borderRadius: '50%',
+                    backgroundColor: active ? '#ffffff' : item.color,
+                    marginRight: 6
+                  }}
+                />
+              )}
+              {item.label}
+            </button>
+          )
+        })}
+      </div>
+
       {/* Filters */}
       <div className={styles.filters}>
         <input
-          placeholder="Cari PR, deskripsi, komentar..."
+          ref={searchInputRef}
+          placeholder="Cari PR, deskripsi, komentar... (Tekan /)"
+          title="Tekan [/] untuk langsung mencari"
           value={searchItem}
           onChange={e => { setSearchItem(e.target.value); setPage(1) }}
           className={styles.input}
+          style={{ minWidth: 260 }}
         />
         <select value={filterStatus} onChange={e => { setFilterStatus(e.target.value); setPage(1) }} className={styles.input}>
           <option value="">Semua Status</option>
@@ -286,13 +378,37 @@ export default function PrResult() {
             Reset Filter
           </button>
         )}
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button
+            type="button"
+            onClick={handleExportExcel}
+            className="btn-secondary"
+            style={{ padding: '6px 12px', fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            title="Download data tabel saat ini ke file Excel (.xlsx)"
+          >
+            <Download size={14} style={{ color: 'var(--success)' }} />
+            Export Excel
+          </button>
+          <button
+            type="button"
+            onClick={handleDensityChange}
+            className="btn-secondary"
+            style={{ padding: '6px 10px', fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 5 }}
+            title={`Mode tampilan baris: ${density === 'compact' ? 'Kompak' : 'Normal'} (Klik untuk beralih)`}
+          >
+            <SlidersHorizontal size={13} />
+            {density === 'compact' ? 'Kompak' : 'Normal'}
+          </button>
+        </div>
       </div>
 
       {/* Table */}
-      {loading ? <p>Memuat...</p> : (
+      {loading ? (
+        <TableSkeleton rows={8} columns={['40px', '140px', '320px', '100px', '180px', '120px', '110px', '70px']} />
+      ) : (
         <>
           <div className={styles.tableWrapper}>
-            <table className={styles.table}>
+            <table className={`${styles.table} ${density === 'compact' ? 'table-compact' : ''}`}>
               <thead>
                 <tr className={styles.tableHeader}>
                   {['#', 'PR Doc', 'Description', 'Kategori', 'Supplier', 'Total Price', 'Status', 'Aksi'].map(h => (
@@ -302,15 +418,30 @@ export default function PrResult() {
               </thead>
               <tbody>
                 {prList.length === 0 && (
-                  <tr><td colSpan={8} className={styles.emptyState}>
-                    Belum ada hasil matching. Upload PR terlebih dahulu.
-                  </td></tr>
+                  <tr>
+                    <td colSpan={8} style={{ padding: 0 }}>
+                      <EmptyState
+                        title="Tidak ada hasil matching"
+                        description="Tidak ada data PR yang cocok dengan kriteria filter atau kata kunci pencarian Anda."
+                        actionLabel="Reset Filter"
+                        onAction={() => {
+                          setSearchItem('')
+                          setFilterKategori('')
+                          setFilterStatus('')
+                          setPage(1)
+                        }}
+                      />
+                    </td>
+                  </tr>
                 )}
                 {prList.map((pr, i) => (
                   <tr key={pr.id} className={`${styles.tr} ${pr.status_ai === 'CANCELLED' ? styles.trCancelled : ''}`}>
                     <td className={styles.td}>{(page - 1) * perPage + i + 1}</td>
                     <td className={`${styles.td} ${styles.tdCode}`}>
-                      {pr.pr_doc_num || '-'}
+                      <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                        {pr.pr_doc_num || '-'}
+                        {pr.pr_doc_num && <CopyButton text={pr.pr_doc_num} label="Nomor PR" />}
+                      </span>
                     </td>
                     <td className={styles.td}>
                       <ScrollableCell text={pr.description} maxWidth={340} />
@@ -539,7 +670,7 @@ export default function PrResult() {
                     <div className={styles.selectedPlanningInfo}>
                       <span className={styles.selectedPlanningName}>{selectedPlanDetail.item}</span>
                       <span className={styles.selectedPlanningMeta}>
-                        Bulan: {selectedPlanDetail.month || '-'} &middot; Pagu: {fmt(selectedPlanDetail.planning_amount)}
+                        Bulan: {selectedPlanDetail.month || '-'} &middot; Budget: {fmt(selectedPlanDetail.planning_amount)}
                         {selectedPlanDetail.remarks ? ` · ${selectedPlanDetail.remarks}` : ''}
                       </span>
                     </div>

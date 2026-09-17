@@ -19,6 +19,41 @@
   font-size: 13px;
 }
 
+.statusChips {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.statusChip {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-main);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.statusChip:hover {
+  border-color: var(--primary);
+  background: var(--bg-subtle);
+}
+
+.statusChipActive {
+  background: var(--primary) !important;
+  color: #ffffff !important;
+  border-color: var(--primary) !important;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+}
+
 .filters {
   display: flex;
   gap: 10px;
@@ -66,6 +101,10 @@
 }
 
 .th {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  background: var(--bg-subtle);
   padding: 10px 12px;
   text-align: left;
   font-weight: 700;

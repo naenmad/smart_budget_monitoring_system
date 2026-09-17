@@ -289,7 +289,7 @@
 
 .groupChevron {
   color: var(--text-subtle);
-  transition: transform 0.2s ease;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .groupChevronOpen {
@@ -301,6 +301,19 @@
   flex-direction: column;
   gap: 2px;
   margin-top: 2px;
+  animation: groupSlideDown 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: top center;
+}
+
+@keyframes groupSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scaleY(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
 }
 
 .navLink {
@@ -313,13 +326,18 @@
   text-decoration: none;
   font-size: 13px;
   font-weight: 500;
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
 }
 
 .navLink:hover {
   background: var(--bg-subtle);
-  color: var(--text-main);
+  color: var(--primary);
+  transform: translateX(3px);
+}
+
+.navLink:active {
+  transform: translateX(1px) scale(0.99);
 }
 
 .navLinkActive {

@@ -127,8 +127,8 @@ export default function PrStatusModal({ status, onClose }) {
 
   const title = {
     ON_PLAN: 'ON PLAN (Sesuai Budget)',
-    OVER_PLAN: 'OVER BUDGET (Melebihi Pagu Anggaran)',
-    UNDER_PLAN: 'ACTUAL HARGA LEBIH RENDAH (Dibawah Pagu)',
+    OVER_PLAN: 'OVER BUDGET (Melebihi Budget)',
+    UNDER_PLAN: 'ACTUAL HARGA LEBIH RENDAH (Dibawah Budget)',
     OOP: 'OOP (Out of Plan - Tanpa Perencanaan)',
     CANCELLED_PR: 'PR Dibatalkan Langsung',
   }[status] || status
@@ -145,9 +145,9 @@ export default function PrStatusModal({ status, onClose }) {
       doc.text(`Laporan Rincian Budget - ${title}`, 14, 18)
 
       doc.setFontSize(10)
-      doc.text(`Total Data: ${prList.length} PR | Total Realisasi PR: ${formatRp(totalRealized)} | Total Pagu Item: ${formatRp(totalPlanned)}`, 14, 25)
+      doc.text(`Total Data: ${prList.length} PR | Total Realisasi PR: ${formatRp(totalRealized)} | Total Budget Item: ${formatRp(totalPlanned)}`, 14, 25)
 
-      const tableColumn = ["PR Doc", "Description", "Item Planning Terkait", "Pagu Planning", "Realisasi PR", "Akumulasi Item", "Status Saldo Item", "Kategori"]
+      const tableColumn = ["PR Doc", "Description", "Item Planning Terkait", "Budget Planning", "Realisasi PR", "Akumulasi Item", "Status Budget Item", "Kategori"]
       const tableRows = []
 
       prList.forEach(pr => {
@@ -193,7 +193,7 @@ export default function PrStatusModal({ status, onClose }) {
               {status === 'ON_PLAN' && <Target size={20} color="#16a34a" />}
               <span>Detail {title}</span>
             </h2>
-            <p>Daftar perbandingan Pagu Planning vs Realisasi Pengadaan PR</p>
+            <p>Daftar perbandingan Budget Planning vs Realisasi Pengadaan PR</p>
           </div>
           <div className={s.headerActions}>
             {prList.length > 0 && (
@@ -227,7 +227,7 @@ export default function PrStatusModal({ status, onClose }) {
               <div>
                 <strong style={{ color: '#dc2626' }}>Catatan Penentuan Status Over Budget:</strong>
                 <div style={{ marginTop: 2, color: 'var(--text-muted)' }}>
-                  Sebuah PR ditandai <strong>OVER BUDGET</strong> bukan hanya jika nominal satu PR melebihi pagu, melainkan ketika <strong>total akumulasi seluruh PR yang ter-mapping ke Item Planning tersebut</strong> telah melampaui Pagu Anggaran yang direncanakan.
+                  Sebuah PR ditandai <strong>OVER BUDGET</strong> bukan hanya jika nominal satu PR melebihi budget, melainkan ketika <strong>total akumulasi seluruh PR yang ter-mapping ke Item Planning tersebut</strong> telah melampaui budget yang direncanakan.
                 </div>
               </div>
             </div>
@@ -242,7 +242,7 @@ export default function PrStatusModal({ status, onClose }) {
                 <span className={s.kpiSub}>{prList.length} Dokumen PR</span>
               </div>
               <div className={s.kpiCard}>
-                <span className={s.kpiLabel}><Wallet size={13} /> Total Pagu Planning Terkait</span>
+                <span className={s.kpiLabel}><Wallet size={13} /> Total Budget Planning Terkait</span>
                 <span className={s.kpiValue}>{formatRp(totalPlanned)}</span>
                 <span className={s.kpiSub}>{uniquePlanCount} Item Planning Unik</span>
               </div>
@@ -251,14 +251,14 @@ export default function PrStatusModal({ status, onClose }) {
                 <span className={`${s.kpiValue} ${netVariance < 0 ? s.kpiValueDanger : s.kpiValueSuccess}`}>
                   {netVariance >= 0 ? `+${formatRp(netVariance)}` : `-${formatRp(Math.abs(netVariance))}`}
                 </span>
-                <span className={s.kpiSub}>{netVariance < 0 ? 'Overbudget Defisit' : 'Sisa Saldo Anggaran'}</span>
+                <span className={s.kpiSub}>{netVariance < 0 ? 'Overbudget Defisit' : 'Budget Tersisa'}</span>
               </div>
               <div className={s.kpiCard}>
                 <span className={s.kpiLabel}><TrendingUp size={13} /> Rasio Serapan</span>
                 <span className={`${s.kpiValue} ${serapanPct > 100 ? s.kpiValueDanger : ''}`}>
                   {serapanPct.toFixed(1)}%
                 </span>
-                <span className={s.kpiSub}>Dari Pagu Item Terkait</span>
+                <span className={s.kpiSub}>Dari Budget Item Terkait</span>
               </div>
             </div>
           )}
@@ -280,10 +280,10 @@ export default function PrStatusModal({ status, onClose }) {
                     <th>PR Doc</th>
                     <th>Deskripsi Barang (PR)</th>
                     <th>Item Planning Terkait</th>
-                    <th className={s.right}>Pagu Planning</th>
+                    <th className={s.right}>Budget Planning</th>
                     <th className={s.right}>Realisasi PR Ini</th>
                     <th className={s.right}>Akumulasi Terpakai</th>
-                    <th className={s.center}>Saldo Item Planning</th>
+                    <th className={s.center}>Budget Item Planning</th>
                     <th className={s.center}>Kategori</th>
                     {isOopView && <th className={s.center}>Aksi</th>}
                     {isCancelledPrView && <th>Alasan Pembatalan</th>}
@@ -333,7 +333,7 @@ export default function PrStatusModal({ status, onClose }) {
                                 {formatRp(totalConsumed)}
                               </div>
                               <div style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>
-                                ({((totalConsumed / pagu) * 100).toFixed(0)}% dari pagu)
+                                ({((totalConsumed / pagu) * 100).toFixed(0)}% dari budget)
                               </div>
                             </div>
                           ) : '-'}

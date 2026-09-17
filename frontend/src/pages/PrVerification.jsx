@@ -74,7 +74,7 @@ export default function PrVerification() {
       </div>
 
       {/* ── Tab Content ── */}
-      <div className={s.tabContent}>
+      <div className={s.tabContent} key={activeTab}>
         {activeTab === 'review' && <MappingReview />}
         {activeTab === 'result' && <PrResult />}
         {activeTab === 'graph' && <MappingGraph />}

@@ -100,6 +100,14 @@
     color: var(--text-main);
 }
 
+.budgetValue.capex {
+    color: #2563eb;
+}
+
+.budgetValue.opex {
+    color: #10b981;
+}
+
 .metricsGrid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -138,6 +146,30 @@
     font-weight: 700;
     color: var(--text-main);
     letter-spacing: -0.01em;
+}
+
+.metricVal.capex {
+    color: #2563eb;
+}
+
+.metricVal.opex {
+    color: #10b981;
+}
+
+.metricBudget {
+    font-weight: 700;
+}
+
+.metricBudget.capex {
+    color: #2563eb;
+}
+
+.metricBudget.opex {
+    color: #10b981;
+}
+
+.dangerText {
+    color: var(--danger);
 }
 
 .metricSub {

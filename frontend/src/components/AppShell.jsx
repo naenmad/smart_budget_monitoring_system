@@ -5,6 +5,8 @@ import Sidebar from './Sidebar'
 import TopNavbar from './TopNavbar'
 import Footer from './Footer'
 import CommandPalette from './CommandPalette'
+import ScrollToTopButton from './ScrollToTopButton'
+import Breadcrumbs from './Breadcrumbs'
 
 /**
  * AppShell — layout wrapper that shows sidebar + top navbar + main content + footer.
@@ -94,10 +96,12 @@ export default function AppShell() {
           isMobileOpen={isMobileOpen}
         />
         <main className="app-main">
+          <Breadcrumbs />
           <Outlet />
         </main>
         <Footer />
       </div>
+      <ScrollToTopButton />
       <CommandPalette />
     </div>
   )

@@ -33,8 +33,8 @@ export default function BudgetCard({
 
             {/* Plafon Anggaran */}
             <div className={s.budgetRow}>
-                <span className={s.budgetLabel}>Pagu Anggaran ({type})</span>
-                <span className={s.budgetValue}>{formatRp(budget)}</span>
+                <span className={s.budgetLabel}>Jumlah Budget ({type})</span>
+                <span className={`${s.budgetValue} ${s[variant]}`}>{formatRp(budget)}</span>
             </div>
 
             {/* Dual Usage Blocks: PR vs GR */}
@@ -45,9 +45,9 @@ export default function BudgetCard({
                         <FileText size={13} style={{ color: '#2563eb' }} />
                         <span>Planning PR (Ekspektasi)</span>
                     </div>
-                    <div className={s.metricVal}>{formatRp(actualPr)}</div>
+                    <div className={`${s.metricVal} ${s[variant]}`}>{formatRp(actualPr)}</div>
                     <div className={s.metricSub}>
-                        Saldo: <strong style={{ color: saldoPr < 0 ? 'var(--danger)' : 'var(--text-main)' }}>{formatRp(saldoPr)}</strong>
+                        Budget: <strong className={`${s.metricBudget} ${saldoPr < 0 ? s.dangerText : s[variant]}`}>{formatRp(saldoPr)}</strong>
                     </div>
 
                     <div className={s.progBg}>
@@ -70,9 +70,9 @@ export default function BudgetCard({
                         <CheckCircle2 size={13} style={{ color: '#10b981' }} />
                         <span>Realisasi GR (Fisik Diterima)</span>
                     </div>
-                    <div className={s.metricVal}>{formatRp(actualGr)}</div>
+                    <div className={`${s.metricVal} ${s[variant]}`}>{formatRp(actualGr)}</div>
                     <div className={s.metricSub}>
-                        Saldo: <strong style={{ color: 'var(--text-main)' }}>{formatRp(saldoGr)}</strong>
+                        Budget: <strong className={`${s.metricBudget} ${s[variant]}`}>{formatRp(saldoGr)}</strong>
                     </div>
 
                     <div className={s.progBg}>

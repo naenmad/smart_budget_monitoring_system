@@ -29,10 +29,10 @@ export default function FormTable({ data = {}, onRowClick }) {
                         <tr>
                             <th>Kode Form</th>
                             <th>Kategori & Tipe</th>
-                            <th>Pagu Anggaran</th>
+                            <th>Budget</th>
                             <th>Planning PR</th>
                             <th>Realisasi GR</th>
-                            <th>Sisa Saldo PR</th>
+                            <th>Budget PR</th>
                             <th>% Pakai PR</th>
                             <th>% Selesai GR</th>
                         </tr>

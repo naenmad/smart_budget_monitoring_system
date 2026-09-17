@@ -1,13 +1,17 @@
 import toast from 'react-hot-toast'
 import { useConfirm } from '../context/ConfirmContext'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { prApi } from '../api/prApi'
 import { prPoDataApi } from '../api/prPoDataApi'
 import { uploadHistoryApi } from '../api/uploadHistoryApi'
 import { useAuth } from '../context/AuthContext'
-import { RefreshCw, Play, Trash2, Loader2, ArrowUpDown, History } from 'lucide-react'
+import { RefreshCw, Play, Trash2, Loader2, ArrowUpDown, History, Download, SlidersHorizontal } from 'lucide-react'
 import TablePagination from '../components/common/TablePagination'
+import TableSkeleton from '../components/common/TableSkeleton'
+import CopyButton from '../components/common/CopyButton'
+import EmptyState from '../components/common/EmptyState'
+import { exportJsonToExcel } from '../utils/excelExport'
 import styles from './PrHistory.module.css'
 
 export default function PrHistory() {
@@ -23,7 +27,50 @@ export default function PrHistory() {
   const [uploadId, setUploadId] = useState('')
   const [search, setSearch] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
+  const [density, setDensity] = useState(() => localStorage.getItem('sbms_table_density') || 'comfortable')
+  const searchInputRef = useRef(null)
   const CURRENT_YEAR = String(new Date().getFullYear())
+
+  const handleDensityChange = () => {
+    setDensity(prev => {
+      const next = prev === 'compact' ? 'comfortable' : 'compact'
+      localStorage.setItem('sbms_table_density', next)
+      return next
+    })
+  }
+
+  const handleExportExcel = () => {
+    if (!prList.length) {
+      toast.error('Tidak ada data untuk diexport')
+      return
+    }
+    const exportRows = prList.map((p, idx) => ({
+      'No': (page - 1) * perPage + idx + 1,
+      'No PR Doc': p.pr_doc_num || '-',
+      'Deskripsi': p.description || '-',
+      'Supplier': p.supplier_name || '-',
+      'Total Harga (IDR)': Number(p.total_price || 0),
+      'Tahapan': p.tracking_stage || '-',
+      'Request Date': p.request_date || '-',
+      'PO Doc': p.po_doc_num || '-',
+      'GR Doc': p.gr_doc_num || '-',
+      'Batch Upload': p.upload_id || '-'
+    }))
+    exportJsonToExcel(exportRows, 'Riwayat_PR_Tracking', 'PR History')
+    toast.success(`${exportRows.length} baris riwayat PR berhasil diexport ke Excel!`)
+  }
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === '/' && document.activeElement !== searchInputRef.current) {
+        if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return
+        e.preventDefault()
+        searchInputRef.current?.focus()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   // Fetch Data Query
   const { data: listData, isLoading: loading, refetch } = useQuery({
@@ -215,11 +262,13 @@ export default function PrHistory() {
       {/* Filters */}
       <div className={styles.filters}>
         <input
-          placeholder="Cari PR / Deskripsi..."
+          ref={searchInputRef}
+          placeholder="Cari PR / Deskripsi... (Tekan /)"
+          title="Tekan [/] untuk langsung mencari"
           value={search}
           onChange={e => { setSearch(e.target.value); setPage(1) }}
           className={styles.input}
-          style={{ minWidth: 200 }}
+          style={{ minWidth: 220 }}
         />
         <input
           placeholder="Upload ID"
@@ -270,26 +319,66 @@ export default function PrHistory() {
             Hapus Upload Ini
           </button>
         )}
-        <span className={styles.totalLabel}>Total: <strong>{total}</strong></span>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button
+            type="button"
+            onClick={handleExportExcel}
+            className="btn-secondary"
+            style={{ padding: '6px 12px', fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            title="Download data riwayat PR ke file Excel (.xlsx)"
+          >
+            <Download size={14} style={{ color: 'var(--success)' }} />
+            Export Excel
+          </button>
+          <button
+            type="button"
+            onClick={handleDensityChange}
+            className="btn-secondary"
+            style={{ padding: '6px 10px', fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 5 }}
+            title={`Mode tampilan baris: ${density === 'compact' ? 'Kompak' : 'Normal'} (Klik untuk beralih)`}
+          >
+            <SlidersHorizontal size={13} />
+            {density === 'compact' ? 'Kompak' : 'Normal'}
+          </button>
+          <span className={styles.totalLabel}>Total: <strong>{total}</strong></span>
+        </div>
       </div>
 
       {/* Summary Card */}
       {summary && (
         <div className={styles.summaryContainer}>
-          {Object.entries(summary.summary || {}).map(([k, v]) => (
-            <div key={k} className={styles.summaryCard}>
-              <div className={styles.summaryValue}>{v}</div>
-              <div className={styles.summaryLabel}>{k}</div>
-            </div>
-          ))}
+          {Object.entries(summary.summary || {}).map(([k, v]) => {
+            const isStage = ['PR', 'PO', 'GR'].includes(k.toUpperCase())
+            const isActive = isStage ? trackingStage === k : filterStatus === k
+            return (
+              <div
+                key={k}
+                className={`${styles.summaryCard} ${isActive ? styles.summaryCardActive : ''}`}
+                onClick={() => {
+                  if (isStage) {
+                    setTrackingStage(prev => prev === k ? '' : k)
+                  } else {
+                    setFilterStatus(prev => prev === k ? '' : k)
+                  }
+                  setPage(1)
+                }}
+                title={`Klik untuk memfilter: ${k}`}
+              >
+                <div className={styles.summaryValue}>{v}</div>
+                <div className={styles.summaryLabel}>{k}</div>
+              </div>
+            )
+          })}
         </div>
       )}
 
       {/* Table */}
-      {loading ? <p>Memuat...</p> : (
+      {loading ? (
+        <TableSkeleton rows={8} columns={['40px', '140px', '280px', '180px', '120px', '90px', '110px', '70px']} />
+      ) : (
         <>
           <div className={styles.tableWrapper}>
-            <table className={styles.table}>
+            <table className={`${styles.table} ${density === 'compact' ? 'table-compact' : ''}`}>
               <thead>
                 <tr className={styles.tableHeader}>
                   {['#', 'PR Doc', 'Description', 'Supplier', 'Total Price', 'Tahapan', 'Request Date', 'Aksi'].map(h => (
@@ -299,13 +388,32 @@ export default function PrHistory() {
               </thead>
               <tbody>
                 {prList.length === 0 && (
-                  <tr><td colSpan={8} className={styles.emptyState}>Belum ada data</td></tr>
+                  <tr>
+                    <td colSpan={8} style={{ padding: 0 }}>
+                      <EmptyState
+                        title="Tidak ada riwayat PR"
+                        description="Tidak ditemukan data PR yang sesuai dengan filter atau kata kunci pencarian Anda."
+                        actionLabel="Reset Filter"
+                        onAction={() => {
+                          setSearch('')
+                          setUploadId('')
+                          setFilterStatus('')
+                          setTrackingStage('')
+                          setOrderDirection('desc')
+                          setPage(1)
+                        }}
+                      />
+                    </td>
+                  </tr>
                 )}
                 {prList.map((pr, i) => (
                   <tr key={pr.id} className={styles.tr}>
                     <td className={styles.td}>{(page - 1) * perPage + i + 1}</td>
                     <td className={`${styles.td} ${styles.tdCode}`} title={pr.upload_id ? `Batch Upload #${pr.upload_id}` : ''}>
-                      {pr.pr_doc_num || '-'}
+                      <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                        {pr.pr_doc_num || '-'}
+                        {pr.pr_doc_num && <CopyButton text={pr.pr_doc_num} label="Nomor PR" />}
+                      </span>
                     </td>
                     <td className={`${styles.td} ${styles.tdDesc}`} title={pr.description}>{pr.description || '-'}</td>
                     <td className={styles.td}>{pr.supplier_name || '-'}</td>

@@ -12,17 +12,18 @@ Semua dokumentasi teknis sistem telah dipusatkan di dalam direktori `docs/` deng
 
 ```
 docs/
-├── README.md               # 📌 Indeks & Panduan Navigasi Dokumentasi (Dokumen ini)
-├── architecture.md         # 🏗️ Arsitektur Sistem, Tech Stack, & Pola MVC Service Layer
-├── business-process.md     # 🏢 Proses Bisnis QC, Kategori Anggaran, & Alur Procurement
-├── api-reference.md        # 📡 Referensi Lengkap REST API & Spesifikasi OpenAPI 2.0
-├── database-schema.md      # 🗄️ Skema Database MySQL (11 Tabel, DDL, Relasi & ERD)
-├── ai-engine.md            # 🤖 Mesin AI/ML, 3-Layer Hybrid Classifier, & Fuzzy Matching
-├── frontend-guide.md       # 🎨 Panduan Frontend React 19, CSS Modules, & State Management
-├── development-guide.md    # 💻 Setup Development Lokal, Struktur Kode, & Konvensi
-├── docker-guide.md         # 🐳 Panduan Lengkap Docker Compose, Multi-Container, & DB Tools
-├── deployment-guide.md     # 🚀 Prosedur Deployment Produksi & Cloud (Docker, Render, Vercel)
-└── troubleshooting.md      # 🔧 Panduan Diagnostik & Solusi Masalah Teknis
+├── README.md                     # 📌 Indeks & Panduan Navigasi Dokumentasi (Dokumen ini)
+├── PANDUAN_DEPLOYMENT_ICT_SAI.md # 🏢 Panduan Resmi Deployment untuk Tim ICT PT SAI (Rekomendasi Utama)
+├── architecture.md               # 🏗️ Arsitektur Sistem, Tech Stack, & Pola MVC Service Layer
+├── business-process.md           # 🏢 Proses Bisnis QC, Kategori Anggaran, & Alur Procurement
+├── api-reference.md              # 📡 Referensi Lengkap REST API & Spesifikasi OpenAPI 2.0
+├── database-schema.md            # 🗄️ Skema Database MySQL (11 Tabel, DDL, Relasi & ERD)
+├── ai-engine.md                  # 🤖 Mesin AI/ML, 3-Layer Hybrid Classifier, & Fuzzy Matching
+├── frontend-guide.md             # 🎨 Panduan Frontend React 19, CSS Modules, & State Management
+├── development-guide.md          # 💻 Setup Development Lokal, Struktur Kode, & Konvensi
+├── docker-guide.md               # 🐳 Panduan Lengkap Docker Compose, Multi-Container, & DB Tools
+├── deployment-guide.md           # 🚀 Prosedur Deployment Produksi & Cloud (Docker, Render, Vercel)
+└── troubleshooting.md            # 🔧 Panduan Diagnostik & Solusi Masalah Teknis
 ```
 
 ---
@@ -30,7 +31,8 @@ docs/
 ## 📑 Ringkasan Dokumen & Tautan Cepat
 
 | Dokumen | Topik Pembahasan | Target Pembaca |
-|:---|:---|:---|
+| :--- | :--- | :--- |
+| **[PANDUAN_DEPLOYMENT_ICT_SAI.md](./PANDUAN_DEPLOYMENT_ICT_SAI.md)** | **Panduan deployment resmi on-premise server PT SAI, diagram alur Mermaid, SOP maintenance, dan backup database.** | **Tim ICT PT SAI, Sysadmin, DevOps** |
 | **[architecture.md](./architecture.md)** | Arsitektur menyeluruh, integrasi Flask + React, diagram data flow, dan security baseline. | Software Architect, Fullstack Dev |
 | **[business-process.md](./business-process.md)** | Aturan bisnis PT SAI, klasifikasi form E-1, E-9, I-1, status PR/PO, dan kalkulasi budget realisasi. | Product Owner, QC Engineer, Auditor |
 | **[api-reference.md](./api-reference.md)** | Daftar seluruh 11 modul endpoint, format request/response JSON, otentikasi JWT, dan role matrix. | Frontend Dev, API Consumer |

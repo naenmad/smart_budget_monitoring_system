@@ -1,0 +1,57 @@
+.emptyContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 42px 20px;
+  text-align: center;
+}
+
+.iconCircle {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: var(--bg-subtle, #f1f5f9);
+  border: 1px dashed var(--border-color, #cbd5e1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted, #64748b);
+  margin-bottom: 14px;
+}
+
+.title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main, #1e293b);
+  margin: 0 0 6px 0;
+}
+
+.description {
+  font-size: 12.5px;
+  color: var(--text-muted, #64748b);
+  max-width: 380px;
+  margin: 0 0 16px 0;
+  line-height: 1.45;
+}
+
+.actionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 6px;
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-color, #cbd5e1);
+  color: var(--text-body, #334155);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.actionBtn:hover {
+  border-color: var(--primary, #2563eb);
+  color: var(--primary, #2563eb);
+  background: var(--bg-subtle, #f8fafc);
+}

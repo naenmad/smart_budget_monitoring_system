@@ -1,0 +1,34 @@
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--text-muted, #64748b);
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-muted, #64748b);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.item:hover {
+  color: var(--primary, #2563eb);
+}
+
+.active {
+  color: var(--text-main, #0f172a);
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.separator {
+  color: var(--border-color, #cbd5e1);
+  display: inline-flex;
+  align-items: center;
+}

@@ -352,7 +352,7 @@ export default function Budget() {
             Alokasi Budget (Setup)
           </h1>
           <p className={s.subtitle}>
-            Input dan alokasikan pagu anggaran tahunan per form (CAPEX, OPEX, E-1, E-9, I-1) untuk periode berjalan.
+            Input dan alokasikan budget tahunan per form (CAPEX, OPEX, E-1, E-9, I-1) untuk periode berjalan.
           </p>
         </div>
 

@@ -188,6 +188,21 @@ img {
   -webkit-overflow-scrolling: touch;
 }
 
+.app-main > *:not(nav) {
+  animation: pageFadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes pageFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (max-width: 768px) {
   .app-main {
     padding: 14px 14px 24px;
@@ -201,11 +216,21 @@ img {
   border-radius: var(--radius-md);
   padding: 1.25rem 1.5rem;
   box-shadow: var(--shadow-sm);
-  transition: background-color 0.3s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: background-color 0.2s ease, border-color 0.15s ease, box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .card:hover {
   border-color: var(--border-subtle);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Button Micro-interactions */
+.btn-primary:active:not(:disabled),
+.btn-secondary:active:not(:disabled),
+button:active:not(:disabled) {
+  transform: scale(0.98);
+  transition: transform 0.08s ease;
 }
 
 /* Standard Buttons */
@@ -339,6 +364,9 @@ table {
 }
 
 th {
+  position: sticky;
+  top: 0;
+  z-index: 4;
   padding: 10px 12px;
   font-size: 11.5px;
   font-weight: 700;
@@ -347,6 +375,7 @@ th {
   color: var(--text-muted);
   border-bottom: 1px solid var(--border-color);
   background: var(--bg-subtle);
+  backdrop-filter: blur(8px);
   transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
@@ -364,6 +393,18 @@ tr:last-child td {
 
 tr:hover td {
   background: var(--bg-subtle);
+}
+
+/* Density: Compact Table Mode */
+.table-compact th {
+  padding: 6px 10px !important;
+  font-size: 11px !important;
+}
+
+.table-compact td {
+  padding: 6px 10px !important;
+  font-size: 12px !important;
+  line-height: 1.2 !important;
 }
 
 /* Progress bar background */

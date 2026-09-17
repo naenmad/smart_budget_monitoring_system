@@ -38,7 +38,7 @@ export default function BudgetChart({ title, data = [] }) {
     const legends = [
         { label: 'Budget', color: COLORS.budget },
         { label: 'Actual', color: COLORS.actual },
-        { label: 'Saldo', color: COLORS.saldo },
+        { label: 'Budget', color: COLORS.saldo },
     ]
 
     return (
@@ -83,7 +83,7 @@ export default function BudgetChart({ title, data = [] }) {
                             <Tooltip content={<CustomTooltip />} />
                             <Bar dataKey="budget" name="Budget" fill={COLORS.budget} radius={[4, 4, 0, 0]} maxBarSize={36} />
                             <Bar dataKey="actual" name="Actual" fill={COLORS.actual} radius={[4, 4, 0, 0]} maxBarSize={36} />
-                            <Bar dataKey="saldo" name="Saldo" fill={COLORS.saldo} radius={[4, 4, 0, 0]} maxBarSize={36} />
+                            <Bar dataKey="saldo" name="Budget" fill={COLORS.saldo} radius={[4, 4, 0, 0]} maxBarSize={36} />
                         </BarChart>
                     </ResponsiveContainer>
                 )}

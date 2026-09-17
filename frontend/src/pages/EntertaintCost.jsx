@@ -4,6 +4,7 @@ import { toast } from 'react-hot-toast'
 import { useConfirm } from '../context/ConfirmContext'
 import { entertaintApi } from '../api/entertaintApi'
 import EntertaintAnalytics from './EntertaintAnalytics'
+import EntertaintStatsCards from '../components/EntertaintStatsCards'
 import s from './EntertaintCost.module.css'
 import {
   Receipt,
@@ -760,7 +761,7 @@ export default function EntertaintCost() {
             Entertainment Cost & Kasbon QC
           </h1>
           <p className={s.subtitle}>
-            Digitalisasi jamuan tamu, customer visit, closing problem QA, buku kas kasbon, dan pengarsipan struk terkompresi (.webp).
+            Digitalisasi jamuan tamu, customer visit, closing problem QA, buku kas kasbon, dan pengarsipan struk.
           </p>
         </div>
 
@@ -851,60 +852,13 @@ export default function EntertaintCost() {
 
       {/* ── KPI Summary Cards ── */}
       {currentMainTab !== 'analytics' && (
-      <div className={s.statsGrid}>
-        <div className={s.statCard}>
-          <div className={s.statIcon} style={{ background: 'rgba(37, 99, 235, 0.1)', color: 'var(--primary)' }}>
-            <Receipt size={22} />
-          </div>
-          <div className={s.statInfo}>
-            <span className={s.statLabel}>Total Biaya Klaim (Struk)</span>
-            <span className={s.statVal}>{formatRp(summary?.total_amount || 0)}</span>
-            <span className={s.statSub}>{summary?.count_total || 0} Aktivitas Riil Struk</span>
-          </div>
-        </div>
-
-        <div className={s.statCard}>
-          <div className={s.statIcon} style={{ background: 'rgba(99, 102, 241, 0.1)', color: '#6366f1' }}>
-            <Landmark size={22} />
-          </div>
-          <div className={s.statInfo}>
-            <span className={s.statLabel}>Mutasi Kasbon QC-MKT</span>
-            <span className={s.statVal} style={{ color: '#6366f1' }}>
-              {formatRp(recapMktSummary?.total_uang_masuk || 159097173)}
-            </span>
-            <span className={s.statSub}>Status: {recapMktSummary?.status || 'Balance'} ({recapMktSummary?.batch_count || 47} Batch)</span>
-          </div>
-        </div>
-
-        <div className={s.statCard}>
-          <div className={s.statIcon} style={{ background: 'rgba(22, 163, 74, 0.1)', color: '#16a34a' }}>
-            <CheckCircle2 size={22} />
-          </div>
-          <div className={s.statInfo}>
-            <span className={s.statLabel}>Klaim Lunas (Dibayar)</span>
-            <span className={s.statVal} style={{ color: '#16a34a' }}>{formatRp(summary?.total_lunas || 0)}</span>
-            <span className={s.statSub}>{summary?.count_lunas || 0} Klaim Selesai</span>
-          </div>
-        </div>
-
-        <div className={s.statCard}>
-          <div className={s.statIcon} style={{ background: 'rgba(217, 119, 6, 0.1)', color: '#d97706' }}>
-            <Wallet size={22} />
-          </div>
-          <div className={s.statInfo}>
-            <span className={s.statLabel}>Sisa Saldo Kasbon QC</span>
-            <span className={s.statVal} style={{ color: '#d97706' }}>
-              {formatRp(recapMktSummary?.kasbon_qc_saat_ini || 5000000)}
-            </span>
-            <span className={s.statSub}>Saldo Berjalan Saat Ini</span>
-          </div>
-        </div>
-      </div>
+        <EntertaintStatsCards summary={summary} recapMktSummary={recapMktSummary} />
       )}
 
       {/* ========================================================= */}
-      {/* VIEW 1: CLAIMS TAB                                        */}
+      {/* VIEW CONTENT CONTAINER WITH TRANSITION                     */}
       {/* ========================================================= */}
+      <div key={currentMainTab} className={s.tabAnimationWrapper}>
       {currentMainTab === 'claims' && (
         <>
           {/* Search & Filters */}
@@ -1441,7 +1395,7 @@ export default function EntertaintCost() {
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Saldo Akhir (Balance):</span>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Budget Akhir (Balance):</span>
                 <div style={{ fontSize: 13, fontWeight: 800, color: '#2563eb', fontFamily: 'JetBrains Mono' }}>
                   {formatRp(cashflowSummary?.current_balance || 0)}
                 </div>
@@ -1556,7 +1510,7 @@ export default function EntertaintCost() {
                   <th>Akun / Deskripsi Mutasi</th>
                   <th>Uang Masuk (ke QC)</th>
                   <th>Uang Keluar (ke PIC)</th>
-                  <th>Saldo (Balance)</th>
+                  <th>Budget (Balance)</th>
                   <th>Status</th>
                   <th style={{ textAlign: 'center' }}>Aksi</th>
                 </tr>
@@ -1837,9 +1791,10 @@ export default function EntertaintCost() {
       {/* ========================================================= */}
       {currentMainTab === 'analytics' && (
         <div style={{ marginTop: 16 }}>
-          <EntertaintAnalytics embedded={true} />
+          <EntertaintAnalytics embedded={true} recapMktSummary={recapMktSummary} />
         </div>
       )}
+      </div>
 
       {/* ========================================================= */}
       {/* MODAL: CREATE / EDIT CLAIM FORM                           */}
