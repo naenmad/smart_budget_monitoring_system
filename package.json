@@ -1,0 +1,14 @@
+{
+  "name": "smart-budget-monitoring-system",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Smart Budget Monitoring System - PT Summit Adyawinsa Indonesia",
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "lint": "npm --prefix frontend run lint",
+    "preview": "npm --prefix frontend run preview",
+    "backend:dev": "python3 backend/app.py",
+    "backend:test": "PYTHONPATH=backend pytest backend/tests"
+  }
+}

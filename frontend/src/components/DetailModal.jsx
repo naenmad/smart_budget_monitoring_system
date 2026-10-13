@@ -12,16 +12,21 @@ import ScrollableCell from './ScrollableCell'
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des']
 
 const BADGE_MAP = {
-    'E-1': s.badgeE1, 'E-9': s.badgeE9,
-    'I-1': s.badgeI1, 'CAPEX': s.badgeCap,
+    '50032902-123200': s.badgeE1,
+    '60290100-123200': s.badgeE9,
+    '60290500-123200': s.badgeI1,
+    '60290500-123000': s.badgeCap,
+    'CAPEX': s.badgeCap,
+    'OPEX': s.badgeCap,
 }
 
 const TYPE_COLORS = {
     'CAPEX': '#3B82F6',
     'OPEX': '#10B981',
-    'E-1': '#3B82F6',
-    'E-9': '#F59E0B',
-    'I-1': '#8B5CF6',
+    '50032902-123200': '#2563eb',
+    '60290100-123200': '#8b5cf6',
+    '60290500-123200': '#059669',
+    '60290500-123000': '#10b981',
 }
 
 const fmtYAxis = (n) => {
@@ -36,22 +41,46 @@ export default function DetailModal({ type, periode, summaryItems, onClose }) {
     const [loading, setLoading] = useState(true)
 
     // Find summary info from parent data
+    const isQc = type === '123200' || type === 'QC'
+    const isGnrl = type === '123000' || type === 'GNRL'
+    const isTotal = type === 'TOTAL'
     const summaryItem = summaryItems?.find(i => i.kode === type)
 
-    // For CAPEX/OPEX, aggregate from items
+    // Aggregate based on type
     let budget = 0, actual = 0, saldo = 0
-    if (type === 'CAPEX' || type === 'OPEX') {
+    let modalTitle = `Detail ${type}`
+
+    if (isQc) {
+        modalTitle = 'Detail Quality - QC (123200)'
+        const typeItems = summaryItems?.filter(i => (i.kode || '').includes('123200')) || []
+        budget = typeItems.reduce((sum, i) => sum + Number(i.budget || 0), 0)
+        actual = typeItems.reduce((sum, i) => sum + Number(i.actual_pr || i.actual || 0), 0)
+        saldo = budget - actual
+    } else if (isGnrl) {
+        modalTitle = 'Detail Quality - General (123000)'
+        const typeItems = summaryItems?.filter(i => (i.kode || '').includes('123000')) || []
+        budget = typeItems.reduce((sum, i) => sum + Number(i.budget || 0), 0)
+        actual = typeItems.reduce((sum, i) => sum + Number(i.actual_pr || i.actual || 0), 0)
+        saldo = budget - actual
+    } else if (isTotal) {
+        modalTitle = `Detail Actual Finance Budget ${periode}`
+        budget = (summaryItems || []).reduce((sum, i) => sum + Number(i.budget || 0), 0)
+        actual = (summaryItems || []).reduce((sum, i) => sum + Number(i.actual_pr || i.actual || 0), 0)
+        saldo = budget - actual
+    } else if (type === 'CAPEX' || type === 'OPEX') {
+        modalTitle = `Detail Anggaran ${type}`
         const typeItems = summaryItems?.filter(i => i.tipe_formulir === type) || []
-        budget = typeItems.reduce((sum, i) => sum + i.budget, 0)
-        actual = typeItems.reduce((sum, i) => sum + i.actual, 0)
+        budget = typeItems.reduce((sum, i) => sum + Number(i.budget || 0), 0)
+        actual = typeItems.reduce((sum, i) => sum + Number(i.actual || 0), 0)
         saldo = budget - actual
     } else if (summaryItem) {
-        budget = summaryItem.budget
-        actual = summaryItem.actual
-        saldo = summaryItem.saldo
+        modalTitle = `Detail Account ${summaryItem.kode} (${summaryItem.nama || ''})`
+        budget = Number(summaryItem.budget || 0)
+        actual = Number(summaryItem.actual_pr || summaryItem.actual || 0)
+        saldo = Number(summaryItem.saldo_pr !== undefined ? summaryItem.saldo_pr : (summaryItem.saldo || (budget - actual)))
     }
 
-    const color = TYPE_COLORS[type] || '#378ADD'
+    const color = isQc ? '#2563eb' : isGnrl ? '#10b981' : isTotal ? '#8b5cf6' : (TYPE_COLORS[type] || '#378ADD')
 
     useEffect(() => {
         fetchDetails()
@@ -61,14 +90,17 @@ export default function DetailModal({ type, periode, summaryItems, onClose }) {
         setLoading(true)
         try {
             // Fetch monthly summary
-            const kode = (type === 'CAPEX' || type === 'OPEX') ? undefined : type
+            const kode = (isQc || isGnrl || isTotal || type === 'CAPEX' || type === 'OPEX') ? undefined : type
             const monthlyRes = await prPoDataApi.getMonthlySummary(periode, kode)
 
             if (monthlyRes.success && monthlyRes.data) {
                 let mData = monthlyRes.data
 
-                // For CAPEX/OPEX, filter by tipe_formulir
-                if (type === 'CAPEX' || type === 'OPEX') {
+                if (isQc) {
+                    mData = mData.filter(m => (m.kode || '').includes('123200'))
+                } else if (isGnrl) {
+                    mData = mData.filter(m => (m.kode || '').includes('123000'))
+                } else if (type === 'CAPEX' || type === 'OPEX') {
                     mData = mData.filter(m => m.tipe_formulir === type)
                 }
 
@@ -109,8 +141,8 @@ export default function DetailModal({ type, periode, summaryItems, onClose }) {
 
                 <div className={s.header}>
                     <div className={s.headerLeft}>
-                        <h2>Detail {type}</h2>
-                        <p>Budget {formatRp(budget)} · Actual {formatRp(actual)} · Budget {formatRp(saldo)}</p>
+                        <h2>{modalTitle}</h2>
+                        <p>Actual Finance Budget: {formatRp(budget)} · Realisasi: {formatRp(actual)} · Sisa Saldo: {formatRp(saldo)}</p>
                     </div>
                     <button className={s.closeBtn} onClick={onClose} aria-label="Tutup">
                         <X size={18} />
@@ -148,7 +180,7 @@ export default function DetailModal({ type, periode, summaryItems, onClose }) {
                                 <table className={s.table}>
                                     <thead>
                                         <tr>
-                                            <th>Transaksi-Form</th>
+                                            <th>Deskripsi Item Transaksi</th>
                                             <th className={s.center}>Kode</th>
                                             <th className={s.center}>Bulan</th>
                                             <th className={s.right}>Nilai</th>
@@ -206,24 +238,6 @@ export default function DetailModal({ type, periode, summaryItems, onClose }) {
                         )}
                     </>
                 )}
-
-                <div className={s.metricRow}>
-                    <div className={s.metric}>
-                        <div className={s.metricLabel}>Budget</div>
-                        <div className={s.metricValue}>{formatRp(budget)}</div>
-                    </div>
-                    <div className={s.metric}>
-                        <div className={s.metricLabel}>Actual</div>
-                        <div className={`${s.metricValue} ${s.warning}`}>{formatRp(actual)}</div>
-                    </div>
-                    <div className={s.metric}>
-                        <div className={s.metricLabel}>Budget</div>
-                        <div className={`${s.metricValue} ${saldo < 0 ? s.danger : s.success}`}>
-                            {formatRp(saldo)}
-                        </div>
-                    </div>
-                </div>
-
             </div>
         </div>
     )

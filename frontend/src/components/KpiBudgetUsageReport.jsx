@@ -22,12 +22,12 @@ export default function KpiBudgetUsageReport({
     const targetKpi = isOpex ? 90 : 100
 
     // Theme label based on active selection
-    let themeLabel = 'ASSET BUDGET USAGE DEPT. (CAPEX - I-1)'
+    let themeLabel = 'ASSET BUDGET USAGE DEPT. (INVESTASI / CAPITAL)'
     if (isOpex) {
-        if (opexSubTab === 'E1') themeLabel = 'EXPENSES BUDGET USAGE - E-1 CONSUMABLES'
-        else if (opexSubTab === 'E9_CAL') themeLabel = 'EXPENSES BUDGET USAGE - E-9 KALIBRASI ALAT UKUR'
-        else if (opexSubTab === 'E9_PREV') themeLabel = 'EXPENSES BUDGET USAGE - E-9 PREVENTIVE C/F'
-        else themeLabel = 'EXPENSES BUDGET USAGE - DEPT (OPEX - ALL)'
+        if (opexSubTab === 'E1') themeLabel = 'EXPENSES BUDGET USAGE - SUPPLIES CONSUMABLES (50032902-123200)'
+        else if (opexSubTab === 'E9_CAL') themeLabel = 'EXPENSES BUDGET USAGE - KALIBRASI ALAT UKUR (50032902-123200)'
+        else if (opexSubTab === 'E9_PREV') themeLabel = 'EXPENSES BUDGET USAGE - PREVENTIVE C/F (50032902-123200)'
+        else themeLabel = 'EXPENSES BUDGET USAGE - GENERAL LEDGER (ALL ACCOUNTS)'
     }
 
     // Map the monthly data into standard 12 months array (Fokus pada Realisasi Fisik GR)
@@ -149,52 +149,68 @@ export default function KpiBudgetUsageReport({
                 </div>
 
                 <div className={s.kpiControls}>
-                    <button
-                        className={`${s.tabBtn} ${themeType === 'opex' ? s.active : ''}`}
-                        onClick={() => setThemeType('opex')}
-                    >
-                        OPEX (Target ≤90%)
-                    </button>
-                    <button
-                        className={`${s.tabBtn} ${themeType === 'capex' ? s.active : ''}`}
-                        onClick={() => setThemeType('capex')}
-                    >
-                        CAPEX (Target 100%)
-                    </button>
+                    {monthlyData.some(m => Number(m?.capex?.plan || 0) > 0 || Number(m?.capex?.actual_gr || 0) > 0) ? (
+                        <>
+                            <button
+                                className={`${s.tabBtn} ${themeType === 'opex' ? s.active : ''}`}
+                                onClick={() => setThemeType('opex')}
+                            >
+                                Biaya Operasional (Target ≤90%)
+                            </button>
+                            <button
+                                className={`${s.tabBtn} ${themeType === 'capex' ? s.active : ''}`}
+                                onClick={() => setThemeType('capex')}
+                            >
+                                Investasi / Asset (Target 100%)
+                            </button>
+                        </>
+                    ) : (
+                        <span style={{
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            color: 'var(--primary)',
+                            background: 'rgba(37, 99, 235, 0.08)',
+                            border: '1px solid rgba(37, 99, 235, 0.2)',
+                            padding: '6px 12px',
+                            borderRadius: '6px'
+                        }}>
+                            Target KPI Operasional: ≤ 90% (Fisik GR)
+                        </span>
+                    )}
                 </div>
             </div>
 
-            {/* Sub-Filter Khusus OPEX (E-1 Expense, E-9 Calibration, E-9 Preventive) */}
+            {/* Sub-Filter Khusus Operasional */}
             {isOpex && (
                 <div className={s.opexSubBar}>
-                    <span className={s.subBarLabel}>Komponen OPEX:</span>
+                    <span className={s.subBarLabel}>Komponen Akun:</span>
                     <button
                         className={`${s.subTabBtn} ${opexSubTab === 'ALL' ? s.active : ''}`}
                         onClick={() => setOpexSubTab('ALL')}
-                        title="Gabungan seluruh komponen pengeluaran operasional (OPEX)"
+                        title="Gabungan seluruh komponen pengeluaran operasional akun GL"
                     >
-                        Semua OPEX (Gabungan)
+                        Semua Akun (Gabungan)
                     </button>
                     <button
                         className={`${s.subTabBtn} ${opexSubTab === 'E1' ? s.active : ''}`}
                         onClick={() => setOpexSubTab('E1')}
-                        title="Form E-1: Consumables & Perlengkapan Kerja"
+                        title="Consumables & Perlengkapan Kerja QC (50032902-123200)"
                     >
-                        E-1 Expense
+                        Consumables QC
                     </button>
                     <button
                         className={`${s.subTabBtn} ${opexSubTab === 'E9_CAL' ? s.active : ''}`}
                         onClick={() => setOpexSubTab('E9_CAL')}
-                        title="Form E-9: Kalibrasi Alat Ukur / Inspection Tools"
+                        title="Kalibrasi Alat Ukur / Inspection Tools (50032902-123200)"
                     >
-                        E-9 Calibration
+                        Kalibrasi Alat
                     </button>
                     <button
                         className={`${s.subTabBtn} ${opexSubTab === 'E9_PREV' ? s.active : ''}`}
                         onClick={() => setOpexSubTab('E9_PREV')}
-                        title="Form E-9: Pemeliharaan Rutin / Preventive C/F"
+                        title="Pemeliharaan Rutin / Preventive C/F (50032902-123200)"
                     >
-                        E-9 Preventive
+                        Preventive C/F
                     </button>
                 </div>
             )}
@@ -308,21 +324,21 @@ export default function KpiBudgetUsageReport({
                         {isOpex && opexSubTab === 'ALL' && (
                             <>
                                 <tr className={s.subRow}>
-                                    <td className={s.rowHeaderSub}>&nbsp;&nbsp;↳ E-1 Expense</td>
+                                    <td className={s.rowHeaderSub}>&nbsp;&nbsp;↳ Consumables QC (50032902)</td>
                                     {matrix.map(m => (
                                         <td key={m.monthName}>{m.e1Usage > 0 ? formatRp(m.e1Usage) : '-'}</td>
                                     ))}
                                     <td>{formatRp(totalE1Usage)}</td>
                                 </tr>
                                 <tr className={s.subRow}>
-                                    <td className={s.rowHeaderSub}>&nbsp;&nbsp;↳ E-9 Calibration</td>
+                                    <td className={s.rowHeaderSub}>&nbsp;&nbsp;↳ Kalibrasi Alat (50032902)</td>
                                     {matrix.map(m => (
                                         <td key={m.monthName}>{m.e9CalUsage > 0 ? formatRp(m.e9CalUsage) : '-'}</td>
                                     ))}
                                     <td>{formatRp(totalE9CalUsage)}</td>
                                 </tr>
                                 <tr className={s.subRow}>
-                                    <td className={s.rowHeaderSub}>&nbsp;&nbsp;↳ E-9 Preventive</td>
+                                    <td className={s.rowHeaderSub}>&nbsp;&nbsp;↳ Preventive C/F (50032902)</td>
                                     {matrix.map(m => (
                                         <td key={m.monthName}>{m.e9PrevUsage > 0 ? formatRp(m.e9PrevUsage) : '-'}</td>
                                     ))}

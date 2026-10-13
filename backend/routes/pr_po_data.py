@@ -139,7 +139,7 @@ def get_monthly_summary():
       - name: kode
         in: query
         type: string
-        example: "E-1"
+        example: "50032902-123200"
     responses:
       200:
         description: Statistik per bulan

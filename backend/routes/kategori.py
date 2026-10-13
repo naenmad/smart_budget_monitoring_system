@@ -37,10 +37,10 @@ def get_kategoris():
                     example: 1
                   kode:
                     type: string
-                    example: E-1
+                    example: 50032902-123200
                   nama:
                     type: string
-                    example: Direct Material
+                    example: SUPPLIES EXPENSES (QUALITY - QC)
                   tipe_formulir:
                     type: string
                     example: OPEX
@@ -141,10 +141,10 @@ def create_kategori():
           properties:
             kode:
               type: string
-              example: E-10
+              example: 60291100-123000
             nama:
               type: string
-              example: Special Project Consumables
+              example: UNIFORM EXPENSE (QUALITY - GNRL)
             tipe_formulir:
               type: string
               enum: [OPEX, CAPEX]

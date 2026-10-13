@@ -1,10 +1,10 @@
 import toast from 'react-hot-toast'
 import { useState, useEffect, useRef } from 'react'
-import { prApi } from '../api/prApi'
-import { mappingApi } from '../api/mappingApi'
-import { kategoriApi } from '../api/kategoriApi'
-import { useAuth } from '../context/AuthContext'
-import ScrollableCell from '../components/ScrollableCell'
+import { prApi } from '../../api/prApi'
+import { mappingApi } from '../../api/mappingApi'
+import { kategoriApi } from '../../api/kategoriApi'
+import { useAuth } from '../../context/AuthContext'
+import ScrollableCell from '../../components/ScrollableCell'
 import { 
   XCircle, 
   AlertTriangle, 
@@ -20,11 +20,11 @@ import {
   Download,
   SlidersHorizontal
 } from 'lucide-react'
-import TablePagination from '../components/common/TablePagination'
-import TableSkeleton from '../components/common/TableSkeleton'
-import CopyButton from '../components/common/CopyButton'
-import EmptyState from '../components/common/EmptyState'
-import { exportJsonToExcel } from '../utils/excelExport'
+import TablePagination from '../../components/common/TablePagination'
+import TableSkeleton from '../../components/common/TableSkeleton'
+import CopyButton from '../../components/common/CopyButton'
+import EmptyState from '../../components/common/EmptyState'
+import { exportJsonToExcel } from '../../utils/excelExport'
 import styles from './PrResult.module.css'
 
 const STATUS_CONFIG = {

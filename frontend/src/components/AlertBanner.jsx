@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AlertTriangle, X } from 'lucide-react'
+import { AlertTriangle, AlertCircle, X } from 'lucide-react'
 import s from './AlertBanner.module.css'
 
 export default function AlertBanner({ alerts = [] }) {
@@ -12,14 +12,22 @@ export default function AlertBanner({ alerts = [] }) {
     <div className={s.wrapper}>
       {alerts.map((alert, i) => {
         if (dismissed.includes(i)) return null
+
+        const isDanger = alert.type === 'danger'
+        const title = alert.title
+        const message = alert.message || alert.desc || (typeof alert === 'string' ? alert : '')
+
         return (
-          <div key={i} className={s.banner}>
+          <div
+            key={i}
+            className={`${s.banner} ${isDanger ? s.danger : s.warning}`}
+          >
             <span className={s.icon}>
-              <AlertTriangle size={16} />
+              {isDanger ? <AlertCircle size={16} /> : <AlertTriangle size={16} />}
             </span>
             <div className={s.content}>
-              <span className={s.title}>{alert.title} — </span>
-              <span className={s.desc}>{alert.desc}</span>
+              {title && <span className={s.title}>{title} — </span>}
+              <span className={s.desc}>{message}</span>
             </div>
             <button
               className={s.closeBtn}

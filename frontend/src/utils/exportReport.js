@@ -42,10 +42,10 @@ export async function exportBudgetSummaryToExcel({
     [`Tahun Anggaran: ${periode}`],
     [`Tanggal Export: ${currentDateStr}`],
     [],
-    ['1. RINGKASAN ANGGARAN CAPEX vs OPEX (Planning PR vs REALISASI FISIK GR)'],
-    ['Tipe Budget', 'Budget (Rp)', 'Planning PR (Rp)', 'Realisasi GR (Rp)', 'Budget PR (Rp)', '% Pakai PR', '% Selesai GR', 'Status'],
+    ['1. RINGKASAN ANGGARAN INVESTASI & OPERASIONAL (Planning PR vs REALISASI FISIK GR)'],
+    ['Tipe Anggaran', 'Budget (Rp)', 'Planning PR (Rp)', 'Realisasi GR (Rp)', 'Budget PR (Rp)', '% Pakai PR', '% Selesai GR', 'Status'],
     [
-      'CAPEX (Capital Expenditure)',
+      'Investasi / Asset (Capital Expenditure)',
       capexBudget,
       capexActualPr,
       capexActualGr,
@@ -55,7 +55,7 @@ export async function exportBudgetSummaryToExcel({
       capexActualPr > capexBudget ? 'OVER BUDGET' : (capexPctPr >= 80 ? 'WARNING (>=80%)' : 'AMAN')
     ],
     [
-      'OPEX (Operational Expenditure)',
+      'Biaya Operasional (Operational Expenses)',
       opexBudget,
       opexActualPr,
       opexActualGr,
@@ -65,11 +65,11 @@ export async function exportBudgetSummaryToExcel({
       opexActualPr > opexBudget ? 'OVER BUDGET' : (opexPctPr >= 80 ? 'WARNING (>=80%)' : 'AMAN')
     ],
     [],
-    ['2. RINCIAN REALISASI PER FORMULIR'],
-    ['Kode Form', 'Nama Kategori', 'Tipe', 'Budget (Rp)', 'Planning PR (Rp)', 'Realisasi GR (Rp)', 'Budget PR (Rp)', '% Pakai PR', '% Selesai GR', 'Status']
+    ['2. RINCIAN REALISASI PER AKUN GENERAL LEDGER (GL) & COST CENTER'],
+    ['Kode Akun GL', 'Nama Akun / Deskripsi', 'Tipe', 'Budget (Rp)', 'Planning PR (Rp)', 'Realisasi GR (Rp)', 'Budget PR (Rp)', '% Pakai PR', '% Selesai GR', 'Status']
   ]
 
-  // 2. Tambahkan Baris Data per Form (E-1, E-9, I-1, dll)
+  // 2. Tambahkan Baris Data per Akun GL
   items.forEach(item => {
     const budget = Number(item.budget || 0)
     const actualPr = Number(item.actual_pr || item.actual || 0)

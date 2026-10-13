@@ -1,19 +1,29 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { CalendarDays, UploadCloud, Database } from 'lucide-react'
+import {
+  CalendarDays,
+  UploadCloud,
+  Database,
+  FileSpreadsheet,
+  Wrench,
+  AlertTriangle
+} from 'lucide-react'
 import PlanningList from './PlanningList'
 import PlanningUpload from './PlanningUpload'
+import DatabaseSpreadsheet from './DatabaseSpreadsheet'
+import OutOfPlan from './OutOfPlan'
+import PreventiveCfView from './PreventiveCfView'
 import s from './Planning.module.css'
 
 export default function Planning() {
   const [searchParams, setSearchParams] = useSearchParams()
   const tabParam = searchParams.get('tab')
-  
-  // Tabs: 'list' (Data Planning) | 'upload' (Kelola & Upload File)
+
+  // Tabs: 'list' | 'preventive' | 'oob' | 'spreadsheet' | 'upload'
   const [activeTab, setActiveTab] = useState(() => tabParam || 'list')
 
   useEffect(() => {
-    if (tabParam && ['list', 'upload'].includes(tabParam)) {
+    if (tabParam && ['list', 'preventive', 'oob', 'spreadsheet', 'upload'].includes(tabParam)) {
       setActiveTab(tabParam)
     }
   }, [tabParam])
@@ -34,10 +44,10 @@ export default function Planning() {
         <div className={s.titleArea}>
           <h1 className={s.title}>
             <CalendarDays size={26} color="var(--primary)" />
-            Master & Data Planning Anggaran
+            Master &amp; Data Planning Anggaran
           </h1>
           <p className={s.subtitle}>
-            Kelola master alokasi anggaran, pantau rincian item planning per form (E-1, E-9, I-1), dan sinkronisasi file Excel.
+            Kelola master alokasi anggaran, pantau rincian item planning per Account, monitor Preventive C/F &amp; Out of Budget, dan sinkronisasi file Excel.
           </p>
         </div>
 
@@ -52,11 +62,35 @@ export default function Planning() {
           </button>
 
           <button
+            onClick={() => handleTabChange('preventive')}
+            className={`${s.tabBtn} ${activeTab === 'preventive' ? s.tabBtnActive : ''}`}
+          >
+            <Wrench size={16} />
+            <span>Data Preventive C/F</span>
+          </button>
+
+          <button
+            onClick={() => handleTabChange('oob')}
+            className={`${s.tabBtn} ${activeTab === 'oob' ? s.tabBtnActive : ''}`}
+          >
+            <AlertTriangle size={16} />
+            <span>Out of Plan</span>
+          </button>
+
+          <button
+            onClick={() => handleTabChange('spreadsheet')}
+            className={`${s.tabBtn} ${activeTab === 'spreadsheet' ? s.tabBtnActive : ''}`}
+          >
+            <FileSpreadsheet size={16} />
+            <span>Database Spreadsheet</span>
+          </button>
+
+          <button
             onClick={() => handleTabChange('upload')}
             className={`${s.tabBtn} ${activeTab === 'upload' ? s.tabBtnActive : ''}`}
           >
             <UploadCloud size={16} />
-            <span>Kelola File & Upload</span>
+            <span>Kelola File &amp; Upload</span>
           </button>
         </div>
       </div>
@@ -64,6 +98,9 @@ export default function Planning() {
       {/* ── Tab Content ── */}
       <div className={s.tabContent} key={activeTab}>
         {activeTab === 'list' && <PlanningList />}
+        {activeTab === 'preventive' && <PreventiveCfView />}
+        {activeTab === 'oob' && <OutOfPlan />}
+        {activeTab === 'spreadsheet' && <DatabaseSpreadsheet />}
         {activeTab === 'upload' && <PlanningUpload />}
       </div>
     </div>

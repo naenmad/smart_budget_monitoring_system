@@ -23,6 +23,7 @@ import {
   User,
   Receipt,
   TrendingUp,
+  AlertTriangle,
   X
 } from 'lucide-react'
 
@@ -32,7 +33,11 @@ const MAX_WIDTH = 380
 const COLLAPSED_WIDTH = 68
 const SNAP_THRESHOLD = 140
 
-const MENU_CONFIG = [
+// Toggle untuk menampilkan/menyembunyikan modul arsip (PR upload & AI verification)
+// Ubah menjadi `true` jika sewaktu-waktu ingin memunculkan kembali ke menu sidebar
+export const SHOW_LEGACY_MODULES = false
+
+const CORE_MENU_CONFIG = [
   { 
     group: null, 
     items: [
@@ -40,25 +45,11 @@ const MENU_CONFIG = [
     ]
   },
   { 
-    group: 'Master Data', 
-    items: [
-      { to: '/master/item-mapping', label: 'Item Mapping', roles: ['admin'], icon: Network },
-      { to: '/classification', label: 'Model Klasifikasi', roles: ['admin', 'manager'], icon: Cpu }
-    ]
-  },
-  { 
     group: 'Planning & Budget', 
     items: [
       { to: '/planning', label: 'Data & Kelola Planning', roles: ['admin', 'manager'], icon: CalendarDays },
+      { to: '/out-of-plan', label: 'Out of Plan (OOP)', roles: ['admin', 'manager'], icon: AlertTriangle },
       { to: '/budget', label: 'Alokasi Budget (Setup)', roles: ['admin'], icon: PieChart }
-    ]
-  },
-  { 
-    group: 'Purchase Requisition', 
-    items: [
-      { to: '/pr/upload', label: 'Kelola File PR', roles: ['admin'], icon: FileSpreadsheet },
-      { to: '/pr/history', label: 'PR History', roles: ['admin', 'manager'], icon: History },
-      { to: '/pr/verification', label: 'Verifikasi & Hasil PR', roles: ['admin', 'manager'], icon: CheckSquare }
     ]
   },
   { 
@@ -74,6 +65,28 @@ const MENU_CONFIG = [
     ]
   }
 ]
+
+const LEGACY_MENU_GROUPS = [
+  { 
+    group: 'Purchase Requisition', 
+    items: [
+      { to: '/pr/upload', label: 'Kelola File PR', roles: ['admin'], icon: FileSpreadsheet },
+      { to: '/pr/history', label: 'PR History', roles: ['admin', 'manager'], icon: History },
+      { to: '/pr/verification', label: 'Verifikasi & Hasil PR', roles: ['admin', 'manager'], icon: CheckSquare }
+    ]
+  },
+  { 
+    group: 'Master Data & AI', 
+    items: [
+      { to: '/master/item-mapping', label: 'Item Mapping', roles: ['admin'], icon: Network },
+      { to: '/classification', label: 'Model Klasifikasi', roles: ['admin', 'manager'], icon: Cpu }
+    ]
+  }
+]
+
+const MENU_CONFIG = SHOW_LEGACY_MODULES 
+  ? [...CORE_MENU_CONFIG.slice(0, 2), ...LEGACY_MENU_GROUPS, ...CORE_MENU_CONFIG.slice(2)]
+  : CORE_MENU_CONFIG
 
 export default function Sidebar({ mode = 'open', setMode, isMobileOpen, onMobileClose }) {
   const { user, logout } = useAuth()
@@ -111,230 +124,133 @@ export default function Sidebar({ mode = 'open', setMode, isMobileOpen, onMobile
     }
     return DEFAULT_WIDTH
   })
-  const [isResizing, setIsResizing] = useState(false)
+
+  const isResizing = useRef(false)
   const sidebarRef = useRef(null)
 
-  const isCollapsed = !isMobile && mode === 'icon'
-  const isClosed = !isMobile && mode === 'close'
+  const handleMouseDown = useCallback((e) => {
+    e.preventDefault()
+    isResizing.current = true
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
 
-  // Auto expand the group that contains active link
-  useEffect(() => {
-    MENU_CONFIG.forEach(section => {
-      if (section.group && section.items.some(it => it.to === location.pathname)) {
-        setOpenGroups(prev => ({ ...prev, [section.group]: true }))
+    const handleMouseMove = (e) => {
+      if (!isResizing.current) return
+      const newWidth = e.clientX
+
+      if (newWidth < SNAP_THRESHOLD) {
+        setMode('collapsed')
+        return
       }
-    })
-  }, [location.pathname])
+
+      if (newWidth >= MIN_EXPANDED_WIDTH && newWidth <= MAX_WIDTH) {
+        if (mode === 'collapsed') {
+          setMode('open')
+        }
+        setCustomWidth(newWidth)
+        localStorage.setItem('sbms_sidebar_width', newWidth)
+      }
+    }
+
+    const handleMouseUp = () => {
+      isResizing.current = false
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('mouseup', handleMouseUp)
+    }
+
+    window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('mouseup', handleMouseUp)
+  }, [mode, setMode])
 
   const toggleGroup = (group) => {
     setOpenGroups(prev => ({ ...prev, [group]: !prev[group] }))
   }
 
-  function handleLogout() {
+  const handleLogout = () => {
     logout()
-    navigate('/login', { replace: true })
+    navigate('/login')
   }
 
-  // Resizing logic (desktop only)
-  const startResizing = useCallback((e) => {
-    if (isMobile) return
-    e.preventDefault()
-    e.stopPropagation()
-    setIsResizing(true)
-  }, [isMobile])
-
-  const stopResizing = useCallback(() => {
-    setIsResizing(false)
-  }, [])
-
-  const resize = useCallback((e) => {
-    if (isResizing && !isMobile) {
-      const clientX = e.clientX
-      if (clientX < SNAP_THRESHOLD) {
-        setMode?.('icon')
-        localStorage.setItem('sbms_sidebar_mode', 'icon')
-      } else {
-        let newWidth = clientX
-        if (newWidth < MIN_EXPANDED_WIDTH) newWidth = MIN_EXPANDED_WIDTH
-        if (newWidth > MAX_WIDTH) newWidth = MAX_WIDTH
-        setCustomWidth(newWidth)
-        localStorage.setItem('sbms_sidebar_width', String(newWidth))
-        setMode?.('open')
-        localStorage.setItem('sbms_sidebar_mode', 'open')
-      }
-    }
-  }, [isResizing, isMobile, setMode])
-
-  useEffect(() => {
-    if (isResizing) {
-      window.addEventListener('mousemove', resize)
-      window.addEventListener('mouseup', stopResizing)
-      document.body.style.cursor = 'col-resize'
-      document.body.style.userSelect = 'none'
-    } else {
-      window.removeEventListener('mousemove', resize)
-      window.removeEventListener('mouseup', stopResizing)
-      document.body.style.cursor = ''
-      document.body.style.userSelect = ''
-    }
-    return () => {
-      window.removeEventListener('mousemove', resize)
-      window.removeEventListener('mouseup', stopResizing)
-      document.body.style.cursor = ''
-      document.body.style.userSelect = ''
-    }
-  }, [isResizing, resize, stopResizing])
-
-  // Reset to default width on double click
-  const handleDoubleClick = () => {
-    if (isMobile) return
-    if (isCollapsed || isClosed) {
-      setMode?.('open')
-      localStorage.setItem('sbms_sidebar_mode', 'open')
-    } else {
-      setMode?.('icon')
-      localStorage.setItem('sbms_sidebar_mode', 'icon')
-    }
-  }
-
-  // Determine effective width in desktop
-  const getDesktopWidth = () => {
-    if (isClosed) return 0
-    if (isCollapsed) return COLLAPSED_WIDTH
-    return customWidth
-  }
+  const isCollapsed = mode === 'collapsed' && !isMobile
 
   return (
     <>
-      {/* Mobile backdrop overlay */}
-      {isMobile && isMobileOpen && (
-        <div 
-          className={s.backdrop} 
-          onClick={onMobileClose} 
-          aria-hidden="true"
-        />
+      {isMobileOpen && isMobile && (
+        <div className={s.mobileBackdrop} onClick={onMobileClose} />
       )}
 
-      <aside 
+      <aside
         ref={sidebarRef}
         className={`
           ${s.sidebar} 
-          ${isMobile ? (isMobileOpen ? s.mobileOpen : s.mobileClosed) : ''}
-          ${!isMobile && isClosed ? s.sidebarClosed : ''}
-          ${!isMobile && isCollapsed ? s.collapsed : ''}
-          ${isResizing ? s.resizing : ''}
+          ${isCollapsed ? s.collapsed : s.open} 
+          ${isMobile ? s.mobile : ''} 
+          ${isMobileOpen ? s.mobileOpen : ''}
         `}
-        style={{
-          width: !isMobile ? `${getDesktopWidth()}px` : undefined
-        }}
+        style={!isMobile && !isCollapsed ? { width: `${customWidth}px` } : {}}
       >
-        {/* Brand / Logo Header — 100% Focused on Clean Brand Logo */}
-        {isCollapsed && !isMobile ? (
-          <div className={s.brandHeaderCollapsed} title="PT Summit Adyawinsa Indonesia">
-            <img src={logo} alt="SAI Logo" className={s.logoImgCollapsed} />
-          </div>
-        ) : (
-          <div className={s.brandHeader}>
-            <div className={s.logoContainer} title="PT Summit Adyawinsa Indonesia">
-              <img src={logo} alt="SAI Logo" className={s.logoImg} />
-              <div className={s.brandDetails}>
-                <span className={s.brandCompany}>PT Summit Adyawinsa</span>
-                <span className={s.brandApp}>Smart Budget System</span>
-              </div>
+        <div className={s.brand}>
+          <img src={logo} alt="SAI Logo" className={s.logo} />
+          {(!isCollapsed || isMobile) && (
+            <div className={s.brandText}>
+              <span className={s.brandTitle}>Smart Budget</span>
+              <span className={s.brandSubtitle}>Monitoring System</span>
             </div>
+          )}
+          {isMobile && (
+            <button className={s.closeMobileBtn} onClick={onMobileClose}>
+              <X size={18} />
+            </button>
+          )}
+        </div>
 
-            {/* Mobile close button only */}
-            {isMobile && (
-              <button 
-                type="button" 
-                className={s.closeMobileBtn} 
-                onClick={onMobileClose}
-                aria-label="Tutup menu"
-              >
-                <X size={18} />
-              </button>
-            )}
-          </div>
-        )}
+        <nav className={s.nav}>
+          {MENU_CONFIG.map((groupObj, idx) => {
+            const visibleItems = groupObj.items.filter(item => {
+              if (!item.roles) return true
+              return item.roles.includes(user?.role)
+            })
 
-        {/* Navigation Menu */}
-        <nav className={s.navContainer}>
-          {MENU_CONFIG.map((section, idx) => {
-            const visibleItems = section.items.filter(item => item.roles.includes(user?.role))
             if (visibleItems.length === 0) return null
 
-            const isGroupOpen = isCollapsed ? true : (section.group ? openGroups[section.group] : true)
-
             return (
-              <div key={section.group || `root_${idx}`} className={s.navGroup}>
-                {section.group && (!isCollapsed || isMobile) && (
-                  <button 
-                    type="button"
-                    className={s.groupToggle} 
-                    onClick={() => toggleGroup(section.group)}
+              <div key={idx} className={s.navGroup}>
+                {groupObj.group && (!isCollapsed || isMobile) && (
+                  <button
+                    className={s.groupHeader}
+                    onClick={() => toggleGroup(groupObj.group)}
                   >
-                    <span className={s.groupTitle}>{section.group}</span>
-                    <ChevronDown 
-                      size={14} 
-                      className={`${s.groupChevron} ${isGroupOpen ? s.groupChevronOpen : ''}`} 
+                    <span>{groupObj.group}</span>
+                    <ChevronDown
+                      size={14}
+                      className={`
+                        ${s.groupChevron} 
+                        ${openGroups[groupObj.group] ? s.chevronOpen : ''}
+                      `}
                     />
                   </button>
                 )}
 
-                {section.group && isCollapsed && !isMobile && (
-                  <div className={s.collapsedDivider} />
-                )}
-
-                {isGroupOpen && (
+                {(!groupObj.group || openGroups[groupObj.group] || isCollapsed) && (
                   <div className={s.groupItems}>
                     {visibleItems.map(item => {
                       const Icon = item.icon
-
-                      if (item.isExternal) {
-                        return (
-                          <a
-                            key={item.href}
-                            href={item.href}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={() => {
-                              if (isMobile) {
-                                onMobileClose?.()
-                              }
-                            }}
-                            className={s.navLink}
-                            title={item.label}
-                          >
-                            <Icon size={18} className={s.navIcon} />
-                            {(!isCollapsed || isMobile) && <span className={s.navText}>{item.label}</span>}
-                            {isCollapsed && !isMobile && (
-                              <span className={s.navTooltip}>
-                                {item.label}
-                              </span>
-                            )}
-                          </a>
-                        )
-                      }
-
                       return (
                         <NavLink
                           key={item.to}
                           to={item.to}
-                          onClick={() => {
-                            if (isMobile) {
-                              onMobileClose?.()
-                            }
-                          }}
-                          className={({ isActive }) =>
-                            isActive ? `${s.navLink} ${s.navLinkActive}` : s.navLink
-                          }
+                          onClick={() => isMobile && onMobileClose()}
+                          className={({ isActive }) => `
+                            ${s.navItem} 
+                            ${isActive ? s.active : ''}
+                          `}
+                          title={isCollapsed && !isMobile ? item.label : undefined}
                         >
                           <Icon size={18} className={s.navIcon} />
-                          {(!isCollapsed || isMobile) && <span className={s.navText}>{item.label}</span>}
-                          {isCollapsed && !isMobile && (
-                            <span className={s.navTooltip}>
-                              {item.label}
-                            </span>
+                          {(!isCollapsed || isMobile) && (
+                            <span className={s.navLabel}>{item.label}</span>
                           )}
                         </NavLink>
                       )
@@ -346,108 +262,44 @@ export default function Sidebar({ mode = 'open', setMode, isMobileOpen, onMobile
           })}
         </nav>
 
-        {/* User Card & Actions */}
-        <div className={s.userCard}>
-          {!isCollapsed || isMobile ? (
-            <div className={s.userCardInner}>
-              <div className={s.userCardTop}>
-                <div className={s.avatarWrapper}>
-                  <div className={s.userAvatar}>
-                    {user?.username ? user.username.charAt(0).toUpperCase() : <User size={15} />}
-                  </div>
-                  <span className={s.statusDot} title="Online" />
-                </div>
-                <div className={s.userCardInfo}>
-                  <span className={s.userCardName} title={user?.username || 'User'}>
-                    {user?.username || 'User'}
-                  </span>
-                  <span className={`${s.roleBadge} ${user?.role === 'admin' ? s.roleAdmin : s.roleManager}`}>
-                    <Shield size={10} style={{ flexShrink: 0 }} />
-                    <span>{user?.role === 'admin' ? 'Administrator' : 'Manager'}</span>
-                  </span>
-                </div>
-              </div>
-
-              <div className={s.userCardActions}>
-                <button 
-                  type="button" 
-                  className={s.actionBtn}
-                  onClick={() => setShowPwdModal(true)}
-                  title="Ganti Password Akun"
-                >
-                  <KeyRound size={13} className={s.actionBtnIcon} />
-                  <span>Password</span>
-                </button>
-                <button 
-                  type="button" 
-                  className={`${s.actionBtn} ${s.logoutBtn}`}
-                  onClick={handleLogout}
-                  title="Keluar dari akun"
-                >
-                  <LogOut size={13} className={s.actionBtnIcon} />
-                  <span>Logout</span>
-                </button>
-              </div>
+        <div className={s.userSection}>
+          <div className={s.userInfo}>
+            <div className={s.userAvatar}>
+              <User size={16} />
             </div>
-          ) : (
-            <div className={s.userCardCollapsed}>
-              <div className={s.tooltipWrapper}>
-                <div className={s.avatarWrapper}>
-                  <div className={s.userAvatarMini}>
-                    {user?.username ? user.username.charAt(0).toUpperCase() : <User size={15} />}
-                  </div>
-                  <span className={s.statusDot} />
-                </div>
-                <span className={s.navTooltip}>
-                  {user?.username || 'User'} ({user?.role === 'admin' ? 'Admin' : 'Manager'})
-                </span>
+            {(!isCollapsed || isMobile) && (
+              <div className={s.userDetails}>
+                <span className={s.userName}>{user?.name || user?.username}</span>
+                <span className={s.userRole}>{user?.role}</span>
               </div>
+            )}
+          </div>
 
-              <div className={s.tooltipWrapper}>
-                <button 
-                  type="button" 
-                  className={s.collapsedActionBtn}
-                  onClick={() => setShowPwdModal(true)}
-                  aria-label="Ganti Password"
-                >
-                  <KeyRound size={15} />
-                </button>
-                <span className={s.navTooltip}>Ganti Password</span>
-              </div>
-
-              <div className={s.tooltipWrapper}>
-                <button 
-                  type="button" 
-                  className={`${s.collapsedActionBtn} ${s.logoutBtn}`}
-                  onClick={handleLogout}
-                  aria-label="Logout dari akun"
-                >
-                  <LogOut size={15} />
-                </button>
-                <span className={s.navTooltip}>Logout</span>
-              </div>
-            </div>
-          )}
+          <div className={s.userActions}>
+            <button
+              onClick={() => setShowPwdModal(true)}
+              className={s.actionBtn}
+              title="Ganti Password"
+            >
+              <KeyRound size={16} />
+            </button>
+            <button
+              onClick={handleLogout}
+              className={s.actionBtn}
+              title="Logout"
+            >
+              <LogOut size={16} />
+            </button>
+          </div>
         </div>
 
-        {/* Resizer Handle (Desktop Only when not closed) */}
-        {!isMobile && !isClosed && (
-          <div 
-            className={s.resizer}
-            onMouseDown={startResizing}
-            onDoubleClick={handleDoubleClick}
-            title={isCollapsed ? "Klik ganda untuk buka sidebar" : "Tarik untuk ubah ukuran • Tarik ke kiri untuk mode ikon"}
-          >
-            <div className={s.resizerKnob} />
-          </div>
+        {!isMobile && !isCollapsed && (
+          <div className={s.resizer} onMouseDown={handleMouseDown} />
         )}
       </aside>
 
       {showPwdModal && (
-        <ChangePasswordModal 
-          userId={user?.id} 
-          onClose={() => setShowPwdModal(false)} 
-        />
+        <ChangePasswordModal onClose={() => setShowPwdModal(false)} />
       )}
     </>
   )

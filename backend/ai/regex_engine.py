@@ -1,50 +1,45 @@
 import re
 
-# Keyword eksplisit untuk Inventory / CAPEX / Tools & Instruments (I-1)
-INVENTORY_KEYWORDS = [
-    r"\bKUNCI\s+L\b",
-    r"\bKUNCI\s+SHOCK\b",
-    r"\bKUNCI\s+RING\b",
-    r"\bKUNCI\s+PAS\b",
-    r"\bTOOLBOX\b",
-    r"\bTOOL\s+SET\b",
-    r"\bTOOL\s+BOX\b",
-    r"\bPEMOTONG\s+KERTAS\b",
-    r"\bVERNIER\s+CALIPER\b",
-    r"\bCALIPER\b",
-    r"\bDIAL\s+INDICATOR\b",
-    r"\bMICROMETER\b",
-    r"\bHEIGHT\s+GAUGE\b",
-    r"\bPIN\s+GAUGE\b",
-    r"\bBLOCK\s+GAUGE\b",
-    r"\bTORQUE\s+WRENCH\b",
-    r"\bMULTIMETER\b",
-    r"\bROUGHNESS\s+TESTER\b",
-    r"\bTHICKNESS\s+GAUGE\b",
-    r"\bBENCH\s+VISE\b",
-    r"\bRAGUM\b",
-    r"\bCRIMPING\s+TOOL\b",
+# Keyword untuk Transportasi & Perjalanan Dinas QC (60290500-123200)
+TRANSPORT_KEYWORDS = [
+    r"\bBBM\b",
+    r"\bBENSIN\b",
+    r"\bSOLAR\b",
+    r"\bPERTAMAX\b",
+    r"\bTOL\b",
+    r"\bPARKIR\b",
+    r"\bTRANSPORT\b",
+    r"\bTRANSPORTASI\b",
+    r"\bTRAVEL\b",
+    r"\bTIKET\b",
+    r"\bSEWA\s+MOBIL\b",
 ]
 
-# Keyword indikator jasa atau perbaikan yang mengubah status item menjadi E-1 (Maintenance/Repair)
-REPAIR_INDICATORS = [
+# Keyword untuk Pemeliharaan / Perbaikan Mesin QC (50032802-123200)
+REPAIR_KEYWORDS = [
     r"\bREPAIR\b",
-    r"\bSERVICE\b",
-    r"\bSERVIS\b",
-    r"\bPERBAIKAN\b",
-    r"\bBENERIN\b",
-    r"\bMAINTENANCE\b",
+    r"\bSERVICE\s+MESIN\b",
+    r"\bPERBAIKAN\s+MESIN\b",
     r"\bOVERHAUL\b",
-    r"\bKALIBRASI\b",
-    r"\bCALIBRATION\b",
-    r"\bREKONDISI\b",
-    r"\bBUBUT\b",
-    r"\bMILLING\b",
-    r"\bREWINDING\b",
+    r"\bMAINTENANCE\s+PLANT\b",
+    r"\bSPAREPART\s+MESIN\b",
 ]
 
-# Keyword indikator consumable / habis pakai (E-9)
-CONSUMABLE_KEYWORDS = [
+# Keyword untuk ATK / Stationary (60290800-123200)
+STATIONARY_KEYWORDS = [
+    r"\bATK\b",
+    r"\bSTATIONARY\b",
+    r"\bKERTAS\s+A4\b",
+    r"\bKERTAS\s+HVS\b",
+    r"\bBALLPOINT\b",
+    r"\bBULPEN\b",
+    r"\bTONER\b",
+    r"\bTINTA\s+PRINTER\b",
+    r"\bMAP\s+FOLDER\b",
+]
+
+# Keyword untuk Perlengkapan Kerja & Consumable QC (50032902-123200)
+SUPPLIES_QC_KEYWORDS = [
     r"\bSARUNG\s+TANGAN\b",
     r"\bSAFETY\s+GLOVES?\b",
     r"\bMASKER\b",
@@ -67,40 +62,48 @@ CONSUMABLE_KEYWORDS = [
     r"\bLAKBAN\b",
     r"\bSEALANT\b",
     r"\bWD40\b",
+    r"\bKALIBRASI\b",
+    r"\bCALIBRATION\b",
+    r"\bPREVENTIVE\b",
 ]
-
 
 def regex_predict(text: str):
     """
-    Layer 1: Pattern Matching Berbasis Regex
-    Mengidentifikasi kode kategori langsung atau istilah deterministik.
+    Layer 1: Pattern Matching Berbasis Regex untuk Akun GL & Cost Center.
     """
     if not text:
         return None
 
     text_up = text.upper()
 
-    # 1. Exact Category Code Mentions
-    if re.search(r'\bI[- ]?1\b', text_up):
-        return "I-1"
-    if re.search(r'\bE[- ]?1\b', text_up):
-        return "E-1"
-    if re.search(r'\bE[- ]?9\b', text_up):
-        return "E-9"
+    # 1. Exact GL Account mentions di teks
+    if "50032902" in text_up:
+        return "50032902-123000" if "123000" in text_up or "GNRL" in text_up else "50032902-123200"
+    if "60290500" in text_up:
+        return "60290500-123000" if "123000" in text_up or "GNRL" in text_up else "60290500-123200"
+    if "60290100" in text_up:
+        return "60290100-123000" if "123000" in text_up or "GNRL" in text_up else "60290100-123200"
+    if "50032802" in text_up:
+        return "50032802-123200"
+    if "60290800" in text_up:
+        return "60290800-123000" if "123000" in text_up or "GNRL" in text_up else "60290800-123200"
+    if "60291100" in text_up:
+        return "60291100-123000"
 
-    # 2. Cek apakah ada indikasi jasa perbaikan / maintenance / overhaul (Prioritas Tertinggi -> E-1)
-    is_repair = any(re.search(p, text_up) for p in REPAIR_INDICATORS)
-    if is_repair:
-        return "E-1"
+    # 2. Match Transport & Local Travel
+    if any(re.search(p, text_up) for p in TRANSPORT_KEYWORDS):
+        return "60290500-123000" if "GNRL" in text_up else "60290500-123200"
 
-    # 3. Cek apakah barang consumable / safety / tooling habis pakai (E-9)
-    for pattern in CONSUMABLE_KEYWORDS:
-        if re.search(pattern, text_up):
-            return "E-9"
+    # 3. Match ATK / Stationary
+    if any(re.search(p, text_up) for p in STATIONARY_KEYWORDS):
+        return "60290800-123000" if "GNRL" in text_up else "60290800-123200"
 
-    # 4. Cek apakah alat inventaris / alat ukur / peralatan tetap (I-1)
-    for pattern in INVENTORY_KEYWORDS:
-        if re.search(pattern, text_up):
-            return "I-1"
+    # 4. Match Repair & Maintenance Mesin QC
+    if any(re.search(p, text_up) for p in REPAIR_KEYWORDS):
+        return "50032802-123200"
+
+    # 5. Match Supplies & Consumables QC
+    if any(re.search(p, text_up) for p in SUPPLIES_QC_KEYWORDS):
+        return "50032902-123200"
 
     return None

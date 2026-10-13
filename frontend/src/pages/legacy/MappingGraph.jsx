@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { mappingApi } from '../api/mappingApi'
-import { kategoriApi } from '../api/kategoriApi'
-import { formatRp } from '../utils/format'
+import { mappingApi } from '../../api/mappingApi'
+import { kategoriApi } from '../../api/kategoriApi'
+import { formatRp } from '../../utils/format'
 import { 
   Network, 
   Search, 

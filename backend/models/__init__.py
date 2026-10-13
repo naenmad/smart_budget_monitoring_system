@@ -15,6 +15,7 @@ from models.entertaint_receipt import EntertaintReceipt
 from models.entertaint_cashflow import EntertaintCashflow
 from models.entertaint_master import EntertaintMasterItem
 from models.entertaint_recap_mkt import EntertaintRecapMkt
+from models.preventive_cf import PreventiveCf
 
 
 __all__ = [
@@ -34,4 +35,5 @@ __all__ = [
     "EntertaintCashflow",
     "EntertaintMasterItem",
     "EntertaintRecapMkt",
+    "PreventiveCf",
 ]

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import s from './DetailModal.module.css' // We can reuse styles from DetailModal
-import tableStyles from './AllMonthlyDetailModal.module.css'
+import s from './DetailModal.module.css'
+import tableStyles from './MonthlyItemDetailModal.module.css'
 import { prPoDataApi } from '../api/prPoDataApi'
 import { formatRp } from '../utils/format'
 import { X, Loader2 } from 'lucide-react'
@@ -8,49 +8,41 @@ import { X, Loader2 } from 'lucide-react'
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des']
 
 export default function AllMonthlyDetailModal({ periode, onClose }) {
-    const [loading, setLoading] = useState(true)
     const [monthlyData, setMonthlyData] = useState([])
-    const [kodes, setKodes] = useState([])
+    const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        fetchDetails()
+        fetchAllMonthly()
     }, [periode])
 
-    async function fetchDetails() {
+    async function fetchAllMonthly() {
         setLoading(true)
         try {
-            // Fetch ALL monthly summary for this period
             const res = await prPoDataApi.getMonthlySummary(periode)
-
             if (res.success && res.data) {
-                // Determine unique kodes and their types
-                const uniqueKodes = [...new Set(res.data.map(m => m.kode))]
-                setKodes(uniqueKodes)
-
-                // Build data structure by month
-                // { 1: { CAPEX: 0, OPEX: 0, 'E-1': 0, ... }, 2: { ... } }
-                const mapByMonth = {}
-                for (let i = 1; i <= 12; i++) {
-                    mapByMonth[i] = { CAPEX: 0, OPEX: 0 }
-                    uniqueKodes.forEach(k => { mapByMonth[i][k] = 0 })
-                }
-
-                res.data.forEach(m => {
-                    const idx = m.bulan
-                    const k = m.kode
-                    const type = m.tipe_formulir
-                    const val = m.total
-                    if (mapByMonth[idx]) {
-                        mapByMonth[idx][k] += val
-                        if (type === 'CAPEX') mapByMonth[idx].CAPEX += val
-                        if (type === 'OPEX') mapByMonth[idx].OPEX += val
+                // Group by kode & aggregate monthly totals
+                const groups = {}
+                res.data.forEach(item => {
+                    if (!groups[item.kode]) {
+                        groups[item.kode] = {
+                            kode: item.kode,
+                            nama: item.nama,
+                            tipe: item.tipe_formulir,
+                            months: Array(12).fill(0),
+                            total: 0
+                        }
+                    }
+                    const mIdx = item.bulan - 1
+                    if (mIdx >= 0 && mIdx < 12) {
+                        groups[item.kode].months[mIdx] += item.total
+                        groups[item.kode].total += item.total
                     }
                 })
 
-                setMonthlyData(mapByMonth)
+                setMonthlyData(Object.values(groups))
             }
         } catch (err) {
-            console.error('Error fetching detail:', err)
+            console.error('Error fetching all monthly data:', err)
         } finally {
             setLoading(false)
         }
@@ -62,7 +54,7 @@ export default function AllMonthlyDetailModal({ periode, onClose }) {
                 
                 <div className={s.header}>
                     <div className={s.headerLeft}>
-                        <h2>Detail Budget Semua Form (Per Bulan)</h2>
+                        <h2>Detail Budget Semua Account (Per Bulan)</h2>
                         <p>Periode {periode}</p>
                     </div>
                     <button className={s.closeBtn} onClick={onClose} aria-label="Tutup">
@@ -76,32 +68,39 @@ export default function AllMonthlyDetailModal({ periode, onClose }) {
                         Memuat data...
                     </div>
                 ) : (
-                    <div className={tableStyles.tableWrap}>
-                        <table className={tableStyles.table}>
+                    <div className={tableStyles.tableContainer}>
+                        <table className={s.table}>
                             <thead>
                                 <tr>
-                                    <th className={tableStyles.stickyCol}>Bulan</th>
-                                    <th className={tableStyles.typeHeader}>CAPEX</th>
-                                    <th className={tableStyles.typeHeader}>OPEX</th>
-                                    {kodes.map(k => (
-                                        <th key={k}>{k}</th>
+                                    <th>Kode</th>
+                                    <th>Deskripsi Akun</th>
+                                    <th>Tipe</th>
+                                    {MONTHS.map(m => (
+                                        <th key={m} className={s.right}>{m}</th>
                                     ))}
+                                    <th className={s.right}>Total Actual</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {MONTHS.map((name, i) => {
-                                    const mData = monthlyData[i + 1]
-                                    return (
-                                        <tr key={name}>
-                                            <td className={tableStyles.stickyCol}>{name}</td>
-                                            <td className={tableStyles.typeCell}>{formatRp(mData?.CAPEX || 0)}</td>
-                                            <td className={tableStyles.typeCell}>{formatRp(mData?.OPEX || 0)}</td>
-                                            {kodes.map(k => (
-                                                <td key={k}>{formatRp(mData?.[k] || 0)}</td>
-                                            ))}
-                                        </tr>
-                                    )
-                                })}
+                                {monthlyData.map((row, idx) => (
+                                    <tr key={idx}>
+                                        <td style={{ fontWeight: 600 }}>{row.kode}</td>
+                                        <td>{row.nama}</td>
+                                        <td>
+                                            <span className={`${s.badge} ${row.tipe === 'CAPEX' ? s.badgeCap : s.badgeE1}`}>
+                                                {row.tipe}
+                                            </span>
+                                        </td>
+                                        {row.months.map((amt, mIdx) => (
+                                            <td key={mIdx} className={s.right} style={{ color: amt > 0 ? 'var(--text-main)' : 'var(--text-muted)' }}>
+                                                {amt > 0 ? formatRp(amt) : '-'}
+                                            </td>
+                                        ))}
+                                        <td className={s.right} style={{ fontWeight: 700, color: 'var(--primary)' }}>
+                                            {formatRp(row.total)}
+                                        </td>
+                                    </tr>
+                                ))}
                             </tbody>
                         </table>
                     </div>

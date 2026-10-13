@@ -1,16 +1,18 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import s from './Classification.module.css'
-import { prPoDataApi } from '../api/prPoDataApi'
-import { kategoriApi } from '../api/kategoriApi'
-import { useAuth } from '../context/AuthContext'
-import ReviewModal from '../components/ReviewModal'
+import { prPoDataApi } from '../../api/prPoDataApi'
+import { kategoriApi } from '../../api/kategoriApi'
+import { useAuth } from '../../context/AuthContext'
+import ReviewModal from '../../components/ReviewModal'
 import { AlertTriangle, Search, Loader2, ChevronLeft, ChevronRight, ArrowUpDown, Cpu } from 'lucide-react'
-import TablePagination from '../components/common/TablePagination'
-import ScrollableCell from '../components/ScrollableCell'
+import TablePagination from '../../components/common/TablePagination'
+import ScrollableCell from '../../components/ScrollableCell'
 
 const BADGE_CLS = {
-  'E-1': s.badgeE1, 'E-9': s.badgeE9,
-  'I-1': s.badgeI1, 'CAPEX': s.badgeCap,
+  '50032902-123200': s.badgeE1,
+  '60290100-123200': s.badgeE9,
+  '60290500-123200': s.badgeI1,
+  '60290500-123000': s.badgeCap,
   'E-6': s.badgeE6,
 }
 
@@ -66,7 +68,6 @@ function getStatus(record) {
 
 const confFillCls = { High: s.confHigh, Mid: s.confMid, Low: s.confLow }
 
-const CODES = ['ALL', 'E-1', 'E-9', 'I-1', 'E-6', 'CAPEX', 'UNKNOWN']
 const METHODS = ['ALL', 'RULE_BASE', 'REGEX', 'SVM', 'MANUAL']
 
 // ── Component ────────────────────────────────────────────────
@@ -238,15 +239,29 @@ export default function Classification() {
             />
           </div>
 
-          {CODES.map(code => (
-            <button
-              key={code}
-              className={`${s.filterBtn} ${codeFilter === code && code !== 'ALL' ? s.filterActive : ''}`}
-              onClick={() => handleCodeFilter(code)}
-            >
-              {code === 'ALL' ? 'Semua kode' : code}
-            </button>
-          ))}
+          <select
+            value={codeFilter}
+            onChange={e => { setCodeFilter(e.target.value); setPage(1); }}
+            className={s.filterBtn}
+            style={{ cursor: 'pointer', outline: 'none', maxWidth: 220 }}
+            title="Filter Akun GL"
+          >
+            <option value="ALL">Semua Akun GL</option>
+            {categories.filter(c => c.is_active && c.kode !== 'OOP').map(c => (
+              <option key={c.id} value={c.kode}>
+                {c.kode} ({c.nama})
+              </option>
+            ))}
+            <option value="UNKNOWN">UNKNOWN (Perlu Review)</option>
+          </select>
+
+          <button
+            className={`${s.filterBtn} ${codeFilter === 'UNKNOWN' ? s.filterActive : ''}`}
+            onClick={() => handleCodeFilter('UNKNOWN')}
+            title="Tampilkan hanya transaksi yang butuh review manual"
+          >
+            Butuh Review
+          </button>
         </div>
         <div className={s.toolbarRight}>
           <select

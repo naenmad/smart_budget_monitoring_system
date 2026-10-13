@@ -1,10 +1,10 @@
 import toast from 'react-hot-toast'
-import { useConfirm } from '../context/ConfirmContext'
+import { useConfirm } from '../../context/ConfirmContext'
 import { useState, useEffect } from 'react'
-import { itemMappingApi } from '../api/itemMappingApi'
-import { kategoriApi } from '../api/kategoriApi'
+import { itemMappingApi } from '../../api/itemMappingApi'
+import { kategoriApi } from '../../api/kategoriApi'
 import { Lightbulb, Plus, Edit2, Trash2, Check, X, Search, ArrowUpDown, Network } from 'lucide-react'
-import TablePagination from '../components/common/TablePagination'
+import TablePagination from '../../components/common/TablePagination'
 import styles from './ItemMapping.module.css'
 
 export default function ItemMapping() {

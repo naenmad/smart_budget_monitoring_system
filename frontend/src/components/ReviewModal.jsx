@@ -93,16 +93,16 @@ export default function ReviewModal({ record, categories, onClose, onSuccess }) 
           </div>
 
           <div className={s.field}>
-            <label className={s.label}>Pilih Budget Code yang Benar</label>
+            <label className={s.label}>Pilih Akun General Ledger (GL) & Cost Center yang Benar</label>
             <select
               className={s.select}
               value={selectedCat}
               onChange={e => setSelectedCat(e.target.value)}
             >
-              <option value="" disabled>-- Pilih Kode --</option>
+              <option value="" disabled>-- Pilih Akun GL --</option>
               {categories.map(c => (
                 <option key={c.id} value={c.id}>
-                  {c.kode} - {c.nama} ({c.tipe_formulir})
+                  {c.kode} - {c.nama}
                 </option>
               ))}
             </select>

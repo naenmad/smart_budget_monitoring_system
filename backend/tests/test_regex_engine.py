@@ -9,35 +9,29 @@ from ai.rule_base import detect_budget_type
 
 
 class TestRegexEngine(unittest.TestCase):
-    def test_regex_predict_i1(self):
-        # Should match I-1 directly
-        self.assertEqual(regex_predict("PEMBELIAN KODE I-1"), "I-1")
-        self.assertEqual(regex_predict("BARANG I 1 BARU"), "I-1")
-        self.assertEqual(regex_predict("I1"), "I-1")
+    def test_regex_predict_gl_exact(self):
+        self.assertEqual(regex_predict("PENGELUARAN 50032902 QC"), "50032902-123200")
+        self.assertEqual(regex_predict("BIAYA 50032902 GNRL 123000"), "50032902-123000")
+        self.assertEqual(regex_predict("BIAYA 60290500 PERJALANAN"), "60290500-123200")
 
-    def test_regex_predict_e1(self):
-        self.assertEqual(regex_predict("Barang E-1 baru"), "E-1")
-        self.assertEqual(regex_predict("E1 BIAYA"), "E-1")
+    def test_regex_predict_transport(self):
+        self.assertEqual(regex_predict("BBM OPERASIONAL QC"), "60290500-123200")
+        self.assertEqual(regex_predict("BENSIN DAN TOL GNRL"), "60290500-123000")
 
-    def test_regex_predict_e9(self):
-        self.assertEqual(regex_predict("BIAYA E-9"), "E-9")
-        self.assertEqual(regex_predict("E 9"), "E-9")
+    def test_regex_predict_stationary(self):
+        self.assertEqual(regex_predict("BELI KERTAS A4 DAN ATK"), "60290800-123200")
+        self.assertEqual(regex_predict("TONER PRINTER GNRL"), "60290800-123000")
 
-    def test_regex_predict_inventory_keywords(self):
-        # Inventory keywords should return I-1
-        self.assertEqual(regex_predict("KUNCI L SET"), "I-1")
-        self.assertEqual(regex_predict("PEMOTONG KERTAS UNTUK KANTOR"), "I-1")
-        self.assertEqual(regex_predict("PEMBELIAN TOOL BOX"), "I-1")
+    def test_regex_predict_repair_plant(self):
+        self.assertEqual(regex_predict("OVERHAUL REPAIR MESIN UJI"), "50032802-123200")
+        self.assertEqual(regex_predict("SPAREPART MESIN"), "50032802-123200")
 
-    def test_regex_predict_repair_bypass(self):
-        # Even if inventory keyword exists, if it's repair/service, it should classify as E-1
-        self.assertEqual(regex_predict("REPAIR KUNCI SHOCK"), "E-1")
-        self.assertEqual(regex_predict("SERVICE PEMOTONG KERTAS"), "E-1")
-        self.assertEqual(regex_predict("PERBAIKAN TOOL SET"), "E-1")
-        self.assertEqual(regex_predict("BENERIN TOOLBOX"), "E-1")
+    def test_regex_predict_supplies(self):
+        self.assertEqual(regex_predict("SARUNG TANGAN SAFETY"), "50032902-123200")
+        self.assertEqual(regex_predict("JASA KALIBRASI ALAT UKUR"), "50032902-123200")
 
     def test_regex_predict_no_match(self):
-        self.assertIsNone(regex_predict("BELI BARANG RANDOM"))
+        self.assertIsNone(regex_predict("BELI BARANG RANDOM TANPA KATA KUNCI"))
         self.assertIsNone(regex_predict(""))
 
     def test_detect_budget_type_capex(self):
@@ -51,17 +45,13 @@ class TestRegexEngine(unittest.TestCase):
         self.assertEqual(detect_budget_type("SPARE PARTS ORDER"), "OPEX")
 
     def test_detect_budget_type_mixed_tie(self):
-        # 1 CAPEX vs 1 OPEX -> Tie -> Returns None (fallback to ML)
         self.assertIsNone(detect_budget_type("REPAIR NEW MACHINE"))
-        # 0 vs 0
         self.assertIsNone(detect_budget_type("BELI BARANG BIASA"))
 
     def test_detect_budget_type_mixed_capex_wins(self):
-        # 2 CAPEX vs 1 OPEX
         self.assertEqual(detect_budget_type("PROJECT INVESTMENT AND REPAIR"), "CAPEX")
 
     def test_detect_budget_type_mixed_opex_wins(self):
-        # 2 OPEX vs 1 CAPEX
         self.assertEqual(detect_budget_type("MAINTENANCE REPAIR OF ASSET"), "OPEX")
 
 

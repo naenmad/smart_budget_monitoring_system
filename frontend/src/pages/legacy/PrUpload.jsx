@@ -1,8 +1,8 @@
 import { useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { prApi } from '../api/prApi'
-import { uploadHistoryApi } from '../api/uploadHistoryApi'
-import { useAuth } from '../context/AuthContext'
+import { prApi } from '../../api/prApi'
+import { uploadHistoryApi } from '../../api/uploadHistoryApi'
+import { useAuth } from '../../context/AuthContext'
 import toast from 'react-hot-toast'
 import * as XLSX from 'xlsx'
 import { 
@@ -19,7 +19,7 @@ import {
   Sparkles 
 } from 'lucide-react'
 import styles from './PrUpload.module.css'
-import ExcelViewer from '../components/ExcelViewer'
+import ExcelViewer from '../../components/ExcelViewer'
 
 const CURRENT_YEAR = new Date().getFullYear()
 const YEAR_OPTIONS = Array.from({ length: 6 }, (_, i) => String(CURRENT_YEAR - 2 + i))

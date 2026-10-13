@@ -1,7 +1,7 @@
 import toast from 'react-hot-toast'
-import { useConfirm } from '../context/ConfirmContext'
+import { useConfirm } from '../../context/ConfirmContext'
 import { useState, useEffect, useMemo } from 'react'
-import { mappingApi } from '../api/mappingApi'
+import { mappingApi } from '../../api/mappingApi'
 import { 
   Search, 
   CheckCheck, 
@@ -22,7 +22,7 @@ import {
   RotateCcw,
   ArrowUpDown
 } from 'lucide-react'
-import TablePagination from '../components/common/TablePagination'
+import TablePagination from '../../components/common/TablePagination'
 import styles from './MappingReview.module.css'
 
 export default function MappingReview() {

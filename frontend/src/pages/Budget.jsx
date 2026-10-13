@@ -11,17 +11,11 @@ import { CheckCircle2, AlertCircle, Save, Trash2, BarChart3, Download, FileSprea
 const CURRENT_YEAR = String(new Date().getFullYear())
 const YEAR_OPTIONS = Array.from({ length: 6 }, (_, i) => String(parseInt(CURRENT_YEAR, 10) - 2 + i))
 
-const FORM_FIELDS = [
-  { key: 'e1', code: 'E-1', cls: s.badgeE1 },
-  { key: 'e9', code: 'E-9', cls: s.badgeE9 },
-  { key: 'i1', code: 'I-1', cls: s.badgeI1 },
-]
-
 export default function Budget() {
   const confirm = useConfirm()
   const { user } = useAuth()
   const [activeTab, setActiveTab] = useState('manual')
-  const [form, setForm] = useState({ periode: CURRENT_YEAR, capex: '', opex: '', e1: '', e9: '', i1: '' })
+  const [form, setForm] = useState({ periode: CURRENT_YEAR, gl: {} })
   const [selectedFile, setSelectedFile] = useState(null)
   const fileRef = useRef()
 
@@ -52,12 +46,12 @@ export default function Budget() {
     }
   }
 
-  function handleChange(key, val) {
-    // Hanya izinkan angka untuk input budget, biarkan periode string
-    if (key !== 'periode') {
-      val = val.replace(/\D/g, '')
-    }
-    setForm(prev => ({ ...prev, [key]: val }))
+  function handleGlChange(kode, val) {
+    val = val.replace(/\D/g, '')
+    setForm(prev => ({
+      ...prev,
+      gl: { ...prev.gl, [kode]: val }
+    }))
   }
 
   function formatRp(val) {
@@ -66,7 +60,7 @@ export default function Budget() {
   }
 
   function handleReset() {
-    setForm({ periode: CURRENT_YEAR, capex: '', opex: '', e1: '', e9: '', i1: '' })
+    setForm({ periode: CURRENT_YEAR, gl: {} })
     setMessage({ type: '', text: '' })
   }
 
@@ -107,24 +101,18 @@ export default function Budget() {
     setMessage({ type: '', text: '' })
 
     try {
-      const allFieldsToSave = [
-        ...FORM_FIELDS,
-        { key: 'capex', code: 'CAPEX' },
-        { key: 'opex', code: 'OPEX' }
-      ]
-
-      const entries = allFieldsToSave
-        .filter(f => form[f.key])
-        .map(f => {
-          const kategori = kategoris.find(k => k.kode === f.code)
+      const entries = Object.entries(form.gl || {})
+        .filter(([kode, val]) => val && !isNaN(parseFloat(val)))
+        .map(([kode, val]) => {
+          const kategori = kategoris.find(k => k.kode === kode)
           return {
             kategori_id: kategori?.id,
             periode: form.periode,
-            nominal: parseFloat(form[f.key]),
+            nominal: parseFloat(val),
             created_by: user?.id,
           }
         })
-        .filter(e => e.kategori_id && !isNaN(e.nominal))
+        .filter(e => e.kategori_id)
 
       if (entries.length === 0) {
         setMessage({ type: 'error', text: 'Tidak ada budget yang valid untuk disimpan' })
@@ -291,9 +279,10 @@ export default function Budget() {
 
   function downloadTemplate() {
     const ws = XLSX.utils.json_to_sheet([
-      { Form: 'E-1', Periode: form.periode || CURRENT_YEAR, Budget: 150000000 },
-      { Form: 'E-9', Periode: form.periode || CURRENT_YEAR, Budget: 180000000 },
-      { Form: 'I-1', Periode: form.periode || CURRENT_YEAR, Budget: 500000000 },
+      { Kode_GL: '50032902-123200', Deskripsi: 'SUPPLIES EXPENSES (QUALITY - QC)', Periode: form.periode || CURRENT_YEAR, Budget: 336413712 },
+      { Kode_GL: '60290100-123200', Deskripsi: 'MARKETING EXPENSES (QUALITY - QC)', Periode: form.periode || CURRENT_YEAR, Budget: 185400000 },
+      { Kode_GL: '60290500-123200', Deskripsi: 'TRANSPORTATION EXPENSE - LOCAL (QUALITY - QC)', Periode: form.periode || CURRENT_YEAR, Budget: 113400000 },
+      { Kode_GL: '60290500-123000', Deskripsi: 'TRANSPORTATION EXPENSE - LOCAL (QUALITY - GNRL)', Periode: form.periode || CURRENT_YEAR, Budget: 25920000 },
     ])
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Budget')
@@ -352,7 +341,7 @@ export default function Budget() {
             Alokasi Budget (Setup)
           </h1>
           <p className={s.subtitle}>
-            Input dan alokasikan budget tahunan per form (CAPEX, OPEX, E-1, E-9, I-1) untuk periode berjalan.
+            Input dan alokasikan budget tahunan per akun General Ledger (GL) & Cost Center untuk periode berjalan.
           </p>
         </div>
 
@@ -377,7 +366,7 @@ export default function Budget() {
       {activeTab === 'manual' && (
         <div className={s.grid}>
           <div className={s.card}>
-            <div className={s.sectionLabel}>Periode & total budget</div>
+            <div className={s.sectionLabel}>Periode & Alokasi Akun GL</div>
             <div className={s.formGroup}>
               <div>
                 <label className={s.label}>Periode Tahun</label>
@@ -385,7 +374,7 @@ export default function Budget() {
                   className={s.input}
                   style={{ width: '100%', maxWidth: 200 }}
                   value={form.periode}
-                  onChange={e => handleChange('periode', e.target.value)}
+                  onChange={e => setForm(prev => ({ ...prev, periode: e.target.value }))}
                 >
                   {YEAR_OPTIONS.map(yr => (
                     <option key={yr} value={yr}>
@@ -394,48 +383,24 @@ export default function Budget() {
                   ))}
                 </select>
               </div>
-              <div className={s.twoCol}>
-                <div style={{ marginBottom: 16 }}>
-                  <label className={s.label}>Total CAPEX</label>
-                  <input 
-                    className={s.input} 
-                    placeholder="Hanya angka" 
-                    value={form.capex} 
-                    onChange={e => handleChange('capex', e.target.value)}
-                  />
-                  <div style={{ fontSize: '0.85rem', color: '#065f46', marginTop: 4, fontWeight: 500 }}>
-                    = {formatRp(form.capex)}
-                  </div>
-                </div>
-                <div style={{ marginBottom: 16 }}>
-                  <label className={s.label}>Total OPEX</label>
-                  <input 
-                    className={s.input} 
-                    placeholder="Hanya angka" 
-                    value={form.opex} 
-                    onChange={e => handleChange('opex', e.target.value)}
-                  />
-                  <div style={{ fontSize: '0.85rem', color: '#065f46', marginTop: 4, fontWeight: 500 }}>
-                    = {formatRp(form.opex)}
-                  </div>
-                </div>
-              </div>
 
               <div className={s.divider}>
-                <div className={s.sectionLabel}>Detail per form</div>
-                {FORM_FIELDS.map(f => (
-                  <div key={f.key} style={{ marginBottom: 16 }}>
-                    <div className={s.formRow} style={{ marginBottom: 4 }}>
-                      <span className={`${s.badge} ${f.cls}`}>{f.code}</span>
+                <div className={s.sectionLabel}>Detail Budget per Akun General Ledger (GL)</div>
+                {kategoris.filter(k => k.is_active && k.kode !== 'E-6' && k.kode !== 'OOP').map(k => (
+                  <div key={k.kode} style={{ marginBottom: 14 }}>
+                    <div className={s.formRow} style={{ marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span className={s.badge} style={{ fontFamily: 'monospace', minWidth: 140, fontSize: 11.5, background: 'rgba(37,99,235,0.08)', color: '#2563eb', border: '1px solid rgba(37,99,235,0.2)' }}>
+                        {k.kode}
+                      </span>
                       <input
                         className={s.input}
-                        placeholder={`Budget ${f.code} (Hanya angka)`}
-                        value={form[f.key]}
-                        onChange={e => handleChange(f.key, e.target.value)}
+                        placeholder={`Budget ${k.kode} (Hanya angka)`}
+                        value={form.gl?.[k.kode] || ''}
+                        onChange={e => handleGlChange(k.kode, e.target.value)}
                       />
                     </div>
-                    <div style={{ fontSize: '0.85rem', color: '#065f46', marginLeft: 84, fontWeight: 500 }}>
-                      = {formatRp(form[f.key])}
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginLeft: 148 }}>
+                      {k.nama} {form.gl?.[k.kode] ? `• ${formatRp(form.gl[k.kode])}` : ''}
                     </div>
                   </div>
                 ))}
@@ -473,19 +438,22 @@ export default function Budget() {
               <div style={{ color: '#73726c', fontSize: 13, padding: 16 }}>Belum ada budget untuk periode ini</div>
             ) : (
               <div className={s.metricGrid}>
-                {Object.entries(activeBudgets).map(([code, val]) => (
-                  <div key={code} className={s.metric} title={`${code}: ${val}`}>
-                    <div className={s.metricHeader}>
-                      <span className={`${s.badge} ${code === 'E-1' ? s.badgeE1 : code === 'E-9' ? s.badgeE9 : s.badgeI1}`}>
-                        {code}
-                      </span>
-                      <span className={s.metricType}>
-                        {code === 'I-1' ? 'CAPEX' : 'OPEX'}
-                      </span>
+                {Object.entries(activeBudgets).map(([code, val]) => {
+                  const kat = kategoris.find(k => k.kode === code)
+                  return (
+                    <div key={code} className={s.metric} title={`${code}: ${val}`}>
+                      <div className={s.metricHeader}>
+                        <span className={`${s.badge} ${code.startsWith('5') ? s.badgeE1 : code.startsWith('6') ? s.badgeE9 : s.badgeI1}`} style={{ fontFamily: 'monospace', fontSize: 11 }}>
+                          {code}
+                        </span>
+                        <span className={s.metricType}>
+                          {kat?.tipe_formulir || 'OPEX'}
+                        </span>
+                      </div>
+                      <div className={s.metricValue}>{val}</div>
                     </div>
-                    <div className={s.metricValue}>{val}</div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
 
@@ -574,15 +542,22 @@ export default function Budget() {
             <table className={s.formatTable}>
               <thead>
                 <tr>
-                  <th>Form</th>
+                  <th>Kode GL</th>
+                  <th>Deskripsi Akun</th>
                   <th>Periode</th>
                   <th style={{ textAlign: 'right' }}>Budget</th>
                 </tr>
               </thead>
               <tbody>
-                {[['E-1', form.periode, '150000000'], ['E-9', form.periode, '180000000'], ['I-1', form.periode, '500000000']].map(([formCode, per, val]) => (
+                {[
+                  ['50032902-123200', 'SUPPLIES EXPENSES (QC)', form.periode, '336413712'],
+                  ['60290100-123200', 'MARKETING EXPENSES (QC)', form.periode, '185400000'],
+                  ['60290500-123200', 'TRANSPORTATION LOCAL (QC)', form.periode, '113400000'],
+                  ['60290500-123000', 'TRANSPORTATION LOCAL (GNRL)', form.periode, '25920000']
+                ].map(([formCode, desk, per, val]) => (
                   <tr key={formCode}>
-                    <td><strong>{formCode}</strong></td>
+                    <td><strong style={{ fontFamily: 'monospace' }}>{formCode}</strong></td>
+                    <td style={{ color: 'var(--text-muted)' }}>{desk}</td>
                     <td style={{ color: 'var(--text-muted)' }}>{per}</td>
                     <td style={{ textAlign: 'right' }}>{val}</td>
                   </tr>

@@ -15,14 +15,21 @@
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
 }
 
-.card.capex {
+.card.capex,
+.card.qc {
     border-color: rgba(37, 99, 235, 0.3);
     background: linear-gradient(180deg, rgba(37, 99, 235, 0.03) 0%, var(--bg-card) 100%);
 }
 
-.card.opex {
+.card.opex,
+.card.gnrl {
     border-color: rgba(16, 185, 129, 0.3);
     background: linear-gradient(180deg, rgba(16, 185, 129, 0.03) 0%, var(--bg-card) 100%);
+}
+
+.card.total {
+    border-color: rgba(139, 92, 246, 0.3);
+    background: linear-gradient(180deg, rgba(139, 92, 246, 0.03) 0%, var(--bg-card) 100%);
 }
 
 .header {
@@ -46,14 +53,21 @@
     border-radius: 6px;
 }
 
-.badge.capex {
+.badge.capex,
+.badge.qc {
     background: rgba(37, 99, 235, 0.12);
     color: var(--primary);
 }
 
-.badge.opex {
+.badge.opex,
+.badge.gnrl {
     background: rgba(16, 185, 129, 0.12);
     color: var(--success);
+}
+
+.badge.total {
+    background: rgba(139, 92, 246, 0.12);
+    color: #8b5cf6;
 }
 
 .subTitle {
@@ -138,12 +152,18 @@
     gap: 4px;
 }
 
-.detailLink.capex {
+.detailLink.capex,
+.detailLink.qc {
     color: var(--primary);
 }
 
-.detailLink.opex {
+.detailLink.opex,
+.detailLink.gnrl {
     color: var(--success);
+}
+
+.detailLink.total {
+    color: #8b5cf6;
 }
 
 .budgetRow {
@@ -168,12 +188,18 @@
     color: var(--text-main);
 }
 
-.budgetValue.capex {
+.budgetValue.capex,
+.budgetValue.qc {
     color: #2563eb;
 }
 
-.budgetValue.opex {
+.budgetValue.opex,
+.budgetValue.gnrl {
     color: #10b981;
+}
+
+.budgetValue.total {
+    color: #8b5cf6;
 }
 
 .metricsGrid {
@@ -216,24 +242,36 @@
     letter-spacing: -0.01em;
 }
 
-.metricVal.capex {
+.metricVal.capex,
+.metricVal.qc {
     color: #2563eb;
 }
 
-.metricVal.opex {
+.metricVal.opex,
+.metricVal.gnrl {
     color: #10b981;
+}
+
+.metricVal.total {
+    color: #8b5cf6;
 }
 
 .metricBudget {
     font-weight: 700;
 }
 
-.metricBudget.capex {
+.metricBudget.capex,
+.metricBudget.qc {
     color: #2563eb;
 }
 
-.metricBudget.opex {
+.metricBudget.opex,
+.metricBudget.gnrl {
     color: #10b981;
+}
+
+.metricBudget.total {
+    color: #8b5cf6;
 }
 
 .dangerText {

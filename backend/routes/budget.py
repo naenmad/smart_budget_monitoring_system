@@ -303,12 +303,25 @@ def get_monthly_items():
     from models.pr_po_data import PrPoData
     from sqlalchemy import extract, or_
 
+    yy = periode[2:] if len(periode) == 4 else "26"
+
+    # Match month variations like 'Jan', 'Jan-26', 'Mei-26'
+    month_candidates = [month_str, f"{month_str}-26", f"{month_str}-{yy}"]
+    if month_str == 'May':
+        month_candidates.extend(['Mei', 'Mei-26', f'Mei-{yy}'])
+    elif month_str == 'Aug':
+        month_candidates.extend(['Agu', 'Agu-26', f'Agu-{yy}', 'Ags', 'Ags-26'])
+    elif month_str == 'Oct':
+        month_candidates.extend(['Okt', 'Okt-26', f'Okt-{yy}'])
+    elif month_str == 'Dec':
+        month_candidates.extend(['Des', 'Des-26', f'Des-{yy}'])
+
     # 1. Rincian Item Perencanaan (Planning Detail)
     details = PlanningDetail.query.join(
         PlanningHeader, PlanningDetail.planning_header_id == PlanningHeader.id
     ).filter(
         PlanningHeader.periode == periode,
-        PlanningDetail.month == month_str,
+        PlanningDetail.month.in_(month_candidates),
         PlanningDetail.status_realisasi != 'CANCELLED'
     ).order_by(PlanningDetail.planning_amount.desc()).all()
 
@@ -327,6 +340,8 @@ def get_monthly_items():
             "id": d.id,
             "item": d.item,
             "remarks": d.remarks or "",
+            "sub_kategori": d.sub_kategori or "-",
+            "tipe": d.tipe or "Item",
             "kategori_kode": d.kategori.kode if d.kategori else "-",
             "kategori_nama": d.kategori.nama if d.kategori else "-",
             "planning_amount": amt,
@@ -336,7 +351,7 @@ def get_monthly_items():
             "pr_count": len(linked_prs)
         })
 
-    # 2. Rincian Transaksi PR
+    # 2. Rincian Transaksi Actual / PR
     yy = periode[2:] if len(periode) == 4 else "26"
     mm = f"{m_num:02d}"
     pr_code_prefix = f"%/{yy}{mm}%"
@@ -344,10 +359,11 @@ def get_monthly_items():
     prs = PrPoData.query.filter(
         or_(
             (extract('year', PrPoData.request_date) == int(periode)) & (extract('month', PrPoData.request_date) == m_num),
-            PrPoData.pr_doc_num.like(pr_code_prefix)
+            PrPoData.pr_doc_num.like(pr_code_prefix),
+            PrPoData.bulan == m_num
         ),
         PrPoData.status_ai != 'CANCELLED'
-    ).order_by(PrPoData.id.desc()).all()
+    ).order_by(PrPoData.id.asc()).all()
 
     pr_items = []
     total_pr = 0.0
@@ -370,6 +386,11 @@ def get_monthly_items():
             "total_price": t_price,
             "budget_status": p.budget_status or "-",
             "status_ai": p.status_ai or "-",
+            "source": p.source or "PR",
+            "gl_account": p.gl_account or "-",
+            "cost_center": p.cost_center or "-",
+            "status_detail": p.status_detail or "-",
+            "beda_bulan": bool(p.beda_bulan) if p.beda_bulan is not None else False,
             "planning_item": p.planning_detail.item if p.planning_detail else ("Out of Plan (OOP)" if p.budget_status == "OOP" else "-"),
             "kategori_kode": p.kategori.kode if p.kategori else "-"
         })

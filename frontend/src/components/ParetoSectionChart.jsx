@@ -138,7 +138,7 @@ export default function ParetoSectionChart({ periode = '2026' }) {
                         <span style={{ fontWeight: 700 }}>{formatRp(row.actual_pr)}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', color: '#10b981', marginBottom: 4 }}>
-                        <span>Pengeluaran (Actual GR):</span>
+                        <span>Pengeluaran (Actual):</span>
                         <span style={{ fontWeight: 700 }}>{formatRp(row.actual_gr)}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', color: '#f59e0b', marginTop: 6, paddingTop: 4, borderTop: '1px dashed var(--border-color)' }}>
@@ -225,7 +225,7 @@ export default function ParetoSectionChart({ periode = '2026' }) {
                     <span className={s.kpiSub}>{summary.user_count} Active Users/Sections</span>
                 </div>
                 <div className={s.kpiCard}>
-                    <span className={s.kpiLabel}><CheckCircle2 size={13} /> Pengeluaran (Actual GR)</span>
+                    <span className={s.kpiLabel}><CheckCircle2 size={13} /> Pengeluaran (Actual)</span>
                     <span className={s.kpiValue} style={{ color: '#10b981' }}>{formatRp(summary.total_actual_gr)}</span>
                     <span className={s.kpiSub}>Physically Received</span>
                 </div>
@@ -273,7 +273,7 @@ export default function ParetoSectionChart({ periode = '2026' }) {
                                     <th>Item Description</th>
                                     <th>PIC / User</th>
                                     <th className={s.right}>Pembelian (Cost PR)</th>
-                                    <th className={s.right}>Pengeluaran (Actual GR)</th>
+                                    <th className={s.right}>Pengeluaran (Actual)</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -333,7 +333,7 @@ export default function ParetoSectionChart({ periode = '2026' }) {
                                 </div>
                                 <div>
                                     <span className={s.legendDot} style={{ background: '#10b981' }} />
-                                    <span>Pengeluaran (Actual GR)</span>
+                                    <span>Pengeluaran (Actual)</span>
                                 </div>
                                 <div>
                                     <span className={s.legendDot} style={{ background: '#f59e0b', borderRadius: '50%' }} />
@@ -388,7 +388,7 @@ export default function ParetoSectionChart({ periode = '2026' }) {
                                         }}
                                     />
 
-                                    {/* Dual Bars: Cost PR (Pembelian) & Actual GR (Pengeluaran) */}
+                                    {/* Dual Bars: Cost PR (Pembelian) & Actual (Pengeluaran) */}
                                     <Bar
                                         yAxisId="left"
                                         dataKey="actual_pr"
@@ -400,7 +400,7 @@ export default function ParetoSectionChart({ periode = '2026' }) {
                                     <Bar
                                         yAxisId="left"
                                         dataKey="actual_gr"
-                                        name="Pengeluaran (Actual GR)"
+                                        name="Pengeluaran (Actual)"
                                         fill="#10b981"
                                         radius={[4, 4, 0, 0]}
                                         maxBarSize={30}
@@ -435,7 +435,7 @@ export default function ParetoSectionChart({ periode = '2026' }) {
                                     {viewMode === 'item' && <th className={s.center}>Form</th>}
                                     <th className={s.right}>Planned Budget</th>
                                     <th className={s.right}>Pembelian (Cost PR)</th>
-                                    <th className={s.right}>Pengeluaran (Actual GR)</th>
+                                    <th className={s.right}>Pengeluaran (Actual)</th>
                                     <th className={s.right}>Variance</th>
                                     <th className={s.right}>Share %</th>
                                     <th className={s.center}>Cumulative %</th>

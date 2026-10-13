@@ -47,6 +47,19 @@ class PrPoData(db.Model):
         db.String(255)
     )
 
+    source = db.Column(
+        db.String(50),
+        default="PR"
+    )
+
+    gl_account = db.Column(
+        db.String(50)
+    )
+
+    cost_center = db.Column(
+        db.String(50)
+    )
+
     qty = db.Column(
         db.Numeric(15, 2)
     )
@@ -145,6 +158,36 @@ class PrPoData(db.Model):
         nullable=True
     )
 
+    status_detail = db.Column(
+        db.String(100),
+        nullable=True
+    )
+
+    beda_bulan = db.Column(
+        db.Boolean,
+        default=False
+    )
+
+    doc_number = db.Column(
+        db.String(100),
+        nullable=True
+    )
+
+    dept_pengaju = db.Column(
+        db.String(100),
+        nullable=True
+    )
+
+    pengaju = db.Column(
+        db.String(255),
+        nullable=True
+    )
+
+    bulan = db.Column(
+        db.SmallInteger,
+        nullable=True
+    )
+
     layer_klasifikasi = db.Column(
         db.SmallInteger,
         comment="1=Rule Base, 2=Regex, 3=SVM"
@@ -209,6 +252,17 @@ class PrPoData(db.Model):
         db.Text,
         nullable=True
     )
+
+    # Get Report comparisons (Out of Budget)
+    part_number = db.Column(db.String(100), nullable=True)
+    item_get_report = db.Column(db.Text, nullable=True)
+    po_get_report = db.Column(db.String(100), nullable=True)
+    gr_get_report = db.Column(db.String(100), nullable=True)
+    receipt_date_get_report = db.Column(db.Date, nullable=True)
+    nilai_get_report = db.Column(db.Numeric(18, 2), nullable=True)
+    selisih_get_report = db.Column(db.Numeric(18, 2), nullable=True)
+    status_get_report = db.Column(db.String(100), nullable=True)
+    catatan_perbandingan = db.Column(db.Text, nullable=True)
 
     # --- Relationships ---
 
@@ -340,6 +394,15 @@ class PrPoData(db.Model):
             } if self.planning_detail else None,
             "status_ai": self.status_ai,
             "budget_status": self.budget_status,
+            "status_detail": self.status_detail,
+            "beda_bulan": bool(self.beda_bulan) if self.beda_bulan is not None else False,
+            "source": self.source,
+            "gl_account": self.gl_account,
+            "cost_center": self.cost_center,
+            "doc_number": self.doc_number,
+            "dept_pengaju": self.dept_pengaju,
+            "pengaju": self.pengaju,
+            "bulan": self.bulan,
             "layer_klasifikasi": self.layer_klasifikasi,
             "metode_klasifikasi": self.metode_klasifikasi,
             "perlu_review": self.perlu_review,
@@ -364,6 +427,15 @@ class PrPoData(db.Model):
             ),
             "alasan_pembatalan": self.alasan_pembatalan,
             "tracking_stage": self.tracking_stage,
+            "part_number": self.part_number,
+            "item_get_report": self.item_get_report,
+            "po_get_report": self.po_get_report,
+            "gr_get_report": self.gr_get_report,
+            "receipt_date_get_report": self.receipt_date_get_report.isoformat() if self.receipt_date_get_report else None,
+            "nilai_get_report": float(self.nilai_get_report) if self.nilai_get_report else None,
+            "selisih_get_report": float(self.selisih_get_report) if self.selisih_get_report else None,
+            "status_get_report": self.status_get_report,
+            "catatan_perbandingan": self.catatan_perbandingan,
         }
 
     def __repr__(self):

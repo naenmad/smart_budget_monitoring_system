@@ -255,6 +255,43 @@
 .statusClosed { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
 .statusOver { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
 
+.badgeBedaBulan {
+    display: inline-flex;
+    align-items: center;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: #fffbeb;
+    color: #b45309;
+    border: 1px solid #fde68a;
+    margin-left: 6px;
+}
+
+.badgeSource {
+    display: inline-block;
+    font-size: 9.5px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: var(--bg-subtle, #f1f5f9);
+    color: var(--text-muted, #64748b);
+    border: 1px solid var(--border-color, #e2e8f0);
+    margin-right: 4px;
+}
+
+.badgeSubKat {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: rgba(139, 92, 246, 0.08);
+    color: #7c3aed;
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    margin-left: 6px;
+}
+
 .emptyState {
     text-align: center;
     padding: 48px 16px;

@@ -5,6 +5,7 @@ import { ArrowRight, AlertTriangle, FileText, CheckCircle2 } from 'lucide-react'
 export default function BudgetCard({
     type = 'CAPEX',
     title = 'Capital Expenditure',
+    badgeLabel,
     budget = 0,
     actualPr = 0,
     actualGr = 0,
@@ -18,12 +19,13 @@ export default function BudgetCard({
     const pctPr = budget > 0 ? (persenPr || Math.round((actualPr / budget) * 100)) : 0
     const pctGr = budget > 0 ? (persenGr || Math.round((actualGr / budget) * 100)) : 0
     const isOverPr = pctPr > 100
+    const displayType = badgeLabel || type
 
     return (
         <div className={`${s.card} ${s[variant]}`} onClick={onClick}>
             <div className={s.header}>
                 <div className={s.titleArea}>
-                    <span className={`${s.badge} ${s[variant]}`}>{type}</span>
+                    <span className={`${s.badge} ${s[variant]}`}>{displayType}</span>
                     <span className={s.subTitle}>{title}</span>
                 </div>
 
@@ -44,7 +46,7 @@ export default function BudgetCard({
 
             {/* Total Budget Row */}
             <div className={s.budgetRow}>
-                <span className={s.budgetLabel}>Total Budget ({type})</span>
+                <span className={s.budgetLabel}>Actual Finance Budget ({displayType})</span>
                 <span className={`${s.budgetValue} ${s[variant]}`}>{formatRp(budget)}</span>
             </div>
 
@@ -75,11 +77,11 @@ export default function BudgetCard({
                     </div>
                 </div>
 
-                {/* 2. Physical Receipt (GR) */}
+                {/* 2. Physical Receipt (GR / Recieve) */}
                 <div className={`${s.metricBlock} ${s.gr}`}>
                     <div className={s.metricLabel}>
                         <CheckCircle2 size={13} style={{ color: '#10b981' }} />
-                        <span>Actual GR (Received)</span>
+                        <span>Actual (Recieved)</span>
                     </div>
                     <div className={`${s.metricVal} ${s[variant]}`}>{formatRp(actualGr)}</div>
                     <div className={s.metricSub}>
@@ -93,7 +95,7 @@ export default function BudgetCard({
                         />
                     </div>
                     <div className={s.usageRow}>
-                        <span className={s.usageText}>GR Completed</span>
+                        <span className={s.usageText}>Recieve Completed</span>
                         <span style={{ color: '#10b981' }}>
                             {pctGr}%
                         </span>

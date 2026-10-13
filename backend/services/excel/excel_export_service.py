@@ -104,7 +104,7 @@ class ExcelExportService:
             ws_data.row_dimensions[row_idx].height = 20
 
             kat = kategoris.get(pd_item.kategori_id)
-            form_code = kat.kode if kat else "E-1"
+            form_code = kat.kode if kat else "GENERAL"
             cat_label = "CAPEX" if "CAPEX" in form_code else "OPEX"
             user_sec = "QC ADMIN"
 
@@ -300,10 +300,10 @@ class ExcelExportService:
             c.border = cls.TOTAL_ROW_BORDER
 
         # Table 2: Form
-        ws_dash["G9"] = "2. REKAPITULASI BERDASARKAN FORM"
+        ws_dash["G9"] = "2. REKAPITULASI BERDASARKAN AKUN GL"
         ws_dash["G9"].font = cls.SECTION_FONT
 
-        form_headers = ["Form", "Total Budget (IDR)", "Realized (IDR)"]
+        form_headers = ["Akun GL / Form", "Total Budget (IDR)", "Realized (IDR)"]
         for c_i, h in enumerate(form_headers, 7):
             cell = ws_dash.cell(row=10, column=c_i, value=h)
             cell.font = cls.HEADER_FONT
@@ -311,25 +311,32 @@ class ExcelExportService:
             cell.alignment = cls.ALIGN_HEADER
             cell.border = cls.TABLE_HEADER_BORDER
 
-        forms = ["E-1 (Operational)", "E-9 (Kalibrasi)", "I-1 (Investment/Capex)"]
-        form_codes = ["E-1", "E-9", "I-1"]
-        for r_i, (f_lbl, f_code) in enumerate(zip(forms, form_codes), 11):
-            ws_dash.cell(row=r_i, column=7, value=f_lbl).alignment = cls.ALIGN_LEFT
-            c_tot = ws_dash.cell(row=r_i, column=8, value=f"=SUMIF('Budget Planning Detail'!$D$2:$D${max(2, total_row_idx-1)}, \"{f_code}\", 'Budget Planning Detail'!$J$2:$J${max(2, total_row_idx-1)})")
-            c_real = ws_dash.cell(row=r_i, column=9, value=f"=SUMIFS('Budget Planning Detail'!$J$2:$J${max(2, total_row_idx-1)}, 'Budget Planning Detail'!$D$2:$D${max(2, total_row_idx-1)}, \"{f_code}\", 'Budget Planning Detail'!$K$2:$K${max(2, total_row_idx-1)}, \"Realized (PR Issued)\")")
+        active_kats = Kategori.query.filter(Kategori.is_active.is_(True), Kategori.kode.notin_(["E-6", "OOP"])).order_by(Kategori.kode).all()
+        forms = [f"{k.kode} ({k.nama[:18]}..)" if len(k.nama) > 18 else f"{k.kode} ({k.nama})" for k in active_kats]
+        form_codes = [k.kode for k in active_kats]
+        if not form_codes:
+            forms = ["Semua Akun GL"]
+            form_codes = ["*"]
+        curr_r = 11
+        for f_lbl, f_code in zip(forms, form_codes):
+            ws_dash.cell(row=curr_r, column=7, value=f_lbl).alignment = cls.ALIGN_LEFT
+            c_tot = ws_dash.cell(row=curr_r, column=8, value=f"=SUMIF('Budget Planning Detail'!$D$2:$D${max(2, total_row_idx-1)}, \"{f_code}\", 'Budget Planning Detail'!$J$2:$J${max(2, total_row_idx-1)})")
+            c_real = ws_dash.cell(row=curr_r, column=9, value=f"=SUMIFS('Budget Planning Detail'!$J$2:$J${max(2, total_row_idx-1)}, 'Budget Planning Detail'!$D$2:$D${max(2, total_row_idx-1)}, \"{f_code}\", 'Budget Planning Detail'!$K$2:$K${max(2, total_row_idx-1)}, \"Realized (PR Issued)\")")
             for cell in [c_tot, c_real]:
                 cell.number_format = "#,##0"
                 cell.alignment = cls.ALIGN_RIGHT
             for c_i in range(7, 10):
-                c = ws_dash.cell(row=r_i, column=c_i)
+                c = ws_dash.cell(row=curr_r, column=c_i)
                 c.font = cls.REGULAR_FONT
                 c.border = cls.THIN_BORDER_GRAY
+            curr_r += 1
 
-        ws_dash.cell(row=14, column=7, value="TOTAL").alignment = cls.ALIGN_LEFT
-        ws_dash.cell(row=14, column=8, value="=SUM(H11:H13)").number_format = "#,##0"
-        ws_dash.cell(row=14, column=9, value="=SUM(I11:I13)").number_format = "#,##0"
+        tot_gl_row = curr_r
+        ws_dash.cell(row=tot_gl_row, column=7, value="TOTAL").alignment = cls.ALIGN_LEFT
+        ws_dash.cell(row=tot_gl_row, column=8, value=f"=SUM(H11:H{tot_gl_row-1})").number_format = "#,##0"
+        ws_dash.cell(row=tot_gl_row, column=9, value=f"=SUM(I11:I{tot_gl_row-1})").number_format = "#,##0"
         for c_i in range(7, 10):
-            c = ws_dash.cell(row=14, column=c_i)
+            c = ws_dash.cell(row=tot_gl_row, column=c_i)
             c.font = cls.BOLD_FONT
             c.fill = cls.SUBTOTAL_FILL
             c.border = cls.TOTAL_ROW_BORDER

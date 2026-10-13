@@ -204,6 +204,18 @@ class PlanningUploadService:
         file_path = os.path.join(PlanningUploadService.UPLOAD_FOLDER, filename)
         file.save(file_path)
 
+        # Cek apakah file ini merupakan format DATABASE WEB BUDGET (5-Sheet)
+        try:
+            import openpyxl
+            wb_check = openpyxl.load_workbook(file_path, data_only=True)
+            sheet_names_lower = [s.strip().lower() for s in wb_check.sheetnames]
+            if any("plan vs actual (item)" in s or "plan vs actual item" in s for s in sheet_names_lower):
+                from services.excel.database_budget_excel_service import DatabaseBudgetExcelService
+                res = DatabaseBudgetExcelService.import_excel(file_path, user_id=user_id, periode=periode or "2026")
+                return res, 200
+        except Exception as db_excel_err:
+            pass
+
         try:
             df = PlanningUploadService._read_planning_df(file_path)
         except Exception as read_err:
@@ -312,12 +324,16 @@ class PlanningUploadService:
                         kategori_id = kategori.id
                     else:
                         item_lower = get_clean_str(row, "item").lower()
-                        if item_lower.startswith("kalibrasi") or item_lower == "preventive c/f":
-                            kategori_id = 2  # E-9 Calibration & Mtc CF
-                        elif any(kw in item_lower for kw in ("cutting machine", "laptop", "lemari", "shredder", "torque", "ojiyas", "ring gauge", "feeler gauge", "filler gauge", "pop nut", "komputer", "machine")):
-                            kategori_id = 3  # I-1 Investment Asset CAPEX
+                        if any(kw in item_lower for kw in ("transport", "bensin", "bbm", "tol", "parkir", "travel")):
+                            target_kat = Kategori.query.filter_by(kode='60290500-123200').first()
+                        elif any(kw in item_lower for kw in ("repair", "maint", "perbaikan", "service mesin")):
+                            target_kat = Kategori.query.filter_by(kode='50032802-123200').first()
+                        elif any(kw in item_lower for kw in ("stationary", "atk", "kertas", "pulpen")):
+                            target_kat = Kategori.query.filter_by(kode='60290800-123200').first()
                         else:
-                            kategori_id = 1  # E-1 Consumable OPEX
+                            target_kat = Kategori.query.filter_by(kode='50032902-123200').first()
+
+                        kategori_id = target_kat.id if target_kat else None
 
                     month_val = get_clean_str(row, "month") or None
                     item_val = get_clean_str(row, "item")

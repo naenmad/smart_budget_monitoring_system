@@ -21,17 +21,17 @@ import {
 import ScrollableCell from './ScrollableCell'
 
 function extractUser(comment) {
-  if (!comment) return 'QC General'
+  if (!comment) return 'QC GENERAL'
   const c = comment.toUpperCase()
   const m = c.match(/PIC\s*[:]?\s*([A-Z0-9_ ]+?)(?:\/|$|\n)/)
   if (m) {
     let val = m[1].trim().replace(/^(MR\.?|MS\.?|MRS\.?)\s*/, '')
-    if (val.length >= 2) return val.split(' ').map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(' ')
+    if (val.length >= 2) return val.toUpperCase()
   }
-  if (c.includes('QC INCOMING') || c.includes('INCOMING')) return 'QC Incoming'
-  if (c.includes('DIGITALISASI')) return 'QC Digitalization'
-  if (c.includes('ASSY') || c.includes('LINE')) return 'QC Production'
-  return 'QC Admin'
+  if (c.includes('QC INCOMING') || c.includes('INCOMING')) return 'QC INCOMING'
+  if (c.includes('DIGITALISASI')) return 'QC DIGITALIZATION'
+  if (c.includes('ASSY') || c.includes('LINE')) return 'ASSY'
+  return 'QC ADMIN'
 }
 
 export default function PrStatusModal({ status, onClose }) {
@@ -165,7 +165,7 @@ export default function PrStatusModal({ status, onClose }) {
       doc.setFontSize(10)
       doc.text(`Total Records: ${prList.length} PRs | Total PR Cost: ${formatRp(totalRealized)} | Planned Budget: ${formatRp(totalPlanned)}`, 14, 25)
 
-      const tableColumn = ["PR Doc", "Item Description", "PIC / Section", "Linked Planning Item", "Form", "Planning", "Cost PR", "Actual GR", "Over Cost"]
+      const tableColumn = ["PR Doc", "Item Description", "PIC / Section", "Linked Planning Item", "Form", "Planning", "Cost PR", "Actual", "Over Cost"]
       const tableRows = []
 
       prList.forEach(pr => {
@@ -176,7 +176,7 @@ export default function PrStatusModal({ status, onClose }) {
         const hasGr = Boolean(pr.gr_legal_number)
         const grAmount = Number(pr.actual_gr_amount ?? (hasGr ? costPr : 0))
         const formLabel = pr.kategori_kode === 'E-1' ? 'E1 - Consumable' : (pr.kategori_kode || '-')
-        const picName = pr.pic || extractUser(pr.comment_text)
+        const picName = (pr.pic || extractUser(pr.comment_text)).toUpperCase()
 
         const prData = [
           pr.pr_doc_num || '-',
@@ -250,7 +250,7 @@ export default function PrStatusModal({ status, onClose }) {
               <div>
                 <strong style={{ color: '#dc2626' }}>Over Budget Reference & Item Tracking:</strong>
                 <div style={{ marginTop: 2, color: 'var(--text-muted)' }}>
-                  Each purchase requisition displays its exact <strong>Cost PR</strong> and realized <strong>Actual GR per item</strong> as an official price and volume baseline for next year's budget planning reference.
+                  Each purchase requisition displays its exact <strong>Cost PR</strong> and realized <strong>Actual per item</strong> as an official price and volume baseline for next year's budget planning reference.
                 </div>
               </div>
             </div>
@@ -277,7 +277,7 @@ export default function PrStatusModal({ status, onClose }) {
                 <span className={s.kpiSub}>{netVariance < 0 ? 'Budget Deficit (Over)' : 'Remaining Balance'}</span>
               </div>
               <div className={s.kpiCard}>
-                <span className={s.kpiLabel}><TrendingUp size={13} /> Actual GR (Pengeluaran)</span>
+                <span className={s.kpiLabel}><TrendingUp size={13} /> Actual (Pengeluaran)</span>
                 <span className={s.kpiValue} style={{ color: '#10b981' }}>{formatRp(totalGrRealized)}</span>
                 <span className={s.kpiSub}>Goods Received Physically</span>
               </div>
@@ -305,7 +305,7 @@ export default function PrStatusModal({ status, onClose }) {
                     <th className={s.center}>Form</th>
                     <th className={s.right}>Planning</th>
                     <th className={s.right}>Cost PR</th>
-                    <th className={s.right}>Actual GR</th>
+                    <th className={s.right}>Actual</th>
                     <th className={s.center}>Over Cost</th>
                     {isOopView && <th className={s.center}>Action</th>}
                     {isCancelledPrView && <th>Cancellation Reason</th>}
@@ -320,7 +320,7 @@ export default function PrStatusModal({ status, onClose }) {
                     const hasGr = Boolean(pr.gr_legal_number)
                     const grAmount = Number(pr.actual_gr_amount ?? (hasGr ? costPr : 0))
                     const formDisplay = pr.kategori_kode === 'E-1' ? 'E1 - Consumable' : (pr.kategori_kode || '-')
-                    const picName = pr.pic || extractUser(pr.comment_text)
+                    const picName = (pr.pic || extractUser(pr.comment_text)).toUpperCase()
 
                     return (
                       <tr key={pr.id}>

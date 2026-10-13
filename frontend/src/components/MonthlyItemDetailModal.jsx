@@ -160,6 +160,9 @@ export default function MonthlyItemDetailModal({ periode = '2026', month = 'Jan'
                       <td style={{ color: 'var(--text-muted)' }}>{idx + 1}</td>
                       <td>
                         <strong>{item.item}</strong>
+                        {item.sub_kategori && item.sub_kategori !== '-' && (
+                          <span className={s.badgeSubKat}>{item.sub_kategori}</span>
+                        )}
                         {item.remarks && (
                           <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>
                             {item.remarks}
@@ -194,20 +197,20 @@ export default function MonthlyItemDetailModal({ periode = '2026', month = 'Jan'
               <thead>
                 <tr>
                   <th style={{ width: 36 }}>#</th>
-                  <th>No. PR</th>
-                  <th>Deskripsi Barang PR</th>
-                  <th>Kategori</th>
-                  <th>Tautan Item Planning</th>
-                  <th style={{ textAlign: 'right' }}>Nominal PR</th>
-                  <th style={{ textAlign: 'center' }}>Status Budget</th>
-                  <th>No. PO / GR</th>
+                  <th>Sumber & Dokumen</th>
+                  <th>Deskripsi Transaksi</th>
+                  <th>GL & CC</th>
+                  <th>Pencocokan Planning</th>
+                  <th style={{ textAlign: 'right' }}>Nominal</th>
+                  <th style={{ textAlign: 'center' }}>Status</th>
+                  <th>Ref PO / GR</th>
                 </tr>
               </thead>
               <tbody>
                 {prList.length === 0 ? (
                   <tr>
                     <td colSpan={8} className={s.emptyState}>
-                      {searchQuery ? `Tidak ada PR yang cocok dengan "${searchQuery}"` : 'Tidak ada transaksi PR pada bulan ini.'}
+                      {searchQuery ? `Tidak ada transaksi yang cocok dengan "${searchQuery}"` : 'Tidak ada transaksi actual pada bulan ini.'}
                     </td>
                   </tr>
                 ) : (
@@ -215,7 +218,10 @@ export default function MonthlyItemDetailModal({ periode = '2026', month = 'Jan'
                     <tr key={pr.id}>
                       <td style={{ color: 'var(--text-muted)' }}>{idx + 1}</td>
                       <td>
-                        <strong style={{ fontFamily: 'monospace', fontSize: 12 }}>{pr.pr_doc_num}</strong>
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                          <span className={s.badgeSource}>{pr.source || 'PR'}</span>
+                          <strong style={{ fontFamily: 'monospace', fontSize: 11 }}>{pr.pr_doc_num}</strong>
+                        </div>
                       </td>
                       <td>
                         <div>{pr.description}</div>
@@ -229,13 +235,25 @@ export default function MonthlyItemDetailModal({ periode = '2026', month = 'Jan'
                         <span className={s.badgeCategory}>{pr.kategori_kode}</span>
                       </td>
                       <td>
-                        <span style={{ fontSize: 12, fontWeight: 500 }}>{pr.planning_item}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: 12, fontWeight: 500 }}>{pr.planning_item}</span>
+                          {pr.beda_bulan && (
+                            <span className={s.badgeBedaBulan} title="Transaksi terjadi di bulan berbeda dari planning">
+                              Beda Bulan
+                            </span>
+                          )}
+                        </div>
+                        {pr.status_detail && pr.status_detail !== '-' && (
+                          <div style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: 2 }}>
+                            {pr.status_detail}
+                          </div>
+                        )}
                       </td>
                       <td style={{ textAlign: 'right', fontWeight: 700 }}>
                         {formatRp(pr.total_price)}
                       </td>
                       <td style={{ textAlign: 'center' }}>
-                        <span className={`${s.badgeStatus} ${pr.budget_status === 'ON_PLAN' ? s.statusClosed : pr.budget_status === 'OVER_PLAN' ? s.statusOver : s.statusProses}`}>
+                        <span className={`${s.badgeStatus} ${pr.budget_status === 'ON_PLAN' ? s.statusClosed : pr.budget_status === 'OOP' ? s.statusOver : pr.budget_status === 'OVER_PLAN' ? s.statusOver : s.statusProses}`}>
                           {pr.budget_status}
                         </span>
                       </td>

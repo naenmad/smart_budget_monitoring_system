@@ -10,18 +10,21 @@ import ProtectedRoute from './components/ProtectedRoute'
 import AppShell from './components/AppShell'
 import './index.css'
 
-// Lazy-loaded pages for optimal bundle chunking and instant first load
+// Active Core Pages
 const Login = lazy(() => import('./pages/Login'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
-const Budget = lazy(() => import('./pages/Budget'))
-const Classification = lazy(() => import('./pages/Classification'))
-const Users = lazy(() => import('./pages/Users'))
-const ItemMapping = lazy(() => import('./pages/ItemMapping'))
 const Planning = lazy(() => import('./pages/Planning'))
-const PrUpload = lazy(() => import('./pages/PrUpload'))
-const PrHistory = lazy(() => import('./pages/PrHistory'))
-const PrVerification = lazy(() => import('./pages/PrVerification'))
+const OutOfPlan = lazy(() => import('./pages/OutOfPlan'))
+const Budget = lazy(() => import('./pages/Budget'))
 const EntertaintCost = lazy(() => import('./pages/EntertaintCost'))
+const Users = lazy(() => import('./pages/Users'))
+
+// Archived / Legacy Pages (stored in ./pages/legacy)
+const PrUpload = lazy(() => import('./pages/legacy/PrUpload'))
+const PrHistory = lazy(() => import('./pages/legacy/PrHistory'))
+const PrVerification = lazy(() => import('./pages/legacy/PrVerification'))
+const ItemMapping = lazy(() => import('./pages/legacy/ItemMapping'))
+const Classification = lazy(() => import('./pages/legacy/Classification'))
 
 function PageLoader() {
   return (
@@ -100,10 +103,14 @@ export default function App() {
                   {/* Master Data */}
                   <Route path="/master/item-mapping" element={<ProtectedRoute roles={['admin']}><ItemMapping /></ProtectedRoute>} />
 
-                  {/* Planning */}
+                  {/* Planning & Out of Plan */}
                   <Route path="/planning" element={<ProtectedRoute><Planning /></ProtectedRoute>} />
+                  <Route path="/out-of-plan" element={<ProtectedRoute><OutOfPlan /></ProtectedRoute>} />
                   <Route path="/planning/upload" element={<Navigate to="/planning?tab=upload" replace />} />
                   <Route path="/planning/list" element={<Navigate to="/planning?tab=list" replace />} />
+                  <Route path="/planning/spreadsheet" element={<Navigate to="/planning?tab=spreadsheet" replace />} />
+                  <Route path="/planning/out-of-budget" element={<Navigate to="/out-of-plan" replace />} />
+                  <Route path="/planning/preventive-cf" element={<Navigate to="/planning?tab=preventive" replace />} />
 
                   {/* PR */}
                   <Route path="/pr/upload" element={<ProtectedRoute roles={['admin']}><PrUpload /></ProtectedRoute>} />

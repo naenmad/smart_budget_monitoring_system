@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { planningApi } from '../api/planningApi'
 import s from './PlanningList.module.css'
 import { formatRp } from '../utils/format'
-import { Calendar, X, ChevronUp, ChevronDown, ArrowUpDown, Search } from 'lucide-react'
+import { Calendar, X, ChevronUp, ChevronDown, ArrowUpDown, Search, Download, Loader2 } from 'lucide-react'
 import TablePagination from '../components/common/TablePagination'
 import TableSkeleton from '../components/common/TableSkeleton'
 
@@ -47,6 +47,33 @@ export default function PlanningList() {
   const [detailPage, setDetailPage] = useState(1)
   const [detailPerPage, setDetailPerPage] = useState(20)
   const [detailSortOrder, setDetailSortOrder] = useState('asc')
+  const [exportLoading, setExportLoading] = useState(false)
+
+  const handleExportExcel = async () => {
+    const targetPeriode = periode || '2026'
+    setExportLoading(true)
+    const toastId = toast.loading(`Menyiapkan export DATABASE WEB BUDGET ${targetPeriode}...`)
+    try {
+      const res = await planningApi.exportDatabaseBudget(targetPeriode)
+      const blob = new Blob([res.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.setAttribute('download', `DATABASE_WEB_BUDGET_${targetPeriode}.xlsx`)
+      document.body.appendChild(a)
+      a.click()
+      a.parentNode.removeChild(a)
+      window.URL.revokeObjectURL(url)
+      toast.success(`DATABASE_WEB_BUDGET_${targetPeriode}.xlsx berhasil diunduh!`, { id: toastId })
+    } catch (err) {
+      console.error('Export error:', err)
+      toast.error('Gagal mengunduh file Excel', { id: toastId })
+    } finally {
+      setExportLoading(false)
+    }
+  }
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -193,6 +220,35 @@ export default function PlanningList() {
               Reset
             </button>
           )}
+          <button
+            onClick={handleExportExcel}
+            disabled={exportLoading}
+            className="btn-primary"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '6px 14px',
+              fontSize: 13,
+              fontWeight: 600,
+              backgroundColor: '#10b981',
+              borderColor: '#059669',
+              color: '#ffffff'
+            }}
+            title="Download format resmi DATABASE WEB BUDGET (5 Sheets) - Kompatibel Excel & Apple Numbers"
+          >
+            {exportLoading ? (
+              <>
+                <Loader2 size={14} className="animate-spin" />
+                <span>Mengekspor...</span>
+              </>
+            ) : (
+              <>
+                <Download size={14} />
+                <span>Export Excel (5 Sheets)</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
 
@@ -262,7 +318,7 @@ export default function PlanningList() {
                           <table className={s.table}>
                             <thead>
                               <tr>
-                                {['Bulan', 'Kategori', 'Item', 'Planning Amount', 'Remarks', 'Status Realisasi', 'Aksi'].map(c => (
+                                {['Bulan', 'Account', 'Item', 'Planning Amount', 'Remarks', 'Status Realisasi', 'Aksi'].map(c => (
                                   <th key={c}>{c}</th>
                                 ))}
                               </tr>
@@ -348,7 +404,7 @@ export default function PlanningList() {
                           </table>
                         </div>
 
-                        {/* Standardized Table Pagination for Details */}
+                        {/* Pagination */}
                         {(() => {
                           const rawList = (details[h.id] || []).filter(d => {
                             if (!search) return true
@@ -363,22 +419,16 @@ export default function PlanningList() {
                           const totalDetails = rawList.length
                           const totalDetailPages = Math.ceil(totalDetails / detailPerPage) || 1
 
-                          if (totalDetails === 0) return null
-                          return (
+                          return totalDetails > detailPerPage ? (
                             <TablePagination
-                              page={detailPage}
+                              currentPage={detailPage}
                               totalPages={totalDetailPages}
-                              total={totalDetails}
-                              perPage={detailPerPage}
                               onPageChange={setDetailPage}
-                              onPerPageChange={(newSize) => {
-                                setDetailPerPage(newSize)
-                                setDetailPage(1)
-                              }}
-                              itemName="item planning"
-                              loading={detailLoading}
+                              totalItems={totalDetails}
+                              perPage={detailPerPage}
+                              onPerPageChange={setDetailPerPage}
                             />
-                          )
+                          ) : null
                         })()}
                       </>
                     )}

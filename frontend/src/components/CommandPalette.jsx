@@ -51,14 +51,14 @@ const STATIC_ITEMS = [
 
   // ── Card & Widget ──
   { path: '/dashboard', label: 'Card: Budget Overview (Total, Terpakai, Budget)', type: 'card', category: 'Card & Widget', icon: Layers, keywords: 'card total budget terpakai budget overview ringkasan metrik dashboard' },
-  { path: '/dashboard', label: 'Card: Analisis CAPEX & OPEX', type: 'card', category: 'Card & Widget', icon: PieChart, keywords: 'card capex opex capital operational perbandingan grafik budget modal operasional' },
+  { path: '/dashboard', label: 'Card: Analisis Investasi & Biaya Operasional', type: 'card', category: 'Card & Widget', icon: PieChart, keywords: 'card investasi modal biaya operasional beban perbandingan grafik budget akun gl' },
   { path: '/dashboard', label: 'Card: Status PR Pipeline (On Plan, Over, Under, OOP)', type: 'card', category: 'Card & Widget', icon: BarChart3, keywords: 'card status pipeline pr on plan over plan under plan out of plan need mapping cancelled' },
   { path: '/dashboard', label: 'Card: PR Tracking Stages (Stage PR, PO, GR)', type: 'card', category: 'Card & Widget', icon: TrendingUp, keywords: 'card tracking tahapan stage pr purchase requisition stage po order stage gr goods receipt' },
   { path: '/classification', label: 'Card: Metrik Akurasi & Confusion Matrix SVM', type: 'card', category: 'Card & Widget', icon: Cpu, keywords: 'card akurasi model svm precision recall f1-score confusion matrix tf-idf ai' },
-  { path: '/budget', label: 'Card: Status Budget Aktif per Kategori', type: 'card', category: 'Card & Widget', icon: DollarSign, keywords: 'card budget aktif e-1 e-9 i-1 limit budget monitoring' },
+  { path: '/budget', label: 'Card: Status Budget Aktif per Akun GL', type: 'card', category: 'Card & Widget', icon: DollarSign, keywords: 'card budget aktif gl account cost center limit budget monitoring' },
 
   // ── Tabel & Data ──
-  { path: '/dashboard', label: 'Tabel: Rincian Form Budget (E-1, E-9, I-1)', type: 'table', category: 'Tabel & Data', icon: Table, keywords: 'tabel rincian form budget data realisasi persen persentase warning over saldo' },
+  { path: '/dashboard', label: 'Tabel: Rincian Budget Akun GL & Cost Center', type: 'table', category: 'Tabel & Data', icon: Table, keywords: 'tabel rincian akun gl budget cost center data realisasi persen persentase warning over saldo' },
   { path: '/pr/result', label: 'Tabel: Hasil Matching AI & Realisasi PR', type: 'table', category: 'Tabel & Data', icon: Table, keywords: 'tabel hasil matching result realisasi pr status ai kode kategori verifikasi' },
   { path: '/planning/list', label: 'Tabel: Rincian Anggaran Tahunan per Bulan', type: 'table', category: 'Tabel & Data', icon: Table, keywords: 'tabel detail planning per bulan januari desember amount nominal rencana' },
   { path: '/master/item-mapping', label: 'Tabel: Rule Keyword Mapping Kata Kunci', type: 'table', category: 'Tabel & Data', icon: Table, keywords: 'tabel mapping sinonim kamus aturan pencocokan item nama barang kata kunci' },

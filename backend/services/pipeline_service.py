@@ -20,7 +20,7 @@ MONTH_ABBR_TO_NUM = {
     'may': 5, 'mei': 5, '5': 5, '05': 5,
     'jun': 6, 'june': 6, 'juni': 6, '6': 6, '06': 6,
     'jul': 7, 'july': 7, 'juli': 7, '7': 7, '07': 7,
-    'aug': 8, 'august': 8, 'agustus': 8, 'agt': 8, '8': 8, '08': 8,
+    'aug': 8, 'august': 8, 'agustus': 8, 'agt': 8, 'agu': 8, '8': 8, '08': 8,
     'sep': 9, 'september': 9, '9': 9, '09': 9,
     'oct': 10, 'october': 10, 'oktober': 10, 'okt': 10, '10': 10,
     'nov': 11, 'november': 11, '11': 11,
@@ -322,7 +322,8 @@ class PipelineService:
                 PlanningHeader.periode == periode,
                 PlanningHeader.status.in_(["SUCCES", "SUCCESS"]),
                 PlanningDetail.status_realisasi != "CANCELLED",
-                Kategori.kode.in_(["E-1", "E-9", "I-1"])
+                Kategori.is_active.is_(True),
+                Kategori.kode != 'E-6'
             )
             .all()
         )
@@ -334,18 +335,20 @@ class PipelineService:
         }
         for row in planning_rows:
             raw_month = str(row.month).strip().lower() if row.month else ''
-            m_num = MONTH_ABBR_TO_NUM.get(raw_month)
+            # Handle formats like 'Jan-26' or 'Jan'
+            clean_month = raw_month.split('-')[0].strip()
+            m_num = MONTH_ABBR_TO_NUM.get(clean_month) or MONTH_ABBR_TO_NUM.get(raw_month)
             if m_num and 1 <= m_num <= 12:
                 amt = float(row.planning_amount or 0)
                 tipe = 'CAPEX' if row.tipe_formulir == 'CAPEX' else 'OPEX'
                 monthly_plan[m_num][tipe] += amt
-                if row.kat_kode == 'E-1':
+                item_upper = (row.item or '').upper()
+                if 'PREVENTIVE' in item_upper:
+                    monthly_plan_sub[m_num]['e9_preventive'] += amt
+                elif 'KALIBRASI' in item_upper or 'CALIBRATION' in item_upper:
+                    monthly_plan_sub[m_num]['e9_calibration'] += amt
+                elif row.kat_kode == '50032902-123200' or 'SUPPLIES' in item_upper:
                     monthly_plan_sub[m_num]['e1_expense'] += amt
-                elif row.kat_kode == 'E-9':
-                    if 'PREVENTIVE' in (row.item or '').upper():
-                        monthly_plan_sub[m_num]['e9_preventive'] += amt
-                    else:
-                        monthly_plan_sub[m_num]['e9_calibration'] += amt
 
         # 2. Ambil data Actual PR & GR (semua PR berstatus DONE) per bulan & per tipe form
         actual_rows = (
@@ -363,7 +366,8 @@ class PipelineService:
             .filter(
                 year_filter,
                 PrPoData.status_ai == "DONE",
-                Kategori.kode.in_(["E-1", "E-9", "I-1"])
+                Kategori.is_active.is_(True),
+                Kategori.kode != 'E-6'
             )
             .all()
         )
@@ -391,19 +395,21 @@ class PipelineService:
                 if has_gr:
                     monthly_gr[m_num][tipe] += amt
 
-                # OPEX sub-component
-                if row.kat_kode == 'E-1':
+                # Sub-component breakdown (Consumables, Kalibrasi, Preventive)
+                p_item = (row.plan_item or '').upper()
+                desc = (row.description or '').upper()
+                if 'PREVENTIVE' in p_item or 'PREVENTIVE' in desc:
+                    monthly_pr_sub[m_num]['e9_preventive'] += amt
+                    if has_gr:
+                        monthly_gr_sub[m_num]['e9_preventive'] += amt
+                elif 'KALIBRASI' in p_item or 'CALIBRATION' in p_item or 'KALIBRASI' in desc or 'CALIBRATION' in desc:
+                    monthly_pr_sub[m_num]['e9_calibration'] += amt
+                    if has_gr:
+                        monthly_gr_sub[m_num]['e9_calibration'] += amt
+                elif row.kat_kode == '50032902-123200' or 'SUPPLIES' in desc or 'CONSUMABLE' in desc:
                     monthly_pr_sub[m_num]['e1_expense'] += amt
                     if has_gr:
                         monthly_gr_sub[m_num]['e1_expense'] += amt
-                elif row.kat_kode == 'E-9':
-                    p_item = (row.plan_item or '').upper()
-                    desc = (row.description or '').upper()
-                    is_prev = 'PREVENTIVE' in p_item or (row.plan_item is None and 'KALIBRASI' not in desc and 'CALIBRATION' not in desc)
-                    sub_key = 'e9_preventive' if is_prev else 'e9_calibration'
-                    monthly_pr_sub[m_num][sub_key] += amt
-                    if has_gr:
-                        monthly_gr_sub[m_num][sub_key] += amt
 
         # 4. Ambil status counts PR per bulan (Need Mapping, OOP, On Plan, Over Plan)
         status_rows = (
@@ -475,7 +481,7 @@ class PipelineService:
                     "persen_pr": o_persen_pr,
                     "persen_gr": o_persen_gr,
                     "e1_expense": {
-                        "name": "E-1 Expense",
+                        "name": "Consumables QC (50032902)",
                         "plan": e1_plan,
                         "actual_pr": e1_pr,
                         "actual_gr": e1_gr,
@@ -483,7 +489,7 @@ class PipelineService:
                         "persen_gr": round((e1_gr / e1_plan) * 100) if e1_plan > 0 else 0,
                     },
                     "e9_calibration": {
-                        "name": "E-9 Calibration",
+                        "name": "Kalibrasi Alat (50032902)",
                         "plan": e9_cal_plan,
                         "actual_pr": e9_cal_pr,
                         "actual_gr": e9_cal_gr,
@@ -491,7 +497,7 @@ class PipelineService:
                         "persen_gr": round((e9_cal_gr / e9_cal_plan) * 100) if e9_cal_plan > 0 else 0,
                     },
                     "e9_preventive": {
-                        "name": "E-9 Preventive",
+                        "name": "Preventive C/F (50032902)",
                         "plan": e9_prev_plan,
                         "actual_pr": e9_prev_pr,
                         "actual_gr": e9_prev_gr,

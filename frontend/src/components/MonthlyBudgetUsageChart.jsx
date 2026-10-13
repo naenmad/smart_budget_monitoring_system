@@ -85,6 +85,8 @@ export default function MonthlyBudgetUsageChart({ title = 'Monitoring Penggunaan
         { label: 'Realisasi GR (Barang Diterima)', color: COLORS.actual_gr },
     ]
 
+    const hasCapex = monthlyData.some(m => Number(m?.capex?.plan || 0) > 0 || Number(m?.capex?.actual_pr || 0) > 0)
+
     return (
         <div className={s.wrapper}>
             <div className={s.header}>
@@ -98,26 +100,28 @@ export default function MonthlyBudgetUsageChart({ title = 'Monitoring Penggunaan
                     </div>
                 </div>
 
-                <div className={s.tabGroup}>
-                    <button
-                        className={`${s.tabBtn} ${activeTab === 'total' ? s.active : ''}`}
-                        onClick={() => setActiveTab('total')}
-                    >
-                        Semua (Total)
-                    </button>
-                    <button
-                        className={`${s.tabBtn} ${activeTab === 'capex' ? s.active : ''}`}
-                        onClick={() => setActiveTab('capex')}
-                    >
-                        CAPEX
-                    </button>
-                    <button
-                        className={`${s.tabBtn} ${activeTab === 'opex' ? s.active : ''}`}
-                        onClick={() => setActiveTab('opex')}
-                    >
-                        OPEX
-                    </button>
-                </div>
+                {hasCapex && (
+                    <div className={s.tabGroup}>
+                        <button
+                            className={`${s.tabBtn} ${activeTab === 'total' ? s.active : ''}`}
+                            onClick={() => setActiveTab('total')}
+                        >
+                            Semua (Total)
+                        </button>
+                        <button
+                            className={`${s.tabBtn} ${activeTab === 'capex' ? s.active : ''}`}
+                            onClick={() => setActiveTab('capex')}
+                        >
+                            Investasi / Asset
+                        </button>
+                        <button
+                            className={`${s.tabBtn} ${activeTab === 'opex' ? s.active : ''}`}
+                            onClick={() => setActiveTab('opex')}
+                        >
+                            Operasional / Beban
+                        </button>
+                    </div>
+                )}
             </div>
 
             <div className={s.legend}>

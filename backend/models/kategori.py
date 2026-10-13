@@ -10,12 +10,12 @@ class Kategori(db.Model):
         autoincrement=True
     )
     kode = db.Column(
-        db.String(20),
+        db.String(50),
         unique=True,
         nullable=False
     )
     nama = db.Column(
-        db.String(100),
+        db.String(255),
         nullable=False
     )
     tipe_formulir= db.Column(
