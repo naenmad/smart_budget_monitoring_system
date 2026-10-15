@@ -2,6 +2,7 @@ import logging
 from models.pr_po_data import PrPoData
 from models.planning_header import PlanningHeader
 from models.planning_detail import PlanningDetail
+from models.preventive_cf import PreventiveCf
 from services.classification_service import ClassificationService
 from services.mapping.advanced_mapping_service import AdvancedMappingService
 from services.budget_monitoring_service import BudgetMonitoringService
@@ -410,6 +411,22 @@ class PipelineService:
                     monthly_pr_sub[m_num]['e1_expense'] += amt
                     if has_gr:
                         monthly_gr_sub[m_num]['e1_expense'] += amt
+
+        # 3b. Ambil data Actual Preventive dari PreventiveCf (Basis: Receipt Entry)
+        prev_actual_rows = (
+            db.session.query(
+                PreventiveCf.bulan_no,
+                func.coalesce(func.sum(PreventiveCf.actual_gl), 0)
+            )
+            .group_by(PreventiveCf.bulan_no)
+            .all()
+        )
+        for b_no, act_val in prev_actual_rows:
+            if b_no and 1 <= int(b_no) <= 12:
+                val = float(act_val or 0.0)
+                m_idx = int(b_no)
+                monthly_gr_sub[m_idx]['e9_preventive'] = val
+                monthly_pr_sub[m_idx]['e9_preventive'] = val
 
         # 4. Ambil status counts PR per bulan (Need Mapping, OOP, On Plan, Over Plan)
         status_rows = (

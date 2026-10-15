@@ -123,10 +123,10 @@ export default function KpiBudgetUsageReport({
                     <div style={{ color: 'var(--primary)' }}>Target KPI: {d?.Target}%</div>
                     <div style={{ color: isGood ? 'var(--success)' : 'var(--danger)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
                         {isGood ? <CheckCircle2 size={13} /> : <AlertTriangle size={13} />}
-                        <span>Realisasi GR: {d?.Actual}% ({isGood ? 'Sesuai Target' : 'Over Target'})</span>
+                        <span>{opexSubTab === 'E9_PREV' ? 'Realisasi (Receipt Entry)' : 'Realisasi GR'}: {d?.Actual}% ({isGood ? 'Sesuai Target' : 'Over Target'})</span>
                     </div>
                     <div style={{ color: 'var(--text-muted)', fontSize: '11px', marginTop: 4 }}>
-                        Budget: {formatRp(d?.approved)} · Realisasi GR: {formatRp(d?.usage)}
+                        Budget: {formatRp(d?.approved)} · {opexSubTab === 'E9_PREV' ? 'Receipt Entry' : 'Realisasi GR'}: {formatRp(d?.usage)}
                     </div>
                 </div>
             )
@@ -174,7 +174,7 @@ export default function KpiBudgetUsageReport({
                             padding: '6px 12px',
                             borderRadius: '6px'
                         }}>
-                            Target KPI Operasional: ≤ 90% (Fisik GR)
+                            Target KPI Operasional: ≤ 90% ({opexSubTab === 'E9_PREV' ? 'Receipt Entry' : 'Fisik GR'})
                         </span>
                     )}
                 </div>
@@ -224,7 +224,7 @@ export default function KpiBudgetUsageReport({
 
                 <div className={s.basisBadge}>
                     <CheckCircle2 size={13} color="var(--primary)" />
-                    <span>Basis Evaluasi: <strong>Realisasi Fisik GR</strong></span>
+                    <span>Basis Evaluasi: <strong>{opexSubTab === 'E9_PREV' ? 'Receipt Entry' : 'Realisasi Fisik GR'}</strong></span>
                 </div>
             </div>
 
@@ -310,7 +310,7 @@ export default function KpiBudgetUsageReport({
                         {/* Baris 2: Budget Usage (IDR) */}
                         <tr className={s.usageRow}>
                             <td className={s.rowHeader}>
-                                {isOpex ? 'Expenses' : 'Asset'} Budget Usage (Realisasi GR)
+                                {isOpex ? 'Expenses' : 'Asset'} Budget Usage ({opexSubTab === 'E9_PREV' ? 'Receipt Entry' : 'Realisasi GR'})
                             </td>
                             {matrix.map(m => (
                                 <td key={m.monthName}>
@@ -338,7 +338,7 @@ export default function KpiBudgetUsageReport({
                                     <td>{formatRp(totalE9CalUsage)}</td>
                                 </tr>
                                 <tr className={s.subRow}>
-                                    <td className={s.rowHeaderSub}>&nbsp;&nbsp;↳ Preventive C/F (50032902)</td>
+                                    <td className={s.rowHeaderSub}>&nbsp;&nbsp;↳ Preventive C/F (Receipt Entry)</td>
                                     {matrix.map(m => (
                                         <td key={m.monthName}>{m.e9PrevUsage > 0 ? formatRp(m.e9PrevUsage) : '-'}</td>
                                     ))}
@@ -422,7 +422,7 @@ export default function KpiBudgetUsageReport({
                     <span>Tidak sesuai target (&gt; {targetKpi}%)</span>
                 </div>
                 <div style={{ marginLeft: 'auto', color: 'var(--text-muted)' }}>
-                    PT Summit Adyawinsa Indonesia · KPI Monitoring (Fisik GR)
+                    PT Summit Adyawinsa Indonesia · KPI Monitoring ({opexSubTab === 'E9_PREV' ? 'Receipt Entry' : 'Fisik GR'})
                 </div>
             </div>
         </div>
