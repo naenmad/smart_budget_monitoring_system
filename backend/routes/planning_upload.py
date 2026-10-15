@@ -622,13 +622,19 @@ def get_price_variance():
 
         item_dict = i.to_dict()
         item_dict.update({
+            "item_planning": i.item,
+            "qty_plan": qty_val,
+            "qty_actual": act_qty_val,
             "unit_price_plan": unit_price_plan,
             "unit_price_actual": unit_price_act,
             "unit_price_variance": unit_price_var,
             "unit_price_variance_pct": round(unit_price_var_pct, 1) if unit_price_var_pct is not None else None,
             "selisih": selisih_val,
+            "price_variance": selisih_val,
             "selisih_percent": round(selisih_pct, 1),
-            "variance_type": v_type
+            "variance_type": v_type,
+            "variance_status": "OVER_BUDGET" if v_type == "OVER" else v_type,
+            "pr_po_ref": i.baris_ref
         })
         result_items.append(item_dict)
 

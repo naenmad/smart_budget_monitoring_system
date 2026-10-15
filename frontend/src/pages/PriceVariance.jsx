@@ -408,9 +408,16 @@ export default function PriceVariance() {
               <tbody>
                 {items.map((r, idx) => {
                   const meta = getSubcatMeta(r.sub_kategori)
-                  const isSaving = r.variance_status === 'SAVING'
-                  const isOver = r.variance_status === 'OVER_BUDGET'
-                  const isMatch = r.variance_status === 'MATCH'
+                  const vType = r.variance_type || r.variance_status
+                  const isSaving = vType === 'SAVING'
+                  const isOver = vType === 'OVER' || vType === 'OVER_BUDGET'
+                  const isMatch = vType === 'MATCH'
+
+                  const planQty = r.qty ?? r.qty_plan ?? '-'
+                  const actQty = r.actual_qty ?? r.qty_actual ?? (r.actual_amount > 0 ? (r.qty ?? 1) : 0)
+                  const planItemName = r.item || r.item_planning || '-'
+                  const varianceAmount = Math.abs(r.selisih ?? r.price_variance ?? 0)
+                  const docRef = r.baris_ref || r.pr_po_ref
 
                   return (
                     <tr key={r.id || idx} className={s.tr}>
@@ -427,7 +434,7 @@ export default function PriceVariance() {
                         </span>
                       </td>
                       <td className={s.td}>
-                        <div className={s.itemName}>{r.item_planning}</div>
+                        <div className={s.itemName}>{planItemName}</div>
                       </td>
                       <td className={s.td}>
                         <div className={s.actualItemName}>
@@ -438,7 +445,7 @@ export default function PriceVariance() {
                       </td>
                       <td className={`${s.td} ${s.tdCenter}`}>
                         <span className={s.qtyBadge}>
-                          {r.qty_plan} / {r.qty_actual || 0}
+                          {planQty} / {actQty}
                         </span>
                       </td>
                       <td className={`${s.td} ${s.tdRight}`}>
@@ -469,7 +476,7 @@ export default function PriceVariance() {
                             }
                           >
                             {isSaving ? '- ' : isOver ? '+ ' : ''}
-                            {formatRp(Math.abs(r.price_variance))}
+                            {formatRp(varianceAmount)}
                           </span>
                         ) : (
                           <span className={s.textMuted}>-</span>
@@ -501,8 +508,8 @@ export default function PriceVariance() {
                         )}
                       </td>
                       <td className={s.td}>
-                        {r.pr_po_ref ? (
-                          <span className={s.docRefPill}>{r.pr_po_ref}</span>
+                        {docRef ? (
+                          <span className={s.docRefPill}>{docRef}</span>
                         ) : (
                           <span className={s.textMuted}>-</span>
                         )}
