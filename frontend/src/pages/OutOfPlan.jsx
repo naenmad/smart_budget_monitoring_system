@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { AlertTriangle, Search, RefreshCw, Loader2, TrendingUp, BarChart2, Calendar, Tag } from 'lucide-react'
+import ScrollableCell from '../components/ScrollableCell'
 import { planningApi } from '../api/planningApi'
 import { formatRp } from '../utils/format'
 import s from './OutOfPlan.module.css'
@@ -287,16 +288,16 @@ export default function OutOfPlan() {
               <thead>
                 <tr>
                   <th style={{ width: 36, textAlign: 'center' }}>#</th>
-                  <th>Bulan</th>
-                  <th>Account</th>
-                  <th>Cost Center</th>
-                  <th>Tanggal</th>
-                  <th style={{ minWidth: 240 }}>Item / Uraian</th>
-                  <th>PIC</th>
-                  <th style={{ textAlign: 'right', minWidth: 130 }}>Nominal</th>
-                  <th>No PR / PO</th>
-                  <th>GR</th>
-                  <th style={{ minWidth: 180 }}>Keterangan</th>
+                  <th style={{ width: 60 }}>Bulan</th>
+                  <th style={{ width: 95 }}>Account</th>
+                  <th style={{ width: 95 }}>Cost Center</th>
+                  <th style={{ width: 85 }}>Tanggal</th>
+                  <th style={{ minWidth: 260, maxWidth: 320 }}>Item / Uraian</th>
+                  <th style={{ minWidth: 110, maxWidth: 140 }}>PIC</th>
+                  <th style={{ textAlign: 'right', minWidth: 120 }}>Nominal</th>
+                  <th style={{ minWidth: 130 }}>No PR / PO</th>
+                  <th style={{ minWidth: 120 }}>GR</th>
+                  <th style={{ minWidth: 200, maxWidth: 280 }}>Keterangan</th>
                 </tr>
               </thead>
               <tbody>
@@ -330,8 +331,12 @@ export default function OutOfPlan() {
                           ? new Date(r.request_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: '2-digit' })
                           : '—'}
                       </td>
-                      <td className={s.descCell}>{r.description || '—'}</td>
-                      <td className={s.picCell}>{r.pic || r.pengaju || '—'}</td>
+                      <td className={s.descCell}>
+                        <ScrollableCell text={r.description || '—'} maxWidth={300} minWidth={200} />
+                      </td>
+                      <td className={s.picCell} title={r.pic || r.pengaju || '—'}>
+                        {r.pic || r.pengaju || '—'}
+                      </td>
                       <td className={s.priceCell}>{formatRp(r.total_price)}</td>
                       <td className={s.monoCell}>
                         {r.pr_doc_num && <span>{r.pr_doc_num}</span>}
@@ -340,7 +345,9 @@ export default function OutOfPlan() {
                         {!r.pr_doc_num && !r.po_doc_num && '—'}
                       </td>
                       <td className={s.monoCell}>{r.gr_legal_number || '—'}</td>
-                      <td className={s.noteCell} title={keterangan}>{keteranganShort}</td>
+                      <td className={s.noteCell}>
+                        <ScrollableCell text={keterangan} maxWidth={260} minWidth={160} />
+                      </td>
                     </tr>
                   )
                 })}

@@ -426,12 +426,12 @@
 }
 
 .table td {
-  padding: 7px 12px;
+  padding: 8px 12px;
   border: 1px solid #cbd5e1;
   font-size: 12px;
-  white-space: nowrap;
   color: var(--text-main);
   background: var(--bg-card);
+  vertical-align: middle;
 }
 
 :global([data-theme="dark"]) .table td {
@@ -515,10 +515,7 @@
 .descCell {
   font-weight: 600;
   color: var(--text-main);
-  white-space: normal;
-  word-break: break-word;
-  max-width: 300px;
-  line-height: 1.4;
+  max-width: 320px;
 }
 
 .picCell {
@@ -526,6 +523,9 @@
   font-weight: 600;
   color: var(--text-muted);
   white-space: nowrap;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .priceCell {
@@ -540,16 +540,14 @@
   font-family: 'JetBrains Mono', monospace;
   font-size: 11px;
   line-height: 1.5;
+  white-space: nowrap;
 }
 
 .noteCell {
   font-style: italic;
   color: var(--text-muted) !important;
   font-size: 11px;
-  max-width: 240px;
-  white-space: normal;
-  word-break: break-word;
-  line-height: 1.4;
+  max-width: 280px;
 }
 
 /* Empty state */
