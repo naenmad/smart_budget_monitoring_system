@@ -8,6 +8,7 @@ import {
   TrendingUp,
   CheckCircle2,
   AlertTriangle,
+  AlertCircle,
   Layers,
   Calendar,
   Filter,
@@ -396,33 +397,43 @@ export default function PreventiveCf() {
       {/* Master Data Table */}
       <div className={s.tableCard}>
         <div className={s.tableWrapper}>
-          {loading ? (
-            <div className={s.emptyState}>
-              <Loader2 size={24} className="animate-spin" style={{ margin: '0 auto 8px', color: 'var(--primary)' }} />
-              <span>Memuat rincian Preventive C/F...</span>
-            </div>
-          ) : filteredRows.length === 0 ? (
-            <div className={s.emptyState}>
-              Tidak ada data yang cocok dengan kriteria filter yang dipilih.
-            </div>
-          ) : (
-            <table className={s.table}>
-              <thead>
+          <table className={s.table}>
+            <thead>
+              <tr>
+                <th style={{ width: 44, textAlign: 'center' }}>#</th>
+                <th style={{ width: 75 }}>Bulan</th>
+                <th style={{ width: 140 }}>Aktivitas</th>
+                <th style={{ minWidth: 260 }}>Item Pemeliharaan &amp; Spesifikasi</th>
+                <th style={{ width: 75, textAlign: 'center' }}>Qty</th>
+                <th style={{ width: 130, textAlign: 'right' }}>Harga Satuan (@)</th>
+                <th style={{ width: 130, textAlign: 'right' }}>Total Plan (Rp)</th>
+                <th style={{ width: 130, textAlign: 'right' }}>Realisasi GL (Rp)</th>
+                <th style={{ width: 120 }}>Ref Dokumen</th>
+                <th style={{ width: 100, textAlign: 'center' }}>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
                 <tr>
-                  <th style={{ width: 32, textAlign: 'center' }}>#</th>
-                  <th style={{ width: 75 }}>Bulan</th>
-                  <th style={{ width: 140 }}>Aktivitas</th>
-                  <th style={{ minWidth: 260 }}>Item Pemeliharaan &amp; Spesifikasi</th>
-                  <th style={{ width: 75, textAlign: 'center' }}>Qty</th>
-                  <th style={{ width: 125, textAlign: 'right' }}>Harga Satuan (@)</th>
-                  <th style={{ width: 125, textAlign: 'right' }}>Total Plan (Rp)</th>
-                  <th style={{ width: 125, textAlign: 'right' }}>Realisasi GL (Rp)</th>
-                  <th style={{ width: 110 }}>Ref Dokumen</th>
-                  <th style={{ width: 95, textAlign: 'center' }}>Status</th>
+                  <td colSpan={10} className={s.emptyCell}>
+                    <div className={s.emptyState}>
+                      <Loader2 size={28} className="animate-spin" color="#0f172a" />
+                      <span>Memuat rincian Preventive C/F...</span>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {filteredRows.map((r, idx) => {
+              ) : filteredRows.length === 0 ? (
+                <tr>
+                  <td colSpan={10} className={s.emptyCell}>
+                    <div className={s.emptyState}>
+                      <AlertCircle size={32} color="#94a3b8" />
+                      <div className={s.emptyTitle}>Tidak ada data yang cocok</div>
+                      <div className={s.emptyDesc}>Cobalah sesuaikan kriteria filter bulan, aktivitas, atau kata kunci pencarian.</div>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                filteredRows.map((r, idx) => {
                   const meta = CATEGORY_META[r.activity] || { color: '#64748b', bg: '#f1f5f9' }
                   const isOk = (r.status || '').toLowerCase().includes('terealisasi')
                   return (
@@ -471,10 +482,10 @@ export default function PreventiveCf() {
                       </td>
                     </tr>
                   )
-                })}
-              </tbody>
-            </table>
-          )}
+                })
+              )}
+            </tbody>
+          </table>
         </div>
 
         {/* Table Footer */}
@@ -484,12 +495,12 @@ export default function PreventiveCf() {
           </span>
           <div style={{ display: 'flex', gap: 16 }}>
             <span>
-              Subtotal Plan: <strong style={{ color: 'var(--primary)', fontFamily: 'JetBrains Mono' }}>
+              Subtotal Plan: <strong style={{ color: '#0f172a', fontFamily: 'monospace' }}>
                 {formatRp(subtotalPlan)}
               </strong>
             </span>
             <span>
-              Subtotal Realisasi GL: <strong style={{ color: '#10b981', fontFamily: 'JetBrains Mono' }}>
+              Subtotal Realisasi GL: <strong style={{ color: '#16a34a', fontFamily: 'monospace' }}>
                 {formatRp(subtotalActual)}
               </strong>
             </span>

@@ -165,16 +165,23 @@
 .gridTable th {
   position: sticky;
   top: 0;
-  background: #f1f5f9;
-  color: #1e293b;
+  background: #f8fafc;
+  color: #475569;
   font-weight: 700;
-  padding: 8px 12px;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.75rem 0.85rem;
+  border-bottom: 2px solid #e2e8f0;
+  border-right: 1px solid #e2e8f0;
   text-align: left;
-  border: 1px solid #cbd5e1 !important;
-  border-bottom: 2px solid #64748b !important;
   white-space: nowrap;
   z-index: 2;
   user-select: none;
+}
+
+.gridTable th:last-child {
+  border-right: none;
 }
 
 :global([data-theme="dark"]) .gridTable th {
@@ -185,11 +192,16 @@
 }
 
 .gridTable td {
-  padding: 6px 12px;
-  border: 1px solid #cbd5e1 !important;
+  padding: 0.65rem 0.85rem;
+  border-bottom: 1px solid #e2e8f0;
+  border-right: 1px solid #f1f5f9;
   white-space: nowrap;
-  color: var(--text-main);
+  color: var(--text-main, #0f172a);
   background: var(--bg-card);
+}
+
+.gridTable td:last-child {
+  border-right: none;
 }
 
 :global([data-theme="dark"]) .gridTable td {
@@ -206,7 +218,7 @@
 }
 
 .gridTable tr:hover td {
-  background: #e0f2fe !important;
+  background: #f8fafc !important;
 }
 
 :global([data-theme="dark"]) .gridTable tr:hover td {
