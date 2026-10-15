@@ -124,133 +124,233 @@ export default function Sidebar({ mode = 'open', setMode, isMobileOpen, onMobile
     }
     return DEFAULT_WIDTH
   })
-
-  const isResizing = useRef(false)
+  const [isResizing, setIsResizing] = useState(false)
   const sidebarRef = useRef(null)
 
-  const handleMouseDown = useCallback((e) => {
-    e.preventDefault()
-    isResizing.current = true
-    document.body.style.cursor = 'col-resize'
-    document.body.style.userSelect = 'none'
+  const isCollapsed = !isMobile && (mode === 'icon' || mode === 'collapsed')
+  const isClosed = !isMobile && mode === 'close'
 
-    const handleMouseMove = (e) => {
-      if (!isResizing.current) return
-      const newWidth = e.clientX
-
-      if (newWidth < SNAP_THRESHOLD) {
-        setMode('collapsed')
-        return
+  // Auto expand the group that contains active link
+  useEffect(() => {
+    MENU_CONFIG.forEach(section => {
+      if (section.group && section.items.some(it => it.to === location.pathname)) {
+        setOpenGroups(prev => ({ ...prev, [section.group]: true }))
       }
-
-      if (newWidth >= MIN_EXPANDED_WIDTH && newWidth <= MAX_WIDTH) {
-        if (mode === 'collapsed') {
-          setMode('open')
-        }
-        setCustomWidth(newWidth)
-        localStorage.setItem('sbms_sidebar_width', newWidth)
-      }
-    }
-
-    const handleMouseUp = () => {
-      isResizing.current = false
-      document.body.style.cursor = ''
-      document.body.style.userSelect = ''
-      window.removeEventListener('mousemove', handleMouseMove)
-      window.removeEventListener('mouseup', handleMouseUp)
-    }
-
-    window.addEventListener('mousemove', handleMouseMove)
-    window.addEventListener('mouseup', handleMouseUp)
-  }, [mode, setMode])
+    })
+  }, [location.pathname])
 
   const toggleGroup = (group) => {
     setOpenGroups(prev => ({ ...prev, [group]: !prev[group] }))
   }
 
-  const handleLogout = () => {
+  function handleLogout() {
     logout()
-    navigate('/login')
+    navigate('/login', { replace: true })
   }
 
-  const isCollapsed = mode === 'collapsed' && !isMobile
+  // Resizing logic (desktop only)
+  const startResizing = useCallback((e) => {
+    if (isMobile) return
+    e.preventDefault()
+    e.stopPropagation()
+    setIsResizing(true)
+  }, [isMobile])
+
+  const stopResizing = useCallback(() => {
+    setIsResizing(false)
+  }, [])
+
+  const resize = useCallback((e) => {
+    if (isResizing && !isMobile) {
+      const clientX = e.clientX
+      if (clientX < SNAP_THRESHOLD) {
+        setMode?.('icon')
+        localStorage.setItem('sbms_sidebar_mode', 'icon')
+      } else {
+        let newWidth = clientX
+        if (newWidth < MIN_EXPANDED_WIDTH) newWidth = MIN_EXPANDED_WIDTH
+        if (newWidth > MAX_WIDTH) newWidth = MAX_WIDTH
+        setCustomWidth(newWidth)
+        localStorage.setItem('sbms_sidebar_width', String(newWidth))
+        setMode?.('open')
+        localStorage.setItem('sbms_sidebar_mode', 'open')
+      }
+    }
+  }, [isResizing, isMobile, setMode])
+
+  useEffect(() => {
+    if (isResizing) {
+      window.addEventListener('mousemove', resize)
+      window.addEventListener('mouseup', stopResizing)
+      document.body.style.cursor = 'col-resize'
+      document.body.style.userSelect = 'none'
+    } else {
+      window.removeEventListener('mousemove', resize)
+      window.removeEventListener('mouseup', stopResizing)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+    return () => {
+      window.removeEventListener('mousemove', resize)
+      window.removeEventListener('mouseup', stopResizing)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+  }, [isResizing, resize, stopResizing])
+
+  // Reset to default width on double click
+  const handleDoubleClick = () => {
+    if (isMobile) return
+    if (isCollapsed || isClosed) {
+      setMode?.('open')
+      localStorage.setItem('sbms_sidebar_mode', 'open')
+    } else {
+      setMode?.('icon')
+      localStorage.setItem('sbms_sidebar_mode', 'icon')
+    }
+  }
+
+  // Determine effective width in desktop
+  const getDesktopWidth = () => {
+    if (isClosed) return 0
+    if (isCollapsed) return COLLAPSED_WIDTH
+    return customWidth
+  }
 
   return (
     <>
-      {isMobileOpen && isMobile && (
-        <div className={s.mobileBackdrop} onClick={onMobileClose} />
+      {/* Mobile backdrop overlay */}
+      {isMobile && isMobileOpen && (
+        <div 
+          className={s.backdrop} 
+          onClick={onMobileClose} 
+          aria-hidden="true"
+        />
       )}
 
-      <aside
+      <aside 
         ref={sidebarRef}
         className={`
           ${s.sidebar} 
-          ${isCollapsed ? s.collapsed : s.open} 
-          ${isMobile ? s.mobile : ''} 
-          ${isMobileOpen ? s.mobileOpen : ''}
+          ${isMobile ? (isMobileOpen ? s.mobileOpen : s.mobileClosed) : ''}
+          ${!isMobile && isClosed ? s.sidebarClosed : ''}
+          ${!isMobile && isCollapsed ? s.collapsed : ''}
+          ${isResizing ? s.resizing : ''}
         `}
-        style={!isMobile && !isCollapsed ? { width: `${customWidth}px` } : {}}
+        style={{
+          width: !isMobile ? `${getDesktopWidth()}px` : undefined
+        }}
       >
-        <div className={s.brand}>
-          <img src={logo} alt="SAI Logo" className={s.logo} />
-          {(!isCollapsed || isMobile) && (
-            <div className={s.brandText}>
-              <span className={s.brandTitle}>Smart Budget</span>
-              <span className={s.brandSubtitle}>Monitoring System</span>
+        {/* Brand / Logo Header */}
+        {isCollapsed && !isMobile ? (
+          <div className={s.brandHeaderCollapsed} title="PT Summit Adyawinsa Indonesia">
+            <img src={logo} alt="SAI Logo" className={s.logoImgCollapsed} />
+          </div>
+        ) : (
+          <div className={s.brandHeader}>
+            <div className={s.logoContainer} title="PT Summit Adyawinsa Indonesia">
+              <img src={logo} alt="SAI Logo" className={s.logoImg} />
+              <div className={s.brandDetails}>
+                <span className={s.brandCompany}>PT Summit Adyawinsa</span>
+                <span className={s.brandApp}>Smart Budget System</span>
+              </div>
             </div>
-          )}
-          {isMobile && (
-            <button className={s.closeMobileBtn} onClick={onMobileClose}>
-              <X size={18} />
-            </button>
-          )}
-        </div>
 
-        <nav className={s.nav}>
-          {MENU_CONFIG.map((groupObj, idx) => {
-            const visibleItems = groupObj.items.filter(item => {
+            {/* Mobile close button only */}
+            {isMobile && (
+              <button 
+                type="button" 
+                className={s.closeMobileBtn} 
+                onClick={onMobileClose}
+                aria-label="Tutup menu"
+              >
+                <X size={18} />
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Navigation Menu */}
+        <nav className={s.navContainer}>
+          {MENU_CONFIG.map((section, idx) => {
+            const visibleItems = section.items.filter(item => {
               if (!item.roles) return true
               return item.roles.includes(user?.role)
             })
-
             if (visibleItems.length === 0) return null
 
+            const isGroupOpen = isCollapsed ? true : (section.group ? openGroups[section.group] : true)
+
             return (
-              <div key={idx} className={s.navGroup}>
-                {groupObj.group && (!isCollapsed || isMobile) && (
-                  <button
-                    className={s.groupHeader}
-                    onClick={() => toggleGroup(groupObj.group)}
+              <div key={section.group || `root_${idx}`} className={s.navGroup}>
+                {section.group && (!isCollapsed || isMobile) && (
+                  <button 
+                    type="button"
+                    className={s.groupToggle} 
+                    onClick={() => toggleGroup(section.group)}
                   >
-                    <span>{groupObj.group}</span>
-                    <ChevronDown
-                      size={14}
-                      className={`
-                        ${s.groupChevron} 
-                        ${openGroups[groupObj.group] ? s.chevronOpen : ''}
-                      `}
+                    <span className={s.groupTitle}>{section.group}</span>
+                    <ChevronDown 
+                      size={14} 
+                      className={`${s.groupChevron} ${isGroupOpen ? s.groupChevronOpen : ''}`} 
                     />
                   </button>
                 )}
 
-                {(!groupObj.group || openGroups[groupObj.group] || isCollapsed) && (
+                {section.group && isCollapsed && !isMobile && (
+                  <div className={s.collapsedDivider} />
+                )}
+
+                {isGroupOpen && (
                   <div className={s.groupItems}>
                     {visibleItems.map(item => {
                       const Icon = item.icon
+
+                      if (item.isExternal) {
+                        return (
+                          <a
+                            key={item.href}
+                            href={item.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={() => {
+                              if (isMobile) {
+                                onMobileClose?.()
+                              }
+                            }}
+                            className={s.navLink}
+                            title={item.label}
+                          >
+                            <Icon size={18} className={s.navIcon} />
+                            {(!isCollapsed || isMobile) && <span className={s.navText}>{item.label}</span>}
+                            {isCollapsed && !isMobile && (
+                              <span className={s.navTooltip}>
+                                {item.label}
+                              </span>
+                            )}
+                          </a>
+                        )
+                      }
+
                       return (
                         <NavLink
                           key={item.to}
                           to={item.to}
-                          onClick={() => isMobile && onMobileClose()}
-                          className={({ isActive }) => `
-                            ${s.navItem} 
-                            ${isActive ? s.active : ''}
-                          `}
-                          title={isCollapsed && !isMobile ? item.label : undefined}
+                          onClick={() => {
+                            if (isMobile) {
+                              onMobileClose?.()
+                            }
+                          }}
+                          className={({ isActive }) =>
+                            isActive ? `${s.navLink} ${s.navLinkActive}` : s.navLink
+                          }
                         >
                           <Icon size={18} className={s.navIcon} />
-                          {(!isCollapsed || isMobile) && (
-                            <span className={s.navLabel}>{item.label}</span>
+                          {(!isCollapsed || isMobile) && <span className={s.navText}>{item.label}</span>}
+                          {isCollapsed && !isMobile && (
+                            <span className={s.navTooltip}>
+                              {item.label}
+                            </span>
                           )}
                         </NavLink>
                       )
@@ -262,44 +362,108 @@ export default function Sidebar({ mode = 'open', setMode, isMobileOpen, onMobile
           })}
         </nav>
 
-        <div className={s.userSection}>
-          <div className={s.userInfo}>
-            <div className={s.userAvatar}>
-              <User size={16} />
-            </div>
-            {(!isCollapsed || isMobile) && (
-              <div className={s.userDetails}>
-                <span className={s.userName}>{user?.name || user?.username}</span>
-                <span className={s.userRole}>{user?.role}</span>
+        {/* User Card & Actions */}
+        <div className={s.userCard}>
+          {!isCollapsed || isMobile ? (
+            <div className={s.userCardInner}>
+              <div className={s.userCardTop}>
+                <div className={s.avatarWrapper}>
+                  <div className={s.userAvatar}>
+                    {user?.name ? user.name.charAt(0).toUpperCase() : (user?.username ? user.username.charAt(0).toUpperCase() : <User size={15} />)}
+                  </div>
+                  <span className={s.statusDot} title="Online" />
+                </div>
+                <div className={s.userCardInfo}>
+                  <span className={s.userCardName} title={user?.name || user?.username || 'User'}>
+                    {user?.name || user?.username || 'User'}
+                  </span>
+                  <span className={`${s.roleBadge} ${user?.role === 'admin' ? s.roleAdmin : s.roleManager}`}>
+                    <Shield size={10} style={{ flexShrink: 0 }} />
+                    <span>{user?.role === 'admin' ? 'Administrator' : 'Manager'}</span>
+                  </span>
+                </div>
               </div>
-            )}
-          </div>
 
-          <div className={s.userActions}>
-            <button
-              onClick={() => setShowPwdModal(true)}
-              className={s.actionBtn}
-              title="Ganti Password"
-            >
-              <KeyRound size={16} />
-            </button>
-            <button
-              onClick={handleLogout}
-              className={s.actionBtn}
-              title="Logout"
-            >
-              <LogOut size={16} />
-            </button>
-          </div>
+              <div className={s.userCardActions}>
+                <button 
+                  type="button" 
+                  className={s.actionBtn}
+                  onClick={() => setShowPwdModal(true)}
+                  title="Ganti Password Akun"
+                >
+                  <KeyRound size={13} className={s.actionBtnIcon} />
+                  <span>Password</span>
+                </button>
+                <button 
+                  type="button" 
+                  className={`${s.actionBtn} ${s.logoutBtn}`}
+                  onClick={handleLogout}
+                  title="Keluar dari akun"
+                >
+                  <LogOut size={13} className={s.actionBtnIcon} />
+                  <span>Logout</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className={s.userCardCollapsed}>
+              <div className={s.tooltipWrapper}>
+                <div className={s.avatarWrapper}>
+                  <div className={s.userAvatarMini}>
+                    {user?.name ? user.name.charAt(0).toUpperCase() : (user?.username ? user.username.charAt(0).toUpperCase() : <User size={15} />)}
+                  </div>
+                  <span className={s.statusDot} />
+                </div>
+                <span className={s.navTooltip}>
+                  {user?.name || user?.username || 'User'} ({user?.role === 'admin' ? 'Admin' : 'Manager'})
+                </span>
+              </div>
+
+              <div className={s.tooltipWrapper}>
+                <button 
+                  type="button" 
+                  className={s.collapsedActionBtn}
+                  onClick={() => setShowPwdModal(true)}
+                  aria-label="Ganti Password"
+                >
+                  <KeyRound size={15} />
+                </button>
+                <span className={s.navTooltip}>Ganti Password</span>
+              </div>
+
+              <div className={s.tooltipWrapper}>
+                <button 
+                  type="button" 
+                  className={`${s.collapsedActionBtn} ${s.logoutBtn}`}
+                  onClick={handleLogout}
+                  aria-label="Logout dari akun"
+                >
+                  <LogOut size={15} />
+                </button>
+                <span className={s.navTooltip}>Logout</span>
+              </div>
+            </div>
+          )}
         </div>
 
-        {!isMobile && !isCollapsed && (
-          <div className={s.resizer} onMouseDown={handleMouseDown} />
+        {/* Resizer Handle (Desktop Only when not closed) */}
+        {!isMobile && !isClosed && (
+          <div 
+            className={s.resizer}
+            onMouseDown={startResizing}
+            onDoubleClick={handleDoubleClick}
+            title={isCollapsed ? "Klik ganda untuk buka sidebar" : "Tarik untuk ubah ukuran • Tarik ke kiri untuk mode ikon"}
+          >
+            <div className={s.resizerKnob} />
+          </div>
         )}
       </aside>
 
       {showPwdModal && (
-        <ChangePasswordModal onClose={() => setShowPwdModal(false)} />
+        <ChangePasswordModal 
+          userId={user?.id} 
+          onClose={() => setShowPwdModal(false)} 
+        />
       )}
     </>
   )
