@@ -24,6 +24,7 @@ import {
   Receipt,
   TrendingUp,
   AlertTriangle,
+  Wrench,
   X
 } from 'lucide-react'
 
@@ -49,6 +50,7 @@ const CORE_MENU_CONFIG = [
     items: [
       { to: '/planning', label: 'Data & Kelola Planning', roles: ['admin', 'manager'], icon: CalendarDays },
       { to: '/out-of-plan', label: 'Out of Plan (OOP)', roles: ['admin', 'manager'], icon: AlertTriangle },
+      { to: '/preventive-cf', label: 'Preventive C/F', roles: ['admin', 'manager'], icon: Wrench },
       { to: '/budget', label: 'Alokasi Budget (Setup)', roles: ['admin'], icon: PieChart }
     ]
   },

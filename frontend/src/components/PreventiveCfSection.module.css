@@ -68,6 +68,26 @@
   color: var(--primary);
 }
 
+.fullPageBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 6px;
+  background: var(--primary);
+  color: #ffffff !important;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.fullPageBtn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+
 /* KPI Strip */
 .kpiStrip {
   display: grid;

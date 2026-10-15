@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
+import { Link } from 'react-router-dom'
 import {
   Wrench,
   Search,
@@ -10,7 +11,8 @@ import {
   SlidersHorizontal,
   ChevronRight,
   TrendingUp,
-  Tag
+  Tag,
+  ExternalLink
 } from 'lucide-react'
 import { planningApi } from '../api/planningApi'
 import { formatRp } from '../utils/format'
@@ -150,6 +152,10 @@ export default function PreventiveCfSection({ periode = '2026' }) {
           </p>
         </div>
         <div className={s.headerActions}>
+          <Link to="/preventive-cf" className={s.fullPageBtn} title="Buka dedicated page Preventive C/F">
+            <span>Buka Halaman Penuh</span>
+            <ExternalLink size={13} />
+          </Link>
           <span className={s.badgeHeader}>Tahun {periode} · 70 Item</span>
           <button
             type="button"

@@ -15,6 +15,7 @@ const Login = lazy(() => import('./pages/Login'))
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const Planning = lazy(() => import('./pages/Planning'))
 const OutOfPlan = lazy(() => import('./pages/OutOfPlan'))
+const PreventiveCf = lazy(() => import('./pages/PreventiveCf'))
 const Budget = lazy(() => import('./pages/Budget'))
 const EntertaintCost = lazy(() => import('./pages/EntertaintCost'))
 const Users = lazy(() => import('./pages/Users'))
@@ -106,11 +107,12 @@ export default function App() {
                   {/* Planning & Out of Plan */}
                   <Route path="/planning" element={<ProtectedRoute><Planning /></ProtectedRoute>} />
                   <Route path="/out-of-plan" element={<ProtectedRoute><OutOfPlan /></ProtectedRoute>} />
+                  <Route path="/preventive-cf" element={<ProtectedRoute><PreventiveCf /></ProtectedRoute>} />
                   <Route path="/planning/upload" element={<Navigate to="/planning?tab=upload" replace />} />
                   <Route path="/planning/list" element={<Navigate to="/planning?tab=list" replace />} />
                   <Route path="/planning/spreadsheet" element={<Navigate to="/planning?tab=spreadsheet" replace />} />
                   <Route path="/planning/out-of-budget" element={<Navigate to="/out-of-plan" replace />} />
-                  <Route path="/planning/preventive-cf" element={<Navigate to="/planning?tab=preventive" replace />} />
+                  <Route path="/planning/preventive-cf" element={<Navigate to="/preventive-cf" replace />} />
 
                   {/* PR */}
                   <Route path="/pr/upload" element={<ProtectedRoute roles={['admin']}><PrUpload /></ProtectedRoute>} />
