@@ -318,8 +318,20 @@ class PrPoData(db.Model):
 
     @property
     def extracted_pic(self):
+        desc = (self.description or "").upper()
+        comment = (self.comment_text or "").upper()
+        if "KALIBRASI" in desc or "CALIBRATION" in desc or "KALIBRASI" in comment or "CALIBRATION" in comment:
+            return "Pak Aris"
+        if self.pengaju and self.pengaju not in ["Tidak tercantum di GL", "KALIBRASI"]:
+            return self.pengaju
+        if self.planning_detail and (
+            getattr(self.planning_detail, "pic", None) in ["KALIBRASI", "Pak Aris", "PAK ARIS"] or
+            "KALIBRASI" in (getattr(self.planning_detail, "item", "") or "").upper() or
+            "Kalibrasi" in (getattr(self.planning_detail, "sub_kategori", "") or "")
+        ):
+            return "Pak Aris"
         from services.pareto_service import ParetoService
-        return ParetoService.extract_user_from_comment(self.comment_text)
+        return ParetoService.extract_user_from_comment(self.comment_text, self.description)
 
     def to_dict(self):
         conf_score = None

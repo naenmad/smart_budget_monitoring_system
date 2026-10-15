@@ -24,8 +24,10 @@ class ParetoService:
             "QC ADMIN": "QC ADMIN",
             "QC ADMINISTRASI": "QC ADMIN",
             "ADMIN QC": "QC ADMIN",
-            "KALIBRASI": "KALIBRASI",
-            "CALIBRATION": "KALIBRASI",
+            "KALIBRASI": "PAK ARIS",
+            "CALIBRATION": "PAK ARIS",
+            "ARIS": "PAK ARIS",
+            "PAK ARIS": "PAK ARIS",
             "CUSTOMER": "CUSTOMER",
             "CUSTOMER CLAIM": "CUSTOMER",
             "ASSY": "ASSY",
@@ -53,10 +55,13 @@ class ParetoService:
         return upper_s
 
     @classmethod
-    def extract_user_from_comment(cls, comment: str) -> str:
-        if not comment:
+    def extract_user_from_comment(cls, comment: str, desc: str = "") -> str:
+        if not comment and not desc:
             return "QC GENERAL"
-        c = comment.upper()
+        c = (comment or "").upper()
+        d = (desc or "").upper()
+        if "KALIBRASI" in c or "CALIBRATION" in c or "KALIBRASI" in d or "CALIBRATION" in d:
+            return "PAK ARIS"
         # Look for pattern: PIC : NAME or PIC NAME
         m = re.search(r"PIC\s*[:]?\s*([A-Z0-9_ ]+?)(?:/|$|\n)", c)
         if m:
@@ -142,8 +147,13 @@ class ParetoService:
             for pd in pds:
                 amt = float(pd.planning_amount or 0.0)
                 total_planned_from_items += amt
-                raw_user = pd.pic if pd.pic else (pd.remarks if pd.remarks else "QC ADMIN")
-                user = cls.clean_user_name(raw_user)
+                item_upper = (pd.item or "").upper()
+                subkat_upper = (pd.sub_kategori or "").upper()
+                if "KALIBRASI" in item_upper or "CALIBRATION" in item_upper or "KALIBRASI" in subkat_upper or pd.pic in ["KALIBRASI", "Pak Aris", "PAK ARIS"]:
+                    user = "PAK ARIS"
+                else:
+                    raw_user = pd.pic if pd.pic else (pd.remarks if pd.remarks else "QC ADMIN")
+                    user = cls.clean_user_name(raw_user)
                 planning_by_user[user] = planning_by_user.get(user, 0.0) + amt
 
                 item_key = pd.item.strip()
@@ -235,12 +245,22 @@ class ParetoService:
             total_actual_gr += gr_val
 
             # Determine User / Section
-            if pr.planning_detail and getattr(pr.planning_detail, "pic", None):
+            desc_upper = (pr.description or "").upper()
+            comment_upper = (pr.comment_text or "").upper()
+            if "KALIBRASI" in desc_upper or "CALIBRATION" in desc_upper or "KALIBRASI" in comment_upper or "CALIBRATION" in comment_upper:
+                user = "PAK ARIS"
+            elif pr.planning_detail and (
+                getattr(pr.planning_detail, "pic", None) in ["KALIBRASI", "Pak Aris", "PAK ARIS"] or
+                "KALIBRASI" in (getattr(pr.planning_detail, "item", "") or "").upper() or
+                "KALIBRASI" in (getattr(pr.planning_detail, "sub_kategori", "") or "").upper()
+            ):
+                user = "PAK ARIS"
+            elif pr.planning_detail and getattr(pr.planning_detail, "pic", None):
                 user = cls.clean_user_name(pr.planning_detail.pic)
-            elif getattr(pr, "pengaju", None):
+            elif getattr(pr, "pengaju", None) and pr.pengaju != "Tidak tercantum di GL":
                 user = cls.clean_user_name(pr.pengaju)
             else:
-                user = cls.extract_user_from_comment(pr.comment_text)
+                user = cls.extract_user_from_comment(pr.comment_text, pr.description)
 
             if user not in actual_by_user:
                 actual_by_user[user] = {"pr": 0.0, "gr": 0.0, "count": 0, "oop_count": 0, "oop_nominal": 0.0}

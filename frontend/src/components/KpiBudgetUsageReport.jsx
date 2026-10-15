@@ -24,7 +24,7 @@ export default function KpiBudgetUsageReport({
     // Theme label based on active selection
     let themeLabel = 'ASSET BUDGET USAGE DEPT. (INVESTASI / CAPITAL)'
     if (isOpex) {
-        if (opexSubTab === 'E1') themeLabel = 'EXPENSES BUDGET USAGE - SUPPLIES CONSUMABLES (50032902-123200)'
+        if (opexSubTab === 'E1') themeLabel = 'EXPENSES BUDGET USAGE - SUPPLIES EXPENSES (50032902-123200)'
         else if (opexSubTab === 'E9_CAL') themeLabel = 'EXPENSES BUDGET USAGE - KALIBRASI ALAT UKUR (50032902-123200)'
         else if (opexSubTab === 'E9_PREV') themeLabel = 'EXPENSES BUDGET USAGE - PREVENTIVE C/F (50032902-123200)'
         else themeLabel = 'EXPENSES BUDGET USAGE - GENERAL LEDGER (ALL ACCOUNTS)'
@@ -194,7 +194,7 @@ export default function KpiBudgetUsageReport({
                     <button
                         className={`${s.subTabBtn} ${opexSubTab === 'E1' ? s.active : ''}`}
                         onClick={() => setOpexSubTab('E1')}
-                        title="Consumables & Perlengkapan Kerja QC (50032902-123200)"
+                        title="Supplies Expenses & Perlengkapan Kerja QC (50032902-123200)"
                     >
                         Consumables QC
                     </button>
@@ -324,7 +324,7 @@ export default function KpiBudgetUsageReport({
                         {isOpex && opexSubTab === 'ALL' && (
                             <>
                                 <tr className={s.subRow}>
-                                    <td className={s.rowHeaderSub}>&nbsp;&nbsp;↳ Consumables QC (50032902)</td>
+                                    <td className={s.rowHeaderSub}>&nbsp;&nbsp;↳ Supplies Expenses (50032902)</td>
                                     {matrix.map(m => (
                                         <td key={m.monthName}>{m.e1Usage > 0 ? formatRp(m.e1Usage) : '-'}</td>
                                     ))}

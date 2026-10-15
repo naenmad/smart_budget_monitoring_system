@@ -32,7 +32,7 @@ const CATEGORIES = [
     { id: 'ALL', label: 'All Budget' },
     { id: 'OPEX', label: 'OPEX' },
     { id: 'CAPEX', label: 'CAPEX' },
-    { id: 'CONSUMABLE', label: 'Consumable' },
+    { id: 'CONSUMABLE', label: 'Supplies Expenses' },
     { id: 'CALIBRATION', label: 'Calibration' },
     { id: 'PREVENTIVE', label: 'Preventive C/F' },
 ]

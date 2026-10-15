@@ -8,6 +8,7 @@ def test_extract_user_from_comment():
     assert ParetoService.extract_user_from_comment("MAKING BOARD FLOW PROCES QC INCOMING") == "QC INCOMING"
     assert ParetoService.extract_user_from_comment("DIGITALISASI PROJECT") == "QC DIGITALIZATION"
     assert ParetoService.extract_user_from_comment("ASSY LINE 2") == "ASSY"
+    assert ParetoService.extract_user_from_comment("JASA KALIBRASI VERNIER CALIPER") == "PAK ARIS"
     assert ParetoService.extract_user_from_comment("") == "QC GENERAL"
     assert ParetoService.extract_user_from_comment(None) == "QC GENERAL"
 

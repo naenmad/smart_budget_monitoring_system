@@ -481,7 +481,7 @@ class PipelineService:
                     "persen_pr": o_persen_pr,
                     "persen_gr": o_persen_gr,
                     "e1_expense": {
-                        "name": "Consumables QC (50032902)",
+                        "name": "Supplies Expenses (50032902)",
                         "plan": e1_plan,
                         "actual_pr": e1_pr,
                         "actual_gr": e1_gr,

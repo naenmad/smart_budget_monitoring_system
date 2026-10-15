@@ -5,7 +5,7 @@ import { formatRp } from '../utils/format'
 import s from './OutOfPlan.module.css'
 
 const ACCOUNT_NAMES = {
-  '50032902': 'CONSUMABLE / SUPPLIES',
+  '50032902': 'SUPPLIES EXPENSES',
   '60290100': 'MARKETING EXPENSES',
   '60290600': 'TRANSPORTATION OVERSEA',
 }
