@@ -1,12 +1,30 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import * as XLSX from 'xlsx'
 import toast from 'react-hot-toast'
 import { useConfirm } from '../context/ConfirmContext'
-import s from './Budget.module.css'
 import { budgetApi } from '../api/budgetApi'
 import { kategoriApi } from '../api/kategoriApi'
 import { useAuth } from '../context/AuthContext'
-import { CheckCircle2, AlertCircle, Save, Trash2, BarChart3, Download, FileSpreadsheet, UploadCloud, Loader2, PieChart, Sliders } from 'lucide-react'
+import { formatRp } from '../utils/format'
+import {
+  PieChart,
+  Sliders,
+  UploadCloud,
+  History,
+  Save,
+  Trash2,
+  RefreshCw,
+  Download,
+  FileSpreadsheet,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  DollarSign,
+  TrendingUp,
+  Layers,
+  ArrowRight
+} from 'lucide-react'
+import s from './Budget.module.css'
 
 const CURRENT_YEAR = String(new Date().getFullYear())
 const YEAR_OPTIONS = Array.from({ length: 6 }, (_, i) => String(parseInt(CURRENT_YEAR, 10) - 2 + i))
@@ -14,150 +32,185 @@ const YEAR_OPTIONS = Array.from({ length: 6 }, (_, i) => String(parseInt(CURRENT
 export default function Budget() {
   const confirm = useConfirm()
   const { user } = useAuth()
-  const [activeTab, setActiveTab] = useState('manual')
-  const [form, setForm] = useState({ periode: CURRENT_YEAR, gl: {} })
-  const [selectedFile, setSelectedFile] = useState(null)
-  const fileRef = useRef()
+  const [periode, setPeriode] = useState(CURRENT_YEAR)
+  const [activeTab, setActiveTab] = useState('table') // 'table' | 'upload' | 'history'
 
   // Data from API
   const [kategoris, setKategoris] = useState([])
   const [budgets, setBudgets] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [message, setMessage] = useState({ type: '', text: '' })
 
-  useEffect(() => {
-    fetchData()
-  }, [])
+  // Local form inputs for editing allocations: { [kode]: stringNumber }
+  const [glInputs, setGlInputs] = useState({})
 
-  async function fetchData() {
+  // File upload state
+  const [selectedFile, setSelectedFile] = useState(null)
+  const [isDragging, setIsDragging] = useState(false)
+  const fileRef = useRef(null)
+
+  const fetchData = useCallback(async () => {
     setLoading(true)
     try {
       const [katRes, budRes] = await Promise.all([
         kategoriApi.getAll(),
-        budgetApi.getAll(CURRENT_YEAR),
+        budgetApi.getAll(periode),
       ])
       if (katRes.success) setKategoris(katRes.data || [])
-      if (budRes.success) setBudgets(budRes.data || [])
+      if (budRes.success) {
+        setBudgets(budRes.data || [])
+      }
     } catch (err) {
-      console.error('Error fetching data:', err)
+      console.error('Error fetching budget data:', err)
+      toast.error('Gagal mengambil data alokasi budget')
     } finally {
       setLoading(false)
     }
-  }
+  }, [periode])
 
-  function handleGlChange(kode, val) {
-    val = val.replace(/\D/g, '')
-    setForm(prev => ({
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
+
+  // Filtered categories for QC/QA budget setup (exclude E-6 Entertainment & OOP)
+  const activeKategoris = useMemo(() => {
+    return kategoris.filter(
+      (k) => k.is_active && k.kode !== 'E-6' && k.kode !== 'OOP'
+    )
+  }, [kategoris])
+
+  // Map existing budget record by category ID
+  const budgetMapByKatId = useMemo(() => {
+    const map = {}
+    budgets.forEach((b) => {
+      map[b.kategori_id] = b
+    })
+    return map
+  }, [budgets])
+
+  // Total allocated nominal for the active period
+  const totalAllocatedNominal = useMemo(() => {
+    return activeKategoris.reduce((sum, kat) => {
+      const b = budgetMapByKatId[kat.id]
+      return sum + (b ? parseFloat(b.nominal || 0) : 0)
+    }, 0)
+  }, [activeKategoris, budgetMapByKatId])
+
+  // Count of active accounts with nominal > 0
+  const populatedAccountsCount = useMemo(() => {
+    return activeKategoris.filter((kat) => {
+      const b = budgetMapByKatId[kat.id]
+      return b && parseFloat(b.nominal || 0) > 0
+    }).length
+  }, [activeKategoris, budgetMapByKatId])
+
+  // Largest allocation
+  const largestAllocation = useMemo(() => {
+    let maxNom = 0
+    let maxKat = null
+    activeKategoris.forEach((kat) => {
+      const b = budgetMapByKatId[kat.id]
+      const nom = b ? parseFloat(b.nominal || 0) : 0
+      if (nom > maxNom) {
+        maxNom = nom
+        maxKat = kat
+      }
+    })
+    return maxKat ? { name: maxKat.nama, nominal: maxNom, kode: maxKat.kode } : null
+  }, [activeKategoris, budgetMapByKatId])
+
+  // Handle single input change
+  const handleInputChange = (kode, val) => {
+    const rawDigits = val.replace(/\D/g, '')
+    setGlInputs((prev) => ({
       ...prev,
-      gl: { ...prev.gl, [kode]: val }
+      [kode]: rawDigits,
     }))
   }
 
-  function formatRp(val) {
-    if (!val) return 'Rp 0'
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val)
+  // Handle reset inputs
+  const handleResetInputs = () => {
+    setGlInputs({})
+    toast('Input formulir telah direset', { icon: 'ℹ️' })
   }
 
-  function handleReset() {
-    setForm({ periode: CURRENT_YEAR, gl: {} })
-    setMessage({ type: '', text: '' })
+  // Save all entered inputs to the database
+  const handleSaveAllocations = async () => {
+    const entriesToSave = Object.entries(glInputs)
+      .filter(([_, val]) => val !== '' && !isNaN(parseFloat(val)))
+      .map(([kode, val]) => {
+        const kategori = activeKategoris.find((k) => k.kode === kode)
+        return {
+          kategori_id: kategori?.id,
+          periode,
+          nominal: parseFloat(val),
+          created_by: user?.id,
+        }
+      })
+      .filter((e) => e.kategori_id)
+
+    if (entriesToSave.length === 0) {
+      toast.error('Belum ada nominal baru yang diisi')
+      return
+    }
+
+    setSaving(true)
+    let successCount = 0
+    let errorCount = 0
+
+    for (const entry of entriesToSave) {
+      try {
+        const res = await budgetApi.create(entry)
+        if (res.success) {
+          successCount++
+        } else {
+          errorCount++
+        }
+      } catch (err) {
+        errorCount++
+      }
+    }
+
+    setSaving(false)
+    if (successCount > 0) {
+      toast.success(`${successCount} pagu anggaran berhasil disimpan!`)
+      setGlInputs({})
+      await fetchData()
+    } else {
+      toast.error('Gagal menyimpan alokasi budget')
+    }
   }
 
-  async function handleDeletePeriode() {
+  // Delete all budget for selected period
+  const handleDeletePeriode = async () => {
     const ok = await confirm({
-      title: 'Hapus Budget Periode',
-      message: `Yakin ingin menghapus seluruh budget aktif untuk periode ${form.periode}?`,
-      confirmText: 'Hapus Budget',
+      title: `Hapus Seluruh Budget Tahun ${periode}?`,
+      message: `Tindakan ini akan menghapus semua konfigurasi pagu anggaran untuk periode ${periode}. Data transaksi realisasi tidak akan terhapus.`,
+      confirmText: 'Ya, Hapus Semua Budget',
       cancelText: 'Batal',
-      type: 'danger'
+      type: 'danger',
     })
     if (!ok) return
-    
+
     setLoading(true)
-    setMessage({ type: '', text: '' })
-    
     try {
-      const res = await budgetApi.deleteByPeriode(form.periode)
+      const res = await budgetApi.deleteByPeriode(periode)
       if (res.success) {
-        setMessage({ type: 'success', text: res.message })
-        toast.success(res.message)
+        toast.success(res.message || `Budget tahun ${periode} berhasil dihapus`)
+        setGlInputs({})
         await fetchData()
       } else {
-        setMessage({ type: 'error', text: res.message })
-        toast.error(res.message)
+        toast.error(res.message || 'Gagal menghapus budget')
       }
     } catch (err) {
-      const errMsg = err.response?.data?.message || 'Gagal menghapus budget'
-      setMessage({ type: 'error', text: errMsg })
-      toast.error(errMsg)
+      toast.error(err.response?.data?.message || 'Gagal menghapus budget')
     } finally {
       setLoading(false)
     }
   }
 
-  async function handleSave() {
-    setSaving(true)
-    setMessage({ type: '', text: '' })
-
-    try {
-      const entries = Object.entries(form.gl || {})
-        .filter(([kode, val]) => val && !isNaN(parseFloat(val)))
-        .map(([kode, val]) => {
-          const kategori = kategoris.find(k => k.kode === kode)
-          return {
-            kategori_id: kategori?.id,
-            periode: form.periode,
-            nominal: parseFloat(val),
-            created_by: user?.id,
-          }
-        })
-        .filter(e => e.kategori_id)
-
-      if (entries.length === 0) {
-        setMessage({ type: 'error', text: 'Tidak ada budget yang valid untuk disimpan' })
-        setSaving(false)
-        return
-      }
-
-      let successCount = 0
-      let errorMessages = []
-
-      for (const entry of entries) {
-        try {
-          const res = await budgetApi.create(entry)
-          if (res.success) {
-            successCount++
-          } else {
-            errorMessages.push(res.message)
-          }
-        } catch (err) {
-          errorMessages.push(err.response?.data?.message || `Error saving budget`)
-        }
-      }
-
-      if (successCount > 0) {
-        setMessage({
-          type: 'success',
-          text: `${successCount} budget berhasil disimpan${errorMessages.length > 0 ? ` (${errorMessages.length} gagal)` : ''}`,
-        })
-        toast.success(`${successCount} budget berhasil disimpan!`)
-        await fetchData()
-        handleReset()
-      } else {
-        setMessage({ type: 'error', text: errorMessages.join('; ') })
-        toast.error('Gagal menyimpan data budget')
-      }
-    } catch (err) {
-      const errMsg = err.response?.data?.message || 'Gagal menyimpan budget'
-      setMessage({ type: 'error', text: errMsg })
-      toast.error(errMsg)
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  async function handleFile(e) {
+  // Handle Excel upload
+  const handleFile = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
     setSelectedFile(file)
@@ -171,104 +224,56 @@ export default function Budget() {
         const rawData = XLSX.utils.sheet_to_json(ws)
 
         if (!rawData || rawData.length === 0) {
-          setMessage({ type: 'error', text: 'File Excel kosong atau tidak terbaca' })
-          toast.error('File Excel kosong')
+          toast.error('File Excel kosong atau tidak terbaca')
           return
         }
 
         setSaving(true)
-        setMessage({ type: '', text: '' })
-
-        // Check if this is a Planning Excel by checking for 'item' and 'planning_amount'
-        const firstRowKeys = Object.keys(rawData[0]).map(k => k.trim().toLowerCase().replace(/ /g, '_'))
-        const isPlanningFile = firstRowKeys.includes('planning_amount') && firstRowKeys.includes('item')
-
         let successCount = 0
-        let errorMessages = []
 
-        if (isPlanningFile) {
-          // If user uploaded a Planning file to Budget, aggregate planning_amount by form
-          const aggregated = {}
-          for (const row of rawData) {
-            const formKey = Object.keys(row).find(k => k.trim().toLowerCase() === 'form' || k.trim().toLowerCase() === 'kategori')
-            const amountKey = Object.keys(row).find(k => k.trim().toLowerCase() === 'planning_amount' || k.trim().toLowerCase() === 'amount')
-            const formCode = formKey ? String(row[formKey]).trim().toUpperCase() : null
-            const amountVal = amountKey ? parseFloat(row[amountKey]) : 0
+        for (const row of rawData) {
+          let kode = null
+          let nominal = null
+          let rowPeriode = periode
 
-            if (formCode && !isNaN(amountVal)) {
-              aggregated[formCode] = (aggregated[formCode] || 0) + amountVal
+          for (const [k, v] of Object.entries(row)) {
+            const cleanK = k.trim().toLowerCase().replace(/ /g, '_')
+            if (['form', 'kode', 'kategori', 'kategori_kode', 'kode_gl', 'kode_account'].includes(cleanK)) {
+              kode = String(v).trim().toUpperCase()
+            }
+            if (['budget', 'nominal', 'amount', 'total_budget', 'pagu'].includes(cleanK)) {
+              nominal = v
+            }
+            if (['periode', 'tahun', 'year'].includes(cleanK)) {
+              rowPeriode = String(v).trim()
             }
           }
 
-          for (const [kode, totalNominal] of Object.entries(aggregated)) {
-            const kategori = kategoris.find(k => k.kode.toUpperCase() === kode)
-            if (kategori) {
-              try {
-                const res = await budgetApi.create({
-                  kategori_id: kategori.id,
-                  periode: form.periode,
-                  nominal: totalNominal,
-                  created_by: user?.id,
-                })
-                if (res.success) successCount++
-              } catch (err) {
-                errorMessages.push(`Gagal simpan kategori ${kode}`)
-              }
-            }
-          }
+          const kategori = activeKategoris.find((k) => k.kode.toUpperCase() === kode)
+          if (!kategori || nominal === null || nominal === undefined) continue
 
-          toast.success(`Berhasil mengalokasikan total budget dari file planning (${successCount} kategori)!`)
-        } else {
-          // Standard budget Excel format (Form, Periode, Budget)
-          for (const row of rawData) {
-            let kode = null
-            let nominal = null
-            let rowPeriode = form.periode
-
-            for (const [k, v] of Object.entries(row)) {
-              const cleanK = k.trim().toLowerCase().replace(/ /g, '_')
-              if (['form', 'kode', 'kategori', 'kategori_kode'].includes(cleanK)) kode = String(v).trim().toUpperCase()
-              if (['budget', 'nominal', 'amount', 'total_budget'].includes(cleanK)) nominal = v
-              if (['periode', 'tahun', 'year'].includes(cleanK)) rowPeriode = String(v).trim()
-            }
-
-            const kategori = kategoris.find(k => k.kode.toUpperCase() === kode)
-            if (!kategori || !nominal) {
-              errorMessages.push(`Kode '${kode || 'Unknown'}' tidak valid atau nominal kosong`)
-              continue
-            }
-
-            try {
-              const res = await budgetApi.create({
-                kategori_id: kategori.id,
-                periode: String(rowPeriode),
-                nominal: parseFloat(nominal),
-                created_by: user?.id,
-              })
-              if (res.success) {
-                successCount++
-              } else {
-                errorMessages.push(res.message)
-              }
-            } catch (err) {
-              errorMessages.push(err.response?.data?.message || `Error saving ${kode}`)
-            }
+          try {
+            const res = await budgetApi.create({
+              kategori_id: kategori.id,
+              periode: String(rowPeriode),
+              nominal: parseFloat(nominal),
+              created_by: user?.id,
+            })
+            if (res.success) successCount++
+          } catch (err) {
+            console.error(`Error saving ${kode}:`, err)
           }
         }
 
         if (successCount > 0) {
-          const successText = `${successCount} baris data budget berhasil disimpan ke periode ${form.periode}`
-          setMessage({ type: 'success', text: successText })
-          toast.success(successText)
+          toast.success(`${successCount} baris data budget berhasil disinkronkan!`)
           await fetchData()
+          setActiveTab('table')
         } else {
-          const errText = errorMessages.join('; ') || 'Tidak ada data budget yang cocok untuk disimpan'
-          setMessage({ type: 'error', text: errText })
-          toast.error(errText)
+          toast.error('Tidak ada data budget yang cocok dengan kode account QC/QA')
         }
-      } catch (parseErr) {
-        console.error('Parse error:', parseErr)
-        setMessage({ type: 'error', text: 'Gagal memproses file Excel: ' + parseErr.message })
+      } catch (err) {
+        console.error('Parse Excel error:', err)
         toast.error('Gagal membaca file Excel')
       } finally {
         setSaving(false)
@@ -277,291 +282,459 @@ export default function Budget() {
     reader.readAsArrayBuffer(file)
   }
 
-  function downloadTemplate() {
+  const downloadTemplate = () => {
     const ws = XLSX.utils.json_to_sheet([
-      { Kode_GL: '50032902-123200', Deskripsi: 'SUPPLIES EXPENSES (QUALITY - QC)', Periode: form.periode || CURRENT_YEAR, Budget: 336413712 },
-      { Kode_GL: '60290100-123200', Deskripsi: 'MARKETING EXPENSES (QUALITY - QC)', Periode: form.periode || CURRENT_YEAR, Budget: 185400000 },
-      { Kode_GL: '60290500-123200', Deskripsi: 'TRANSPORTATION EXPENSE - LOCAL (QUALITY - QC)', Periode: form.periode || CURRENT_YEAR, Budget: 113400000 },
-      { Kode_GL: '60290500-123000', Deskripsi: 'TRANSPORTATION EXPENSE - LOCAL (QUALITY - GNRL)', Periode: form.periode || CURRENT_YEAR, Budget: 25920000 },
+      { Kode_GL: '50032902-123200', Deskripsi: 'SUPPLIES EXPENSES (QUALITY - QC)', Periode: periode, Budget: 336413712 },
+      { Kode_GL: '60290100-123200', Deskripsi: 'MARKETING EXPENSES (QUALITY - QC)', Periode: periode, Budget: 185400000 },
+      { Kode_GL: '60290500-123200', Deskripsi: 'TRANSPORTATION EXPENSE - LOCAL (QUALITY - QC)', Periode: periode, Budget: 113400000 },
+      { Kode_GL: '60290500-123000', Deskripsi: 'TRANSPORTATION EXPENSE - LOCAL (QUALITY - GNRL)', Periode: periode, Budget: 25920000 },
+      { Kode_GL: '60290600-123200', Deskripsi: 'TRANSPORTATION EXPENSE - OVERSEA (QUALITY - QC)', Periode: periode, Budget: 35000000 },
     ])
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Budget')
-    XLSX.writeFile(wb, `template_budget_${form.periode || CURRENT_YEAR}.xlsx`)
+    XLSX.writeFile(wb, `TEMPLATE_BUDGET_ALOKASI_${periode}.xlsx`)
     toast.success('Template Excel berhasil diunduh!')
-  }
-
-  // Build active budget display from API data (exclude E-6 from standard budget monitoring)
-  const activeBudgets = {}
-  budgets.forEach(b => {
-    const kategori = kategoris.find(k => k.id === b.kategori_id)
-    if (kategori && kategori.kode !== 'E-6') {
-      activeBudgets[kategori.kode] = formatRp(b.nominal)
-    }
-  })
-
-  const [isDragging, setIsDragging] = useState(false)
-
-  const handleDragOver = (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    if (!saving) setIsDragging(true)
-  }
-
-  const handleDragLeave = (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setIsDragging(false)
-  }
-
-  const handleDrop = (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setIsDragging(false)
-    if (saving) return
-
-    const droppedFiles = e.dataTransfer.files
-    if (droppedFiles && droppedFiles.length > 0) {
-      const droppedFile = droppedFiles[0]
-      const ext = droppedFile.name.split('.').pop().toLowerCase()
-      if (ext === 'xlsx' || ext === 'xls') {
-        // Trigger handleFile with synthetic event
-        handleFile({ target: { files: [droppedFile] } })
-      } else {
-        setMessage({ type: 'error', text: 'Format file harus berupa Excel (.xlsx atau .xls)' })
-      }
-    }
   }
 
   return (
     <div className={s.page}>
+      {/* ─── Header ─── */}
       <div className={s.header}>
         <div className={s.titleArea}>
           <h1 className={s.title}>
-            <PieChart size={26} color="var(--primary)" />
+            <PieChart size={24} color="#0f172a" />
             Alokasi Budget (Setup)
+            <span className={s.titleBadge}>Budget Configuration</span>
           </h1>
           <p className={s.subtitle}>
-            Input dan alokasikan budget tahunan per Account & Cost Center untuk periode berjalan.
+            Konfigurasi pagu anggaran belanja tahunan per Account &amp; Cost Center (Quality Control 123200 &amp; Quality General 123000).
           </p>
         </div>
 
-        <div className={s.tabNav}>
-          <button
-            className={`${s.tabBtn} ${activeTab === 'manual' ? s.tabBtnActive : ''}`}
-            onClick={() => setActiveTab('manual')}
+        <div className={s.headerActions}>
+          <select
+            value={periode}
+            onChange={(e) => setPeriode(e.target.value)}
+            className={s.periodeSelect}
+            aria-label="Pilih Periode Tahun"
           >
-            <Sliders size={16} />
-            <span>Alokasi Manual</span>
-          </button>
+            {YEAR_OPTIONS.map((yr) => (
+              <option key={yr} value={yr}>
+                Tahun {yr} {yr === CURRENT_YEAR ? '(Tahun Berjalan)' : ''}
+              </option>
+            ))}
+          </select>
+
           <button
-            className={`${s.tabBtn} ${activeTab === 'upload' ? s.tabBtnActive : ''}`}
-            onClick={() => setActiveTab('upload')}
+            onClick={fetchData}
+            disabled={loading}
+            className={s.actionBtn}
+            title="Muat ulang data"
           >
-            <UploadCloud size={16} />
-            <span>Upload Excel</span>
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+            <span>Refresh</span>
           </button>
+
+          {populatedAccountsCount > 0 && (
+            <button
+              onClick={handleDeletePeriode}
+              disabled={loading}
+              className={`${s.actionBtn} ${s.actionBtnDanger}`}
+              title="Hapus seluruh alokasi periode ini"
+            >
+              <Trash2 size={14} />
+              <span>Hapus Budget ({periode})</span>
+            </button>
+          )}
         </div>
       </div>
 
-      {activeTab === 'manual' && (
-        <div className={s.grid}>
-          <div className={s.card}>
-            <div className={s.sectionLabel}>Periode & Alokasi Account</div>
-            <div className={s.formGroup}>
-              <div>
-                <label className={s.label}>Periode Tahun</label>
-                <select
-                  className={s.input}
-                  style={{ width: '100%', maxWidth: 200 }}
-                  value={form.periode}
-                  onChange={e => setForm(prev => ({ ...prev, periode: e.target.value }))}
-                >
-                  {YEAR_OPTIONS.map(yr => (
-                    <option key={yr} value={yr}>
-                      Tahun {yr} {yr === CURRENT_YEAR ? '(Tahun Berjalan)' : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className={s.divider}>
-                <div className={s.sectionLabel}>Detail Budget per Account</div>
-                {kategoris.filter(k => k.is_active && k.kode !== 'E-6' && k.kode !== 'OOP').map(k => (
-                  <div key={k.kode} style={{ marginBottom: 14 }}>
-                    <div className={s.formRow} style={{ marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span className={s.badge} style={{ fontFamily: 'monospace', minWidth: 140, fontSize: 11.5, background: 'rgba(37,99,235,0.08)', color: '#2563eb', border: '1px solid rgba(37,99,235,0.2)' }}>
-                        {k.kode}
-                      </span>
-                      <input
-                        className={s.input}
-                        placeholder={`Budget ${k.kode} (Hanya angka)`}
-                        value={form.gl?.[k.kode] || ''}
-                        onChange={e => handleGlChange(k.kode, e.target.value)}
-                      />
-                    </div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginLeft: 148 }}>
-                      {k.nama} {form.gl?.[k.kode] ? `• ${formatRp(form.gl[k.kode])}` : ''}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className={s.actions}>
-                <button className="btn-secondary" onClick={handleReset}>Reset</button>
-                <button className="btn-primary" onClick={handleSave} disabled={saving}>
-                  <Save size={13} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
-                  {saving ? 'Menyimpan...' : 'Simpan budget'}
-                </button>
-              </div>
+      {/* ─── KPI Strip ─── */}
+      <div className={s.kpiGrid}>
+        <div className={`${s.kpiCard} ${s.kpiCardPrimary}`}>
+          <div className={s.kpiTop}>
+            <span className={s.kpiLabel}>Total Pagu Anggaran</span>
+            <div className={s.kpiIconBox}>
+              <DollarSign size={18} color="#0f172a" />
             </div>
           </div>
+          <div className={s.kpiValue}>
+            {formatRp(totalAllocatedNominal)}
+          </div>
+          <div className={s.kpiSub}>
+            <span>Tahun Anggaran {periode}</span>
+          </div>
+        </div>
 
-          <div className={s.card}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
-              <div className={s.sectionLabel} style={{ marginBottom: 0 }}>Budget aktif — {form.periode}</div>
-              {Object.keys(activeBudgets).length > 0 && (
-                <button 
-                  className="btn-danger" 
-                  style={{ fontSize: '11.5px', padding: '4px 10px' }}
-                  onClick={handleDeletePeriode}
-                  disabled={loading}
-                >
-                  <Trash2 size={13} />
-                  <span>Hapus Semua ({form.periode})</span>
-                </button>
-              )}
+        <div className={`${s.kpiCard} ${s.kpiCardBlue}`}>
+          <div className={s.kpiTop}>
+            <span className={s.kpiLabel}>Akun Berisi Anggaran</span>
+            <div className={s.kpiIconBox}>
+              <CheckCircle2 size={18} color="#2563eb" />
             </div>
+          </div>
+          <div className={s.kpiValue} style={{ color: '#2563eb' }}>
+            {populatedAccountsCount} / {activeKategoris.length}
+          </div>
+          <div className={s.kpiSub}>
+            <span>Akun Operasional QC/QA Terdaftar</span>
+          </div>
+        </div>
 
-            {loading ? (
-              <div style={{ color: '#73726c', fontSize: 13, padding: 16 }}>Memuat...</div>
-            ) : Object.keys(activeBudgets).length === 0 ? (
-              <div style={{ color: '#73726c', fontSize: 13, padding: 16 }}>Belum ada budget untuk periode ini</div>
-            ) : (
-              <div className={s.metricGrid}>
-                {Object.entries(activeBudgets).map(([code, val]) => {
-                  const kat = kategoris.find(k => k.kode === code)
-                  return (
-                    <div key={code} className={s.metric} title={`${code}: ${val}`}>
-                      <div className={s.metricHeader}>
-                        <span className={`${s.badge} ${code.startsWith('5') ? s.badgeE1 : code.startsWith('6') ? s.badgeE9 : s.badgeI1}`} style={{ fontFamily: 'monospace', fontSize: 11 }}>
-                          {code}
-                        </span>
-                        <span className={s.metricType}>
-                          {kat?.tipe_formulir || 'OPEX'}
-                        </span>
+        <div className={`${s.kpiCard} ${s.kpiCardGreen}`}>
+          <div className={s.kpiTop}>
+            <span className={s.kpiLabel}>Alokasi Pagu Terbesar</span>
+            <div className={s.kpiIconBox}>
+              <TrendingUp size={18} color="#16a34a" />
+            </div>
+          </div>
+          <div className={s.kpiValue} style={{ fontSize: '1.25rem' }}>
+            {largestAllocation ? formatRp(largestAllocation.nominal) : 'Rp 0'}
+          </div>
+          <div className={s.kpiSub} title={largestAllocation?.name || '—'}>
+            <span>{largestAllocation ? largestAllocation.kode : 'Belum diset'}</span>
+          </div>
+        </div>
+
+        <div className={`${s.kpiCard} ${s.kpiCardSlate}`}>
+          <div className={s.kpiTop}>
+            <span className={s.kpiLabel}>Cost Center Terkait</span>
+            <div className={s.kpiIconBox}>
+              <Layers size={18} color="#64748b" />
+            </div>
+          </div>
+          <div className={s.kpiValue} style={{ fontSize: '1.25rem' }}>
+            123200 &amp; 123000
+          </div>
+          <div className={s.kpiSub}>
+            <span>Quality Control &amp; Quality General</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── Segmented Tab Switcher ─── */}
+      <div className={s.tabNav}>
+        <button
+          onClick={() => setActiveTab('table')}
+          className={`${s.tabBtn} ${activeTab === 'table' ? s.tabBtnActive : ''}`}
+        >
+          <Sliders size={15} />
+          <span>Tabel Pagu Anggaran &amp; Input</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('upload')}
+          className={`${s.tabBtn} ${activeTab === 'upload' ? s.tabBtnActive : ''}`}
+        >
+          <UploadCloud size={15} />
+          <span>Upload &amp; Sinkronisasi Excel</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('history')}
+          className={`${s.tabBtn} ${activeTab === 'history' ? s.tabBtnActive : ''}`}
+        >
+          <History size={15} />
+          <span>Riwayat Perubahan ({budgets.length})</span>
+        </button>
+      </div>
+
+      {/* ─── TAB 1: Tabel Pagu Anggaran & Input ─── */}
+      {activeTab === 'table' && (
+        <div className={s.tableContainer}>
+          <div className={s.tableWrapper}>
+            <table className={s.table}>
+              <thead>
+                <tr>
+                  <th className={`${s.th} ${s.thCenter}`} style={{ width: 44 }}>#</th>
+                  <th className={s.th} style={{ width: 160 }}>Kode GL Account</th>
+                  <th className={s.th} style={{ width: 100 }}>Cost Center</th>
+                  <th className={s.th}>Deskripsi Akun Biaya</th>
+                  <th className={`${s.th} ${s.thRight}`} style={{ width: 170 }}>Pagu Aktif (Rp)</th>
+                  <th className={`${s.th} ${s.thRight}`} style={{ width: 200 }}>Input Penyesuaian (Rp)</th>
+                  <th className={s.th} style={{ width: 160 }}>Proporsi Share</th>
+                  <th className={`${s.th} ${s.thCenter}`} style={{ width: 110 }}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan={8} className={s.emptyCell}>
+                      <div className={s.emptyState}>
+                        <Loader2 size={28} className="animate-spin" color="#0f172a" />
+                        <span style={{ fontSize: '0.85rem' }}>Memuat data alokasi anggaran...</span>
                       </div>
-                      <div className={s.metricValue}>{val}</div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-
-            <div className={s.divider} style={{ marginTop: 14 }}>
-              <div className={s.sectionLabel}>Riwayat perubahan</div>
-              <div className={s.historyList}>
-                {budgets.length === 0 ? (
-                  <div style={{ color: '#73726c', fontSize: 13 }}>Belum ada riwayat</div>
+                    </td>
+                  </tr>
+                ) : activeKategoris.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className={s.emptyCell}>
+                      <div className={s.emptyState}>
+                        <AlertCircle size={32} color="#94a3b8" />
+                        <div className={s.emptyTitle}>Tidak ada akun kategori yang aktif</div>
+                        <div className={s.emptyDesc}>Pastikan master kategori akun QA &amp; QC telah terdaftar.</div>
+                      </div>
+                    </td>
+                  </tr>
                 ) : (
-                  budgets.map((b, i) => {
-                    const kat = kategoris.find(k => k.id === b.kategori_id)
+                  activeKategoris.map((kat, idx) => {
+                    const b = budgetMapByKatId[kat.id]
+                    const currentNominal = b ? parseFloat(b.nominal || 0) : 0
+                    const isConfigured = currentNominal > 0
+
+                    // Parse GL & Cost center
+                    const [glCode, ccCode] = kat.kode.includes('-')
+                      ? kat.kode.split('-')
+                      : [kat.kode, '123200']
+
+                    // Share of total
+                    const pctShare = totalAllocatedNominal > 0
+                      ? (currentNominal / totalAllocatedNominal) * 100
+                      : 0
+
+                    const inputValue = glInputs[kat.kode] !== undefined
+                      ? glInputs[kat.kode]
+                      : ''
+
                     return (
-                      <div key={i} className={s.historyItem}>
-                        <span>Budget {kat?.kode || '?'} — Rp {(parseFloat(b.nominal) / 1_000_000).toFixed(0)}M</span>
-                        <span>{b.created_at ? new Date(b.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</span>
-                      </div>
+                      <tr key={kat.id} className={s.tr}>
+                        <td className={`${s.td} ${s.indexCell}`}>{idx + 1}</td>
+                        <td className={s.td}>
+                          <span className={s.codeBadge}>{glCode}</span>
+                        </td>
+                        <td className={s.td}>
+                          <span className={`${s.ccBadge} ${ccCode === '123000' ? s.cc123000 : s.cc123200}`}>
+                            {ccCode === '123000' ? '123000 (QA)' : '123200 (QC)'}
+                          </span>
+                        </td>
+                        <td className={s.td}>
+                          <div style={{ fontWeight: 600, color: '#0f172a' }}>
+                            {kat.nama}
+                          </div>
+                          <span className={s.typeBadge}>{kat.tipe_formulir || 'OPEX'}</span>
+                        </td>
+                        <td className={`${s.td} ${s.tdRight}`}>
+                          <span style={{ fontWeight: 700, color: isConfigured ? '#0f172a' : '#94a3b8' }}>
+                            {formatRp(currentNominal)}
+                          </span>
+                        </td>
+                        <td className={`${s.td} ${s.tdRight}`}>
+                          <input
+                            type="text"
+                            placeholder="Ketik angka baru..."
+                            value={inputValue}
+                            onChange={(e) => handleInputChange(kat.kode, e.target.value)}
+                            className={s.amountInput}
+                          />
+                          {inputValue && (
+                            <div style={{ fontSize: '0.72rem', color: '#16a34a', marginTop: '0.2rem' }}>
+                              {formatRp(parseFloat(inputValue) || 0)}
+                            </div>
+                          )}
+                        </td>
+                        <td className={s.td}>
+                          <div className={s.shareBarBox}>
+                            <div className={s.shareTrack}>
+                              <div
+                                className={s.shareFill}
+                                style={{ width: `${Math.min(pctShare, 100)}%` }}
+                              />
+                            </div>
+                            <span className={s.sharePct}>{pctShare.toFixed(1)}%</span>
+                          </div>
+                        </td>
+                        <td className={`${s.td} ${s.tdCenter}`}>
+                          {isConfigured ? (
+                            <span className={s.statusActive}>
+                              <CheckCircle2 size={11} />
+                              <span>Aktif</span>
+                            </span>
+                          ) : (
+                            <span className={s.statusZero}>
+                              <span>Belum Diset</span>
+                            </span>
+                          )}
+                        </td>
+                      </tr>
                     )
                   })
                 )}
-              </div>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Table Sticky Action Bar */}
+          <div className={s.tableActionBar}>
+            <div style={{ fontSize: '0.82rem', color: '#64748b' }}>
+              Jumlah akun: <strong>{activeKategoris.length}</strong> | Total Pagu Periode {periode}:{' '}
+              <strong style={{ color: '#0f172a', fontFamily: 'monospace' }}>
+                {formatRp(totalAllocatedNominal)}
+              </strong>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <button
+                type="button"
+                onClick={handleResetInputs}
+                className={s.btnSecondary}
+                disabled={saving || Object.keys(glInputs).length === 0}
+              >
+                Reset Input
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSaveAllocations}
+                disabled={saving || Object.keys(glInputs).length === 0}
+                className={s.btnPrimary}
+              >
+                {saving ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Save size={14} />
+                )}
+                <span>Simpan Penyesuaian</span>
+              </button>
             </div>
           </div>
         </div>
       )}
 
+      {/* ─── TAB 2: Upload Excel ─── */}
       {activeTab === 'upload' && (
-        <div className={s.grid}>
-          <div className={s.card}>
-            <div className={s.sectionLabel}>Upload Excel budget</div>
-            
-            <div style={{ marginBottom: 14 }}>
-              <label className={s.label}>Target Periode Tahun *</label>
-              <select
-                className={s.input}
-                value={form.periode}
-                onChange={e => handleChange('periode', e.target.value)}
-                disabled={saving}
-              >
-                {YEAR_OPTIONS.map(yr => (
-                  <option key={yr} value={yr}>
-                    Tahun {yr} {yr === CURRENT_YEAR ? '(Tahun Berjalan)' : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div 
-              className={`${s.dropzone} ${isDragging ? s.dropzoneDragging : ''}`} 
-              onClick={() => fileRef.current.click()}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-            >
-              <input ref={fileRef} type="file" accept=".xlsx,.xls" style={{ display: 'none' }} onChange={handleFile} disabled={saving} />
-              
-              {selectedFile ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left' }}>
-                  <FileSpreadsheet size={32} color="#16a34a" />
-                  <div>
-                    <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#166534' }}>{selectedFile.name}</div>
-                    <div style={{ fontSize: '12px', color: '#15803d' }}>{(selectedFile.size / 1024).toFixed(1)} KB • Klik untuk ganti file</div>
-                  </div>
-                </div>
-              ) : (
-                <div className={s.dropzonePlaceholder}>
-                  <UploadCloud size={32} className={s.uploadIcon} />
-                  <div className={s.dropzoneTitle}>
-                    {saving ? 'Memproses file...' : isDragging ? 'Lepaskan file Excel di sini' : 'Drag & Drop atau Klik untuk upload file Excel'}
-                  </div>
-                  <div className={s.dropzoneSub}>Mendukung format .xlsx dan .xls</div>
-                </div>
-              )}
-            </div>
-            
-            <button className={`btn-secondary ${s.templateBtn}`} onClick={downloadTemplate}>
-              <Download size={14} />
-              <span>Download Template Excel</span>
-            </button>
+        <div className={s.uploadCard}>
+          <div>
+            <h2 style={{ fontSize: '1.05rem', fontWeight: 700, margin: '0 0 0.35rem 0', color: '#0f172a' }}>
+              Sinkronisasi Pagu Budget via File Excel
+            </h2>
+            <p style={{ fontSize: '0.85rem', color: '#64748b', margin: 0, lineHeight: 1.5 }}>
+              Upload dokumen Microsoft Excel (.xlsx/.xls) untuk mengimpor atau memperbarui seluruh pagu anggaran kategori akun QC dan QA sekaligus.
+            </p>
           </div>
 
-          <div className={s.card}>
-            <div className={s.sectionLabel}>Format yang diharapkan</div>
-            <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginBottom: 10, lineHeight: 1.5 }}>
-              Sistem mendukung format template sederhana maupun file Master Planning otomatis:
-            </p>
-            <table className={s.formatTable}>
+          <div
+            className={`${s.dropzone} ${isDragging ? s.dropzoneDragging : ''}`}
+            onClick={() => fileRef.current?.click()}
+            onDragOver={(e) => {
+              e.preventDefault()
+              if (!saving) setIsDragging(true)
+            }}
+            onDragLeave={(e) => {
+              e.preventDefault()
+              setIsDragging(false)
+            }}
+            onDrop={(e) => {
+              e.preventDefault()
+              setIsDragging(false)
+              if (saving) return
+              const f = e.dataTransfer.files?.[0]
+              if (f) handleFile({ target: { files: [f] } })
+            }}
+          >
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".xlsx,.xls"
+              style={{ display: 'none' }}
+              onChange={handleFile}
+              disabled={saving}
+            />
+
+            {selectedFile ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+                <FileSpreadsheet size={36} color="#16a34a" />
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#166534' }}>{selectedFile.name}</div>
+                  <div style={{ fontSize: '0.78rem', color: '#15803d' }}>
+                    {(selectedFile.size / 1024).toFixed(1)} KB • Klik untuk ganti file
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <UploadCloud size={36} color="#64748b" style={{ margin: '0 auto' }} />
+                <div className={s.dropzoneTitle}>
+                  {saving ? 'Sedang memproses dan menyimpan...' : 'Tarik & Letakkan file Excel di sini atau Klik untuk memilih'}
+                </div>
+                <div className={s.dropzoneSub}>Mendukung format .xlsx dan .xls (Kolom: Kode_GL, Deskripsi, Periode, Budget)</div>
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.85rem' }}>
+            <button
+              type="button"
+              onClick={downloadTemplate}
+              className={s.btnSecondary}
+            >
+              <Download size={14} />
+              <span>Download Template Excel Resmi</span>
+            </button>
+
+            <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+              Target Sinkronisasi: <strong>Periode {periode}</strong>
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB 3: Riwayat Perubahan ─── */}
+      {activeTab === 'history' && (
+        <div className={s.tableContainer}>
+          <div className={s.tableWrapper}>
+            <table className={s.table}>
               <thead>
                 <tr>
-                  <th>Kode Account</th>
-                  <th>Deskripsi Akun</th>
-                  <th>Periode</th>
-                  <th style={{ textAlign: 'right' }}>Budget</th>
+                  <th className={`${s.th} ${s.thCenter}`} style={{ width: 44 }}>#</th>
+                  <th className={s.th} style={{ width: 140 }}>Tanggal Update</th>
+                  <th className={s.th} style={{ width: 160 }}>Kode GL</th>
+                  <th className={s.th}>Nama Akun Kategori</th>
+                  <th className={`${s.th} ${s.thRight}`} style={{ width: 180 }}>Nominal Pagu (Rp)</th>
+                  <th className={s.th} style={{ width: 100 }}>Periode</th>
                 </tr>
               </thead>
               <tbody>
-                {[
-                  ['50032902-123200', 'SUPPLIES EXPENSES (QC)', form.periode, '336413712'],
-                  ['60290100-123200', 'MARKETING EXPENSES (QC)', form.periode, '185400000'],
-                  ['60290500-123200', 'TRANSPORTATION LOCAL (QC)', form.periode, '113400000'],
-                  ['60290500-123000', 'TRANSPORTATION LOCAL (GNRL)', form.periode, '25920000']
-                ].map(([formCode, desk, per, val]) => (
-                  <tr key={formCode}>
-                    <td><strong style={{ fontFamily: 'monospace' }}>{formCode}</strong></td>
-                    <td style={{ color: 'var(--text-muted)' }}>{desk}</td>
-                    <td style={{ color: 'var(--text-muted)' }}>{per}</td>
-                    <td style={{ textAlign: 'right' }}>{val}</td>
+                {budgets.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className={s.emptyCell}>
+                      <div className={s.emptyState}>
+                        <History size={32} color="#94a3b8" />
+                        <div className={s.emptyTitle}>Belum ada riwayat alokasi</div>
+                        <div className={s.emptyDesc}>Riwayat akan otomatis tercatat setiap kali alokasi budget disimpan.</div>
+                      </div>
+                    </td>
                   </tr>
-                ))}
+                ) : (
+                  budgets.map((b, idx) => {
+                    const kat = activeKategoris.find((k) => k.id === b.kategori_id)
+                    return (
+                      <tr key={b.id || idx} className={s.tr}>
+                        <td className={`${s.td} ${s.indexCell}`}>{idx + 1}</td>
+                        <td className={s.td} style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                          {b.updated_at || b.created_at
+                            ? new Date(b.updated_at || b.created_at).toLocaleDateString('id-ID', {
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric',
+                              })
+                            : '—'}
+                        </td>
+                        <td className={s.td}>
+                          <span className={s.codeBadge}>{kat?.kode || '—'}</span>
+                        </td>
+                        <td className={s.td} style={{ fontWeight: 600 }}>
+                          {kat?.nama || '—'}
+                        </td>
+                        <td className={`${s.td} ${s.tdRight}`}>
+                          <span style={{ fontWeight: 700 }}>{formatRp(parseFloat(b.nominal || 0))}</span>
+                        </td>
+                        <td className={s.td}>
+                          <span className={s.typeBadge}>{b.periode}</span>
+                        </td>
+                      </tr>
+                    )
+                  })
+                )}
               </tbody>
             </table>
           </div>

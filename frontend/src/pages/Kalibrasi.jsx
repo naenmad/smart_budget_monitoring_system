@@ -23,46 +23,30 @@ import s from './Kalibrasi.module.css'
 const CATEGORY_META = {
   'Dimensi & Panjang': {
     label: 'Dimensi & Panjang',
-    color: '#2563eb',
-    bg: 'rgba(37, 99, 235, 0.08)',
   },
   'Sudut & Geometri': {
     label: 'Sudut & Geometri',
-    color: '#0891b2',
-    bg: 'rgba(8, 145, 178, 0.08)',
   },
   'Torsi & Gaya': {
     label: 'Torsi & Gaya',
-    color: '#d97706',
-    bg: 'rgba(217, 119, 6, 0.08)',
   },
   'CMM & Presisi Khusus': {
     label: 'CMM & Presisi Khusus',
-    color: '#7c3aed',
-    bg: 'rgba(124, 58, 237, 0.08)',
   },
   'Massa & Timbangan': {
     label: 'Massa & Timbangan',
-    color: '#059669',
-    bg: 'rgba(5, 150, 105, 0.08)',
   },
   'Thermal & Suhu': {
     label: 'Thermal & Suhu',
-    color: '#dc2626',
-    bg: 'rgba(220, 38, 38, 0.08)',
   },
   'Instrumen Lainnya': {
     label: 'Instrumen Lainnya',
-    color: '#64748b',
-    bg: 'rgba(100, 116, 139, 0.08)',
   },
 }
 
 function getCatMeta(cat) {
   return CATEGORY_META[cat] || {
     label: cat || 'Lainnya',
-    color: '#64748b',
-    bg: 'rgba(100, 116, 139, 0.08)',
   }
 }
 
@@ -220,7 +204,7 @@ export default function Kalibrasi() {
       <div className={s.header}>
         <div className={s.titleArea}>
           <h1 className={s.title}>
-            <Gauge size={24} color="#ea580c" />
+            <Gauge size={24} color="#0f172a" />
             Kalibrasi Alat Ukur QC
             <span className={s.titleBadge}>Equipment Calibration</span>
           </h1>
@@ -285,7 +269,7 @@ export default function Kalibrasi() {
           <Layers size={15} />
           <span>Transaksi Aktual &amp; GR</span>
           <span className={s.modeCountBadge}>
-            {rawData.summary.total_actual_count} Transaksi
+            {rawData.summary.total_actual_count}
           </span>
         </button>
 
@@ -296,7 +280,7 @@ export default function Kalibrasi() {
           <Calendar size={15} />
           <span>Master Planning &amp; Jadwal</span>
           <span className={s.modeCountBadge}>
-            {rawData.summary.total_plan_count} Item
+            {rawData.summary.total_plan_count}
           </span>
         </button>
       </div>
@@ -308,14 +292,14 @@ export default function Kalibrasi() {
           <div className={s.kpiTop}>
             <span className={s.kpiLabel}>Total Biaya Aktual</span>
             <div className={s.kpiIconBox}>
-              <CheckCircle2 size={18} color="#059669" />
+              <CheckCircle2 size={18} color="#0f172a" />
             </div>
           </div>
-          <div className={s.kpiValue} style={{ color: '#059669' }}>
+          <div className={s.kpiValue}>
             {formatRp(rawData.summary.total_actual_nominal)}
           </div>
           <div className={s.kpiSub}>
-            <span className={s.kpiBadgePositive}>
+            <span className={s.kpiBadgeNeutral}>
               {rawData.summary.total_actual_count} Transaksi Kalibrasi Terdata
             </span>
           </div>
@@ -326,14 +310,14 @@ export default function Kalibrasi() {
           <div className={s.kpiTop}>
             <span className={s.kpiLabel}>Budget Master Plan</span>
             <div className={s.kpiIconBox}>
-              <Calendar size={18} color="#2563eb" />
+              <Calendar size={18} color="#0f172a" />
             </div>
           </div>
-          <div className={s.kpiValue} style={{ color: '#2563eb' }}>
+          <div className={s.kpiValue}>
             {formatRp(rawData.summary.total_plan_nominal)}
           </div>
           <div className={s.kpiSub}>
-            <span className={s.kpiBadgeInfo}>
+            <span className={s.kpiBadgeNeutral}>
               {rawData.summary.total_plan_count} Instrumen Terjadwal
             </span>
           </div>
@@ -344,14 +328,16 @@ export default function Kalibrasi() {
           <div className={s.kpiTop}>
             <span className={s.kpiLabel}>Realisasi Plan Terverifikasi</span>
             <div className={s.kpiIconBox}>
-              <Sliders size={18} color="#7c3aed" />
+              <Sliders size={18} color="#0f172a" />
             </div>
           </div>
-          <div className={s.kpiValue} style={{ color: '#7c3aed' }}>
+          <div className={s.kpiValue} style={{ color: '#16a34a' }}>
             {formatRp(rawData.summary.realized_plan_nominal)}
           </div>
           <div className={s.kpiSub}>
-            <span>Alokasi Budget Sesuai Master Plan</span>
+            <span className={s.kpiBadgePositive}>
+              {((rawData.summary.realized_plan_nominal / (rawData.summary.total_plan_nominal || 1)) * 100).toFixed(1)}% Terealisasi
+            </span>
           </div>
         </div>
 
@@ -360,10 +346,10 @@ export default function Kalibrasi() {
           <div className={s.kpiTop}>
             <span className={s.kpiLabel}>PIC Utama &amp; Lab</span>
             <div className={s.kpiIconBox}>
-              <User size={18} color="#ea580c" />
+              <User size={18} color="#0f172a" />
             </div>
           </div>
-          <div className={s.kpiValue} style={{ color: '#ea580c' }}>
+          <div className={s.kpiValue}>
             {rawData.summary.pic_utama || 'Pak Aris'}
           </div>
           <div className={s.kpiSub}>
@@ -393,15 +379,6 @@ export default function Kalibrasi() {
               onClick={() => setSelectedCategory(isActive ? 'ALL' : catKey)}
               className={`${s.categoryPill} ${isActive ? s.categoryPillActive : ''}`}
             >
-              <span
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: '50%',
-                  backgroundColor: meta.color,
-                  display: 'inline-block',
-                }}
-              />
               <span>{meta.label}</span>
               <span className={s.pillCount}>{stat.count}</span>
             </button>
@@ -501,18 +478,22 @@ export default function Kalibrasi() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={10} className={s.emptyState}>
-                      <Loader2 size={28} className="animate-spin" color="#2563eb" />
-                      <span style={{ fontSize: '0.85rem' }}>Memuat data transaksi kalibrasi...</span>
+                    <td colSpan={10} className={s.emptyCell}>
+                      <div className={s.emptyState}>
+                        <Loader2 size={28} className="animate-spin" color="#0f172a" />
+                        <span style={{ fontSize: '0.85rem' }}>Memuat data transaksi kalibrasi...</span>
+                      </div>
                     </td>
                   </tr>
                 ) : displayedActualRows.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className={s.emptyState}>
-                      <AlertCircle size={32} color="#94a3b8" />
-                      <div className={s.emptyTitle}>Tidak ada transaksi kalibrasi yang cocok</div>
-                      <div className={s.emptyDesc}>
-                        Coba sesuaikan filter bulan, kategori alat, status dokumen, atau kata kunci pencarian.
+                    <td colSpan={10} className={s.emptyCell}>
+                      <div className={s.emptyState}>
+                        <AlertCircle size={32} color="#94a3b8" />
+                        <div className={s.emptyTitle}>Tidak ada transaksi kalibrasi yang cocok</div>
+                        <div className={s.emptyDesc}>
+                          Coba sesuaikan filter bulan, kategori alat, status dokumen, atau kata kunci pencarian.
+                        </div>
                       </div>
                     </td>
                   </tr>
@@ -544,10 +525,7 @@ export default function Kalibrasi() {
                           )}
                         </td>
                         <td className={s.td}>
-                          <span
-                            className={s.toolTypeBadge}
-                            style={{ color: catMeta.color, backgroundColor: catMeta.bg }}
-                          >
+                          <span className={s.toolTypeBadge}>
                             {catMeta.label}
                           </span>
                         </td>
@@ -620,18 +598,22 @@ export default function Kalibrasi() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={10} className={s.emptyState}>
-                      <Loader2 size={28} className="animate-spin" color="#2563eb" />
-                      <span style={{ fontSize: '0.85rem' }}>Memuat jadwal master planning...</span>
+                    <td colSpan={10} className={s.emptyCell}>
+                      <div className={s.emptyState}>
+                        <Loader2 size={28} className="animate-spin" color="#0f172a" />
+                        <span style={{ fontSize: '0.85rem' }}>Memuat jadwal master planning...</span>
+                      </div>
                     </td>
                   </tr>
                 ) : displayedPlanRows.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className={s.emptyState}>
-                      <AlertCircle size={32} color="#94a3b8" />
-                      <div className={s.emptyTitle}>Tidak ada item master plan yang cocok</div>
-                      <div className={s.emptyDesc}>
-                        Coba sesuaikan filter bulan, kategori alat, atau kata kunci pencarian.
+                    <td colSpan={10} className={s.emptyCell}>
+                      <div className={s.emptyState}>
+                        <AlertCircle size={32} color="#94a3b8" />
+                        <div className={s.emptyTitle}>Tidak ada item master plan yang cocok</div>
+                        <div className={s.emptyDesc}>
+                          Coba sesuaikan filter bulan, kategori alat, atau kata kunci pencarian.
+                        </div>
                       </div>
                     </td>
                   </tr>
@@ -670,10 +652,7 @@ export default function Kalibrasi() {
                           )}
                         </td>
                         <td className={s.td}>
-                          <span
-                            className={s.toolTypeBadge}
-                            style={{ color: catMeta.color, backgroundColor: catMeta.bg }}
-                          >
+                          <span className={s.toolTypeBadge}>
                             {catMeta.label}
                           </span>
                         </td>
@@ -681,7 +660,7 @@ export default function Kalibrasi() {
                           <span style={{ fontWeight: 600 }}>{formatRp(row.planning_amount)}</span>
                         </td>
                         <td className={`${s.td} ${s.tdRight}`}>
-                          <span style={{ fontWeight: 600, color: isRealized ? '#059669' : '#94a3b8' }}>
+                          <span style={{ fontWeight: 600, color: isRealized ? '#16a34a' : '#94a3b8' }}>
                             {formatRp(row.actual_amount)}
                           </span>
                         </td>

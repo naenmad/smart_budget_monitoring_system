@@ -49,10 +49,10 @@
   font-size: 0.72rem;
   font-weight: 700;
   padding: 0.2rem 0.55rem;
-  border-radius: 9999px;
-  background: rgba(234, 88, 12, 0.1);
-  color: #ea580c;
-  border: 1px solid rgba(234, 88, 12, 0.2);
+  border-radius: 6px;
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #cbd5e1;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -93,14 +93,14 @@
 }
 
 .actionBtnPrimary {
-  background: var(--primary, #2563eb);
+  background: var(--text-main, #0f172a);
   color: #ffffff;
-  border-color: var(--primary, #2563eb);
+  border-color: var(--text-main, #0f172a);
 }
 
 .actionBtnPrimary:hover {
-  background: #1d4ed8;
-  border-color: #1d4ed8;
+  background: #1e293b;
+  border-color: #1e293b;
 }
 
 /* ─── Mode Switcher (Pill Bar) ─── */
@@ -150,8 +150,8 @@
 }
 
 .modeBtnActive .modeCountBadge {
-  background: rgba(37, 99, 235, 0.12);
-  color: #2563eb;
+  background: #0f172a;
+  color: #ffffff;
   font-weight: 700;
 }
 
@@ -182,8 +182,7 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
   position: relative;
   overflow: hidden;
 }
@@ -195,11 +194,11 @@
   left: 0;
   right: 0;
   height: 3px;
-  background: var(--card-accent, #94a3b8);
+  background: #cbd5e1;
 }
 
 .kpiCardActual::before {
-  background: #059669;
+  background: #0f172a;
 }
 
 .kpiCardPlan::before {
@@ -207,11 +206,11 @@
 }
 
 .kpiCardRealized::before {
-  background: #7c3aed;
+  background: #16a34a;
 }
 
 .kpiCardPic::before {
-  background: #ea580c;
+  background: #475569;
 }
 
 .kpiTop {
@@ -222,7 +221,7 @@
 }
 
 .kpiLabel {
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -236,7 +235,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.04);
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
 }
 
 .kpiValue {
@@ -257,6 +257,18 @@
   gap: 0.35rem;
 }
 
+.kpiBadgeNeutral {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  background: #f1f5f9;
+  color: #475569;
+}
+
 .kpiBadgePositive {
   display: inline-flex;
   align-items: center;
@@ -267,18 +279,6 @@
   border-radius: 6px;
   background: rgba(22, 163, 74, 0.1);
   color: #16a34a;
-}
-
-.kpiBadgeInfo {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.2rem;
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 0.15rem 0.45rem;
-  border-radius: 6px;
-  background: rgba(37, 99, 235, 0.1);
-  color: #2563eb;
 }
 
 /* ─── Instrument Category Strip ─── */
@@ -295,7 +295,7 @@
   align-items: center;
   gap: 0.45rem;
   padding: 0.45rem 0.85rem;
-  border-radius: 9999px;
+  border-radius: 8px;
   font-size: 0.8rem;
   font-weight: 600;
   background: var(--bg-card, #ffffff);
@@ -326,8 +326,9 @@
 .pillCount {
   font-size: 0.72rem;
   padding: 0.1rem 0.4rem;
-  border-radius: 9999px;
-  background: rgba(0, 0, 0, 0.08);
+  border-radius: 4px;
+  background: #f1f5f9;
+  color: #475569;
 }
 
 .categoryPillActive .pillCount {
@@ -346,7 +347,7 @@
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 0.85rem;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
 .filterGroup {
@@ -364,8 +365,8 @@
   font-size: 0.8rem;
   font-weight: 600;
   border-radius: 8px;
-  border: 1px solid transparent;
-  background: transparent;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
   color: var(--text-muted, #64748b);
   cursor: pointer;
   transition: all 0.15s ease;
@@ -377,13 +378,14 @@
 }
 
 .statusFilterBtnActive {
-  background: var(--primary, #2563eb);
+  background: var(--text-main, #0f172a);
   color: #ffffff;
+  border-color: var(--text-main, #0f172a);
   font-weight: 700;
 }
 
 .statusFilterBtnActive:hover {
-  background: #1d4ed8;
+  background: #1e293b;
   color: #ffffff;
 }
 
@@ -416,8 +418,8 @@
 }
 
 .searchInput:focus {
-  border-color: var(--primary, #2563eb);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  border-color: var(--text-main, #0f172a);
+  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.08);
 }
 
 .monthSelect {
@@ -438,7 +440,7 @@
   border: 1px solid var(--border-color, #e2e8f0);
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
 }
 
 .tableWrapper {
@@ -460,7 +462,7 @@
   background: #f8fafc;
   color: #475569;
   font-weight: 700;
-  font-size: 0.75rem;
+  font-size: 0.74rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   padding: 0.75rem 0.85rem;
@@ -516,13 +518,13 @@
   font-size: 0.75rem;
   font-weight: 600;
   text-align: center;
-  width: 40px;
+  width: 44px;
 }
 
 .monthBadge {
   display: inline-block;
   padding: 0.15rem 0.45rem;
-  border-radius: 5px;
+  border-radius: 4px;
   background: #f1f5f9;
   color: #475569;
   font-weight: 700;
@@ -532,10 +534,10 @@
 .noRegBadge {
   display: inline-block;
   padding: 0.2rem 0.5rem;
-  border-radius: 6px;
-  background: #eff6ff;
-  color: #1d4ed8;
-  border: 1px solid #bfdbfe;
+  border-radius: 4px;
+  background: #f8fafc;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.75rem;
   font-weight: 700;
@@ -551,9 +553,12 @@
 .toolTypeBadge {
   display: inline-block;
   padding: 0.15rem 0.45rem;
-  border-radius: 5px;
+  border-radius: 4px;
   font-size: 0.73rem;
   font-weight: 600;
+  background: #f8fafc;
+  color: #334155;
+  border: 1px solid #e2e8f0;
   white-space: nowrap;
 }
 
@@ -562,7 +567,7 @@
   align-items: center;
   gap: 0.25rem;
   padding: 0.15rem 0.45rem;
-  border-radius: 5px;
+  border-radius: 4px;
   background: rgba(22, 163, 74, 0.1);
   color: #16a34a;
   font-size: 0.73rem;
@@ -575,11 +580,11 @@
   align-items: center;
   gap: 0.25rem;
   padding: 0.15rem 0.45rem;
-  border-radius: 5px;
-  background: rgba(234, 88, 12, 0.1);
-  color: #ea580c;
+  border-radius: 4px;
+  background: #f1f5f9;
+  color: #64748b;
   font-size: 0.73rem;
-  font-weight: 700;
+  font-weight: 600;
   white-space: nowrap;
 }
 
@@ -588,11 +593,12 @@
   align-items: center;
   gap: 0.25rem;
   padding: 0.15rem 0.45rem;
-  border-radius: 5px;
-  background: rgba(234, 88, 12, 0.1);
-  color: #ea580c;
+  border-radius: 4px;
+  background: #f1f5f9;
+  color: #0f172a;
   font-size: 0.73rem;
   font-weight: 700;
+  border: 1px solid #e2e8f0;
 }
 
 .docPill {
@@ -637,15 +643,21 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* ─── Empty & Loading States ─── */
-.emptyState {
-  padding: 3.5rem 1.5rem;
+/* ─── Empty & Loading States (Table-Cell Resilient) ─── */
+.emptyCell {
+  padding: 4rem 1.5rem;
   text-align: center;
+  background: var(--bg-card, #ffffff);
+}
+
+.emptyState {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 0.75rem;
+  max-width: 480px;
+  margin: 0 auto;
   color: var(--text-muted, #64748b);
 }
 
@@ -657,6 +669,7 @@
 
 .emptyDesc {
   font-size: 0.82rem;
-  max-width: 400px;
-  line-height: 1.45;
+  max-width: 420px;
+  line-height: 1.5;
+  color: var(--text-muted, #64748b);
 }

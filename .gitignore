@@ -75,3 +75,5 @@ backend/Procfile
 # --- AI Agent Internal Files (dev only) ---
 .agents/
 agents.md
+.gemini/
+
