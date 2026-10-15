@@ -392,8 +392,8 @@ export default function Dashboard() {
           <div className={s.dualChartRow}>
             <div className={s.chartCard}>
               <div className={s.chartCardHeader}>
-                <span className={s.chartCardTitle}>Plan PR per PIC</span>
-                <span className={s.chartCardHint}>Top 10 PIC berdasarkan nilai Plan PR</span>
+                <span className={s.chartCardTitle}>Planned PR per PIC</span>
+                <span className={s.chartCardHint}>Top 10 PIC berdasarkan nilai Planned PR</span>
               </div>
               <BudgetChart title="" data={chartUser} />
             </div>

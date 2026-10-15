@@ -42,8 +42,8 @@ export async function exportBudgetSummaryToExcel({
     [`Tahun Anggaran: ${periode}`],
     [`Tanggal Export: ${currentDateStr}`],
     [],
-    ['1. RINGKASAN ANGGARAN INVESTASI & OPERASIONAL (Planning PR vs REALISASI FISIK GR)'],
-    ['Tipe Anggaran', 'Budget (Rp)', 'Planning PR (Rp)', 'Realisasi GR (Rp)', 'Budget PR (Rp)', '% Pakai PR', '% Selesai GR', 'Status'],
+    ['1. RINGKASAN ANGGARAN INVESTASI & OPERASIONAL (Planned PR vs REALISASI FISIK GR)'],
+    ['Tipe Anggaran', 'Budget (Rp)', 'Planned PR (Rp)', 'Realisasi GR (Rp)', 'Budget PR (Rp)', '% Pakai PR', '% Selesai GR', 'Status'],
     [
       'Investasi / Asset (Capital Expenditure)',
       capexBudget,
@@ -66,7 +66,7 @@ export async function exportBudgetSummaryToExcel({
     ],
     [],
     ['2. RINCIAN REALISASI PER AKUN GENERAL LEDGER (GL) & COST CENTER'],
-    ['Kode Account', 'Nama Akun / Deskripsi', 'Tipe', 'Budget (Rp)', 'Planning PR (Rp)', 'Realisasi GR (Rp)', 'Budget PR (Rp)', '% Pakai PR', '% Selesai GR', 'Status']
+    ['Kode Account', 'Nama Akun / Deskripsi', 'Tipe', 'Budget (Rp)', 'Planned PR (Rp)', 'Realisasi GR (Rp)', 'Budget PR (Rp)', '% Pakai PR', '% Selesai GR', 'Status']
   ]
 
   // 2. Tambahkan Baris Data per Account
