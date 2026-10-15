@@ -42,6 +42,10 @@ export const planningApi = {
   getPriceVariance: (params = {}) =>
     api.get('/planning/price-variance', { params }),
 
+  // Dedicated Kalibrasi Alat Ukur QC (Pak Aris)
+  getKalibrasi: (params = {}) =>
+    api.get('/planning/kalibrasi', { params }),
+
   // Download Planning Excel Report
   downloadExcel: (periode = '2026') =>
     api.get('/planning/export', {

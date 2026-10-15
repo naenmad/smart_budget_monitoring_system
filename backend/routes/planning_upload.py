@@ -652,3 +652,202 @@ def get_price_variance():
         "monthly_stats": monthly_stats,
         "data": result_items
     }), 200
+
+
+# ------------------------------------------------------------------
+# Dedicated Kalibrasi Alat Ukur (Quality Control - PIC: Pak Aris)
+# GET /api/v1/planning/kalibrasi?periode=2026&bulan=&tipe_alat=&search=
+# ------------------------------------------------------------------
+@planning_bp.route("/kalibrasi", methods=["GET"])
+def get_kalibrasi():
+    """Mendapatkan data kalibrasi alat ukur QC (Realisasi Aktual & Master Planning)"""
+    import re
+    periode = request.args.get("periode", "2026").strip()
+    bulan = request.args.get("bulan", "").strip()
+    tipe_alat = request.args.get("tipe_alat", "ALL").strip()
+    search = request.args.get("search", "").strip()
+
+    month_names_dict = {
+        1: 'Jan', 2: 'Feb', 3: 'Mar', 4: 'Apr', 5: 'Mei', 6: 'Jun',
+        7: 'Jul', 8: 'Agu', 9: 'Sep', 10: 'Okt', 11: 'Nov', 12: 'Des'
+    }
+
+    def classify_tool(text):
+        t = (text or '').upper()
+        if any(k in t for k in ['CALIPER', 'MICROMETER', 'HEIGHT GAUGE', 'STEELRULE', 'STEEL RULE', 'TAPPER', 'FEELER', 'PIN GAUGE', 'RADIUS GAUGE', 'DANSA', 'BALL GAUGE', 'THICKNESS', 'DIAL', 'DEPTH']):
+            return 'Dimensi & Panjang'
+        if any(k in t for k in ['BEVEL', 'PROTECTOR', 'SQUARE', 'SIKU', 'ANGLE', 'SUDUT', 'PROFILE PROJECTOR']):
+            return 'Sudut & Geometri'
+        if any(k in t for k in ['TORQUE', 'WRENCH', 'TENSION', 'FORCE', 'TEKANAN', 'PUSH PULL']):
+            return 'Torsi & Gaya'
+        if any(k in t for k in ['CMM', 'COORDINATE', 'ROMER', 'ROUGHNESS', 'CONTRACER']):
+            return 'CMM & Presisi Khusus'
+        if any(k in t for k in ['TIMBANGAN', 'SCALE', 'MASS', 'WEIGHT']):
+            return 'Massa & Timbangan'
+        if any(k in t for k in ['THERMO', 'SUHU', 'TEMPERATURE']):
+            return 'Thermal & Suhu'
+        return 'Instrumen Lainnya'
+
+    def extract_no_reg(text):
+        if not text: return None
+        m = re.search(r'NO\s*REG\.?\s*([A-Z0-9\.-]+)', text, re.IGNORECASE)
+        if m:
+            return m.group(1).strip('. ')
+        m2 = re.search(r'\(([\d\w\s\.-]+)\)', text)
+        if m2:
+            val = m2.group(1).strip()
+            if re.search(r'\d', val) and not val.startswith('04-'):
+                return val.replace('NO REG', '').replace('no reg', '').strip('. ')
+        return None
+
+    # 1. Fetch Actual Transactions from PrPoData (Strictly QC CC 123200 & 123000)
+    query_actual = PrPoData.query.filter(
+        PrPoData.description.ilike("%KALIBRASI%"),
+        PrPoData.cost_center.in_(["123200", "123000"])
+    )
+    if bulan and bulan != "ALL":
+        try:
+            m_int = int(bulan)
+            query_actual = query_actual.filter(PrPoData.bulan == m_int)
+        except ValueError:
+            pass
+
+    if search:
+        s_filter = f"%{search}%"
+        query_actual = query_actual.filter(
+            PrPoData.description.ilike(s_filter) |
+            PrPoData.pr_doc_num.ilike(s_filter) |
+            PrPoData.gr_legal_number.ilike(s_filter) |
+            PrPoData.po_doc_num.ilike(s_filter)
+        )
+
+    raw_actual = query_actual.order_by(PrPoData.bulan.asc(), PrPoData.id.asc()).all()
+
+    # 2. Fetch Planning Items from PlanningDetail
+    query_plan = PlanningDetail.query.join(
+        PlanningHeader, PlanningDetail.planning_header_id == PlanningHeader.id
+    ).filter(
+        PlanningHeader.periode == periode,
+        PlanningDetail.status_realisasi != "CANCELLED",
+        (PlanningDetail.sub_kategori == "Kalibrasi") | (PlanningDetail.item.ilike("%KALIBRASI%"))
+    )
+    if bulan and bulan != "ALL":
+        query_plan = query_plan.filter(
+            (PlanningDetail.month.like(f"{bulan}%")) | (PlanningDetail.bulan_actual.like(f"{bulan}%"))
+        )
+    if search:
+        s_filter = f"%{search}%"
+        query_plan = query_plan.filter(
+            PlanningDetail.item.ilike(s_filter) |
+            PlanningDetail.remarks.ilike(s_filter) |
+            PlanningDetail.status_detail.ilike(s_filter)
+        )
+
+    raw_plan = query_plan.order_by(PlanningDetail.id.asc()).all()
+
+    # Process Actual Data
+    actual_items = []
+    tot_actual_nominal = 0.0
+    actual_monthly_stats = {}
+    tool_type_stats = {}
+
+    for row in raw_actual:
+        tot_price = float(row.total_price or 0.0)
+        t_type = classify_tool(row.description)
+        no_reg = extract_no_reg(row.description)
+        m_num = row.bulan or 1
+        m_name = month_names_dict.get(m_num, str(m_num))
+
+        # Overall stats
+        tot_actual_nominal += tot_price
+        if m_name not in actual_monthly_stats:
+            actual_monthly_stats[m_name] = {"count": 0, "nominal": 0.0}
+        actual_monthly_stats[m_name]["count"] += 1
+        actual_monthly_stats[m_name]["nominal"] += tot_price
+
+        if t_type not in tool_type_stats:
+            tool_type_stats[t_type] = {"count": 0, "nominal": 0.0}
+        tool_type_stats[t_type]["count"] += 1
+        tool_type_stats[t_type]["nominal"] += tot_price
+
+        # Filter by tipe_alat if requested
+        if tipe_alat != "ALL" and t_type != tipe_alat:
+            continue
+
+        clean_name = re.sub(r'^(KALIBRASI\s*|Kalibrasi\s*)', '', row.description or '', flags=re.IGNORECASE).strip()
+
+        actual_items.append({
+            "id": row.id,
+            "bulan": m_num,
+            "bulan_name": m_name,
+            "request_date": row.request_date.isoformat() if row.request_date else None,
+            "receipt_date": row.receipt_date.isoformat() if row.receipt_date else None,
+            "pr_doc_num": row.pr_doc_num,
+            "po_doc_num": row.po_doc_num,
+            "gr_legal_number": row.gr_legal_number,
+            "description": row.description,
+            "nama_alat": clean_name,
+            "no_reg": no_reg,
+            "tipe_alat": t_type,
+            "total_price": tot_price,
+            "supplier_name": row.supplier_name or "Lab Terakreditasi",
+            "pic": "Pak Aris",
+            "has_gr": bool(row.gr_legal_number),
+            "status": "SELESAI (GR)" if row.gr_legal_number else "PROSES"
+        })
+
+    # Process Planning Data
+    plan_items = []
+    tot_plan_nominal = 0.0
+    tot_plan_realized = 0.0
+
+    for p in raw_plan:
+        p_amt = float(p.planning_amount or 0.0)
+        a_amt = float(p.actual_amount or 0.0)
+        t_type = classify_tool(p.item)
+        no_reg = extract_no_reg(p.item)
+
+        tot_plan_nominal += p_amt
+        tot_plan_realized += a_amt
+
+        if tipe_alat != "ALL" and t_type != tipe_alat:
+            continue
+
+        clean_name = re.sub(r'^(KALIBRASI\s*|Kalibrasi\s*)', '', p.item or '', flags=re.IGNORECASE).strip()
+
+        plan_items.append({
+            "id": p.id,
+            "month": p.month,
+            "bulan_actual": p.bulan_actual,
+            "item": p.item,
+            "nama_alat": clean_name,
+            "no_reg": no_reg,
+            "tipe_alat": t_type,
+            "planning_amount": p_amt,
+            "actual_amount": a_amt,
+            "selisih": a_amt - p_amt if a_amt > 0 else 0.0,
+            "status_detail": p.status_detail or ('Terealisasi' if a_amt > 0 else 'Belum Terealisasi'),
+            "status_realisasi": p.status_realisasi or 'OPEN',
+            "pic": "Pak Aris",
+            "baris_ref": p.baris_ref,
+            "remarks": p.remarks
+        })
+
+    return jsonify({
+        "success": True,
+        "periode": periode,
+        "summary": {
+            "total_actual_nominal": tot_actual_nominal,
+            "total_actual_count": len(raw_actual),
+            "filtered_actual_count": len(actual_items),
+            "total_plan_nominal": tot_plan_nominal,
+            "total_plan_count": len(raw_plan),
+            "filtered_plan_count": len(plan_items),
+            "realized_plan_nominal": tot_plan_realized,
+            "pic_utama": "Pak Aris"
+        },
+        "tool_type_stats": tool_type_stats,
+        "monthly_stats": actual_monthly_stats,
+        "actual_data": actual_items,
+        "planning_data": plan_items
+    }), 200

@@ -7,7 +7,8 @@ import {
   FileSpreadsheet,
   Wrench,
   AlertTriangle,
-  Scale
+  Scale,
+  Gauge
 } from 'lucide-react'
 import PlanningList from './PlanningList'
 import PlanningUpload from './PlanningUpload'
@@ -15,17 +16,20 @@ import DatabaseSpreadsheet from './DatabaseSpreadsheet'
 import OutOfPlan from './OutOfPlan'
 import PreventiveCfView from './PreventiveCfView'
 import PriceVariance from './PriceVariance'
+import Kalibrasi from './Kalibrasi'
 import s from './Planning.module.css'
 
 export default function Planning() {
   const [searchParams, setSearchParams] = useSearchParams()
   const tabParam = searchParams.get('tab')
 
-  // Tabs: 'list' | 'variance' | 'preventive' | 'oob' | 'spreadsheet' | 'upload'
+  // Tabs: 'list' | 'variance' | 'kalibrasi' | 'preventive' | 'oob' | 'spreadsheet' | 'upload'
   const [activeTab, setActiveTab] = useState(() => tabParam || 'list')
 
+  const validTabs = ['list', 'variance', 'kalibrasi', 'preventive', 'oob', 'spreadsheet', 'upload']
+
   useEffect(() => {
-    if (tabParam && ['list', 'variance', 'preventive', 'oob', 'spreadsheet', 'upload'].includes(tabParam)) {
+    if (tabParam && validTabs.includes(tabParam)) {
       setActiveTab(tabParam)
     }
   }, [tabParam])
@@ -49,7 +53,7 @@ export default function Planning() {
             Master &amp; Data Planning Anggaran
           </h1>
           <p className={s.subtitle}>
-            Kelola master alokasi anggaran, pantau rincian item planning per Account, monitor varians harga belanja, Preventive C/F &amp; Out of Budget, dan sinkronisasi file Excel.
+            Kelola master alokasi anggaran, pantau rincian item planning per Account, monitor varians harga belanja, kalibrasi alat ukur QC, Preventive C/F &amp; Out of Budget, dan sinkronisasi file Excel.
           </p>
         </div>
 
@@ -69,6 +73,14 @@ export default function Planning() {
           >
             <Scale size={16} />
             <span>Perbandingan Harga</span>
+          </button>
+
+          <button
+            onClick={() => handleTabChange('kalibrasi')}
+            className={`${s.tabBtn} ${activeTab === 'kalibrasi' ? s.tabBtnActive : ''}`}
+          >
+            <Gauge size={16} />
+            <span>Kalibrasi Alat (QC)</span>
           </button>
 
           <button
@@ -109,6 +121,7 @@ export default function Planning() {
       <div className={s.tabContent} key={activeTab}>
         {activeTab === 'list' && <PlanningList />}
         {activeTab === 'variance' && <PriceVariance />}
+        {activeTab === 'kalibrasi' && <Kalibrasi />}
         {activeTab === 'preventive' && <PreventiveCfView />}
         {activeTab === 'oob' && <OutOfPlan />}
         {activeTab === 'spreadsheet' && <DatabaseSpreadsheet />}
