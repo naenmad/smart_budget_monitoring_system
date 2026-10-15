@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { AlertTriangle, Search, RefreshCw, Loader2, TrendingUp, BarChart2, Calendar, Tag } from 'lucide-react'
-import ScrollableCell from '../components/ScrollableCell'
 import { planningApi } from '../api/planningApi'
 import { formatRp } from '../utils/format'
 import s from './OutOfPlan.module.css'
@@ -287,16 +286,16 @@ export default function OutOfPlan() {
             <table className={s.table}>
               <thead>
                 <tr>
-                  <th style={{ width: 36, textAlign: 'center' }}>#</th>
+                  <th style={{ width: 38, textAlign: 'center' }}>#</th>
                   <th style={{ width: 60 }}>Bulan</th>
                   <th style={{ width: 95 }}>Account</th>
                   <th style={{ width: 95 }}>Cost Center</th>
                   <th style={{ width: 85 }}>Tanggal</th>
-                  <th style={{ minWidth: 260, maxWidth: 320 }}>Item / Uraian</th>
-                  <th style={{ minWidth: 110, maxWidth: 140 }}>PIC</th>
-                  <th style={{ textAlign: 'right', minWidth: 120 }}>Nominal</th>
-                  <th style={{ minWidth: 130 }}>No PR / PO</th>
-                  <th style={{ minWidth: 120 }}>GR</th>
+                  <th style={{ minWidth: 260, maxWidth: 360 }}>Item / Uraian</th>
+                  <th style={{ width: 120 }}>PIC</th>
+                  <th style={{ textAlign: 'right', width: 125 }}>Nominal</th>
+                  <th style={{ width: 130 }}>No PR / PO</th>
+                  <th style={{ width: 120 }}>GR</th>
                   <th style={{ minWidth: 200, maxWidth: 280 }}>Keterangan</th>
                 </tr>
               </thead>
@@ -332,10 +331,10 @@ export default function OutOfPlan() {
                           : '—'}
                       </td>
                       <td className={s.descCell}>
-                        <ScrollableCell text={r.description || '—'} maxWidth={300} minWidth={200} />
+                        <div className={s.descText}>{r.description || '—'}</div>
                       </td>
                       <td className={s.picCell} title={r.pic || r.pengaju || '—'}>
-                        {r.pic || r.pengaju || '—'}
+                        <div className={s.picText}>{r.pic || r.pengaju || '—'}</div>
                       </td>
                       <td className={s.priceCell}>{formatRp(r.total_price)}</td>
                       <td className={s.monoCell}>
@@ -346,7 +345,9 @@ export default function OutOfPlan() {
                       </td>
                       <td className={s.monoCell}>{r.gr_legal_number || '—'}</td>
                       <td className={s.noteCell}>
-                        <ScrollableCell text={keterangan} maxWidth={260} minWidth={160} />
+                        <div className={s.noteText} title={r.catatan_perbandingan || ''}>
+                          {r.catatan_perbandingan || '—'}
+                        </div>
                       </td>
                     </tr>
                   )
