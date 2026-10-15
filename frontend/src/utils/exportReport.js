@@ -66,10 +66,10 @@ export async function exportBudgetSummaryToExcel({
     ],
     [],
     ['2. RINCIAN REALISASI PER AKUN GENERAL LEDGER (GL) & COST CENTER'],
-    ['Kode Akun GL', 'Nama Akun / Deskripsi', 'Tipe', 'Budget (Rp)', 'Planning PR (Rp)', 'Realisasi GR (Rp)', 'Budget PR (Rp)', '% Pakai PR', '% Selesai GR', 'Status']
+    ['Kode Account', 'Nama Akun / Deskripsi', 'Tipe', 'Budget (Rp)', 'Planning PR (Rp)', 'Realisasi GR (Rp)', 'Budget PR (Rp)', '% Pakai PR', '% Selesai GR', 'Status']
   ]
 
-  // 2. Tambahkan Baris Data per Akun GL
+  // 2. Tambahkan Baris Data per Account
   items.forEach(item => {
     const budget = Number(item.budget || 0)
     const actualPr = Number(item.actual_pr || item.actual || 0)

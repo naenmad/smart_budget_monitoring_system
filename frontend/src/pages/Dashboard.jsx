@@ -399,7 +399,7 @@ export default function Dashboard() {
             <div className={s.chartCard}>
               <div className={s.chartCardHeader}>
                 <span className={s.chartCardTitle}>Realisasi Per Akun</span>
-                <span className={s.chartCardHint}>Distribusi anggaran per GL account</span>
+                <span className={s.chartCardHint}>Distribusi anggaran per Account</span>
               </div>
               <BudgetChart title="" data={chartForm} />
             </div>

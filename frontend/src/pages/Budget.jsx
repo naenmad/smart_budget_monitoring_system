@@ -341,7 +341,7 @@ export default function Budget() {
             Alokasi Budget (Setup)
           </h1>
           <p className={s.subtitle}>
-            Input dan alokasikan budget tahunan per akun General Ledger (GL) & Cost Center untuk periode berjalan.
+            Input dan alokasikan budget tahunan per Account & Cost Center untuk periode berjalan.
           </p>
         </div>
 
@@ -366,7 +366,7 @@ export default function Budget() {
       {activeTab === 'manual' && (
         <div className={s.grid}>
           <div className={s.card}>
-            <div className={s.sectionLabel}>Periode & Alokasi Akun GL</div>
+            <div className={s.sectionLabel}>Periode & Alokasi Account</div>
             <div className={s.formGroup}>
               <div>
                 <label className={s.label}>Periode Tahun</label>
@@ -385,7 +385,7 @@ export default function Budget() {
               </div>
 
               <div className={s.divider}>
-                <div className={s.sectionLabel}>Detail Budget per Akun General Ledger (GL)</div>
+                <div className={s.sectionLabel}>Detail Budget per Account</div>
                 {kategoris.filter(k => k.is_active && k.kode !== 'E-6' && k.kode !== 'OOP').map(k => (
                   <div key={k.kode} style={{ marginBottom: 14 }}>
                     <div className={s.formRow} style={{ marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -542,7 +542,7 @@ export default function Budget() {
             <table className={s.formatTable}>
               <thead>
                 <tr>
-                  <th>Kode GL</th>
+                  <th>Kode Account</th>
                   <th>Deskripsi Akun</th>
                   <th>Periode</th>
                   <th style={{ textAlign: 'right' }}>Budget</th>

@@ -99,7 +99,7 @@ export default function ReviewModal({ record, categories, onClose, onSuccess }) 
               value={selectedCat}
               onChange={e => setSelectedCat(e.target.value)}
             >
-              <option value="" disabled>-- Pilih Akun GL --</option>
+              <option value="" disabled>-- Pilih Account --</option>
               {categories.map(c => (
                 <option key={c.id} value={c.id}>
                   {c.kode} - {c.nama}

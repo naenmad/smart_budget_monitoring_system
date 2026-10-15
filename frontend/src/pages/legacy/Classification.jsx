@@ -244,9 +244,9 @@ export default function Classification() {
             onChange={e => { setCodeFilter(e.target.value); setPage(1); }}
             className={s.filterBtn}
             style={{ cursor: 'pointer', outline: 'none', maxWidth: 220 }}
-            title="Filter Akun GL"
+            title="Filter Account"
           >
-            <option value="ALL">Semua Akun GL</option>
+            <option value="ALL">Semua Account</option>
             {categories.filter(c => c.is_active && c.kode !== 'OOP').map(c => (
               <option key={c.id} value={c.kode}>
                 {c.kode} ({c.nama})

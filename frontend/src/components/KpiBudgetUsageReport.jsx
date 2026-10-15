@@ -187,7 +187,7 @@ export default function KpiBudgetUsageReport({
                     <button
                         className={`${s.subTabBtn} ${opexSubTab === 'ALL' ? s.active : ''}`}
                         onClick={() => setOpexSubTab('ALL')}
-                        title="Gabungan seluruh komponen pengeluaran operasional akun GL"
+                        title="Gabungan seluruh komponen pengeluaran operasional Account"
                     >
                         Semua Akun (Gabungan)
                     </button>
