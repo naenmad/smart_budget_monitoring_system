@@ -46,6 +46,18 @@
   line-height: 1.25;
 }
 
+.titleBadge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+  border-radius: 6px;
+  border: 1px solid rgba(220, 38, 38, 0.2);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
 .pageSubtitle {
   font-size: 0.83rem;
   color: var(--text-muted);
@@ -56,7 +68,14 @@
 .headerRight {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.periodeWrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
 .periodeLabel {
@@ -108,6 +127,32 @@
 .refreshBtn:hover:not(:disabled) {
   border-color: var(--primary);
   color: var(--primary);
+}
+
+.exportBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-radius: 8px;
+  background: #16a34a;
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(22, 163, 74, 0.2);
+}
+
+.exportBtn:hover:not(:disabled) {
+  background: #15803d;
+  transform: translateY(-1px);
+}
+
+.exportBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .spinning {
@@ -295,6 +340,219 @@
   font-size: 0.7rem;
   color: var(--text-muted);
   font-weight: 500;
+}
+
+/* ── Historical Statistics Section ── */
+.statsSection {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.statsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.statsTitleGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.statsTitle {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.statsSub {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+}
+
+.statsToggleBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-subtle, #f8fafc);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.statsToggleBtn:hover {
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+@media (max-width: 900px) {
+  .statsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.chartCard,
+.picCard {
+  background: var(--bg-subtle, #f8fafc);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.chartHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.chartTitle {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.chartSub {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.chartContainer {
+  width: 100%;
+}
+
+.customTooltip {
+  background: #0f172a;
+  color: #ffffff;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 11px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.tooltipMonth {
+  font-weight: 700;
+  margin-bottom: 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  padding-bottom: 4px;
+}
+
+.tooltipRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: #e2e8f0;
+}
+
+.tooltipRow strong {
+  color: #f87171;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.tooltipSub {
+  font-size: 10px;
+  color: #94a3b8;
+  margin-top: 3px;
+}
+
+/* PIC List Breakdown */
+.picList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin-top: 0.35rem;
+}
+
+.picItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.45rem 0.6rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 7px;
+}
+
+.picItemTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.picRank {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.picItemName {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text-main);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.picItemNominal {
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  color: #dc2626;
+}
+
+.picProgressBar {
+  width: 100%;
+  height: 4px;
+  background: var(--border-color);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.picProgressFill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.picItemMeta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
+.emptySmall {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 1rem 0;
 }
 
 /* ── Toolbar ── */

@@ -17,6 +17,7 @@ import {
 import { toast } from 'react-hot-toast'
 import { planningApi } from '../api/planningApi'
 import { formatRp } from '../utils/format'
+import { exportPriceVarianceExcel } from '../utils/excelExport'
 import s from './PriceVariance.module.css'
 
 const SUBCATEGORY_META = {
@@ -108,27 +109,24 @@ export default function PriceVariance() {
     fetchData()
   }, [fetchData])
 
-  const handleExportExcel = async () => {
+  const items = rawData.data || []
+
+  const handleExportExcel = () => {
     try {
       setIsExporting(true)
-      const res = await planningApi.exportDatabaseBudget(periode)
-      const url = window.URL.createObjectURL(new Blob([res.data]))
-      const link = document.createElement('a')
-      link.href = url
-      link.setAttribute('download', `DATABASE_WEB_BUDGET_${periode}.xlsx`)
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-      toast.success('File Master Database Budget (Sheet Plan vs Actual) berhasil diunduh!')
+      exportPriceVarianceExcel({
+        items,
+        summary: rawData,
+        periode
+      })
+      toast.success(`Laporan Price Variance QC (${periode}) berhasil diunduh!`)
     } catch (err) {
       console.error('Export error:', err)
-      toast.error('Gagal mengunduh file Excel master budget')
+      toast.error('Gagal mengunduh file Excel perbandingan harga')
     } finally {
       setIsExporting(false)
     }
   }
-
-  const items = rawData.data || []
 
   // Computed summary for current filtered view
   const currentTotalPlan = useMemo(
@@ -139,7 +137,10 @@ export default function PriceVariance() {
     () => items.reduce((sum, r) => sum + (r.actual_amount || 0), 0),
     [items]
   )
-  const currentNetVariance = currentTotalActual - currentTotalPlan
+  const currentNetVariance = useMemo(
+    () => items.reduce((sum, r) => sum + (r.price_variance || 0), 0),
+    [items]
+  )
 
   return (
     <div className={s.container}>
@@ -147,12 +148,12 @@ export default function PriceVariance() {
       <div className={s.header}>
         <div className={s.titleArea}>
           <h1 className={s.title}>
-            <Scale size={24} color="var(--primary, #2563eb)" />
+            <Scale size={24} color="#0f172a" />
             Perbandingan Harga (Plan vs Actual)
-            <span className={s.titleBadge}>Price Variance</span>
+            <span className={s.titleBadge}>Variance Analysis</span>
           </h1>
           <p className={s.subtitle}>
-            Komparasi harga satuan, kuantitas, dan varians anggaran barang realisasi vs rencana Master Budget tahun {periode}.
+            Analisis efisiensi selisih harga satuan (Cost Saving), lonjakan biaya di atas alokasi (Over Budget), dan item belum terealisasi.
           </p>
         </div>
 
@@ -180,16 +181,16 @@ export default function PriceVariance() {
 
           <button
             onClick={handleExportExcel}
-            disabled={isExporting}
+            disabled={isExporting || items.length === 0}
             className={`${s.actionBtn} ${s.actionBtnPrimary}`}
-            title="Download Excel DATABASE WEB BUDGET"
+            title="Download Excel Khusus Perbandingan Harga Plan vs Act"
           >
             {isExporting ? (
               <Loader2 size={14} className="animate-spin" />
             ) : (
               <FileSpreadsheet size={14} />
             )}
-            <span>Export Master Excel</span>
+            <span>Export Variance Excel</span>
           </button>
         </div>
       </div>
@@ -259,74 +260,74 @@ export default function PriceVariance() {
               <CheckCircle2 size={18} color="#2563eb" />
             </div>
           </div>
-          <div className={s.kpiValue} style={{ color: '#2563eb' }}>
-            {rawData.realized_items} / {rawData.total_items}
+          <div className={s.kpiValue}>
+            {rawData.realized_items} / {rawData.total_items} Item
           </div>
           <div className={s.kpiSub}>
-            <span>
+            <span className={s.kpiBadgeNeutral}>
               {rawData.total_items > 0
-                ? `${((rawData.realized_items / rawData.total_items) * 100).toFixed(1)}% Terealisasi (${rawData.unrealized_items} Open)`
-                : 'Belum ada data'}
+                ? `${((rawData.realized_items / rawData.total_items) * 100).toFixed(0)}% Realisasi Transaksi`
+                : '0%'}
             </span>
           </div>
         </div>
       </div>
 
-      {/* ─── Subcategory Filter Strip ─── */}
+      {/* ─── Subcategory Pill Strip ─── */}
       <div className={s.subcatStrip}>
         <button
           onClick={() => setSelectedSubcat('ALL')}
           className={`${s.subcatPill} ${selectedSubcat === 'ALL' ? s.subcatPillActive : ''}`}
         >
-          <Layers size={13} />
           <span>Semua Sub-Kategori</span>
           <span className={s.pillCount}>{rawData.total_items}</span>
         </button>
-
-        {Object.entries(rawData.subcat_stats || {}).map(([key, stat]) => {
-          const meta = getSubcatMeta(key)
-          const isActive = selectedSubcat === key
+        {Object.entries(rawData.subcat_stats).map(([sub, stats]) => {
+          const meta = getSubcatMeta(sub)
+          const isSelected = selectedSubcat === sub
           return (
             <button
-              key={key}
-              onClick={() => setSelectedSubcat(key)}
-              className={`${s.subcatPill} ${isActive ? s.subcatPillActive : ''}`}
-              style={!isActive ? { borderColor: `${meta.color}33`, color: meta.color } : {}}
+              key={sub}
+              onClick={() => setSelectedSubcat(isSelected ? 'ALL' : sub)}
+              className={`${s.subcatPill} ${isSelected ? s.subcatPillActive : ''}`}
             >
+              <span className={s.subcatDot} style={{ background: meta.color }} />
               <span>{meta.label}</span>
-              <span className={s.pillCount}>{stat.count}</span>
+              <span className={s.pillCount}>{stats.total_count}</span>
             </button>
           )
         })}
       </div>
 
-      {/* ─── Control Bar ─── */}
+      {/* ─── Control Bar (Filters & Search) ─── */}
       <div className={s.controlCard}>
-        {/* Status Filter Buttons */}
         <div className={s.filterGroup}>
+          {/* Status Variance Filter */}
           <button
             onClick={() => setVarianceFilter('ALL')}
             className={`${s.statusFilterBtn} ${varianceFilter === 'ALL' ? s.statusFilterBtnActive : ''}`}
           >
-            Semua Status
+            Semua
           </button>
           <button
             onClick={() => setVarianceFilter('SAVING')}
-            className={`${s.statusFilterBtn} ${varianceFilter === 'SAVING' ? `${s.statusFilterBtnActive} ${s.statusSavingActive}` : ''}`}
+            className={`${s.statusFilterBtn} ${varianceFilter === 'SAVING' ? s.statusFilterBtnActive : ''}`}
           >
+            <TrendingDown size={14} color={varianceFilter === 'SAVING' ? '#ffffff' : '#16a34a'} />
             Cost Saving ({rawData.saving_count})
           </button>
           <button
             onClick={() => setVarianceFilter('OVER')}
-            className={`${s.statusFilterBtn} ${varianceFilter === 'OVER' ? `${s.statusFilterBtnActive} ${s.statusOverActive}` : ''}`}
+            className={`${s.statusFilterBtn} ${varianceFilter === 'OVER' ? s.statusFilterBtnActive : ''}`}
           >
+            <TrendingUp size={14} color={varianceFilter === 'OVER' ? '#ffffff' : '#dc2626'} />
             Over Budget ({rawData.over_budget_count})
           </button>
           <button
             onClick={() => setVarianceFilter('MATCH')}
             className={`${s.statusFilterBtn} ${varianceFilter === 'MATCH' ? s.statusFilterBtnActive : ''}`}
           >
-            Sesuai Budget ({rawData.match_count})
+            Sesuai Pagu ({rawData.match_count})
           </button>
           <button
             onClick={() => setVarianceFilter('UNREALIZED')}
@@ -336,8 +337,8 @@ export default function PriceVariance() {
           </button>
         </div>
 
-        {/* Month & Search */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+        {/* Filter Bulan & Search */}
+        <div className={s.searchAndMonth}>
           <select
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value)}
@@ -360,10 +361,10 @@ export default function PriceVariance() {
           </select>
 
           <div className={s.searchBox}>
-            <Search size={14} className={s.searchIcon} />
+            <Search size={15} className={s.searchIcon} />
             <input
               type="text"
-              placeholder="Cari barang, PIC, ref..."
+              placeholder="Cari item planning, actual PO, PR..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className={s.searchInput}
@@ -372,209 +373,173 @@ export default function PriceVariance() {
         </div>
       </div>
 
-      {/* ─── Table ─── */}
+      {/* ─── Table Section ─── */}
       <div className={s.tableContainer}>
         <div className={s.tableWrapper}>
-          <table className={s.table}>
-            <thead>
-              <tr>
-                <th className={`${s.th} ${s.thCenter}`} style={{ width: '45px' }}>#</th>
-                <th className={`${s.th} ${s.thCenter}`} style={{ width: '85px' }}>Bulan</th>
-                <th className={s.th} style={{ width: '150px' }}>Sub-Kategori</th>
-                <th className={s.th}>Barang Planning vs Barang Realisasi</th>
-                <th className={s.th} style={{ width: '100px' }}>PIC</th>
-                <th className={`${s.th} ${s.thCenter}`} style={{ width: '90px' }}>Qty (P/A)</th>
-                <th className={`${s.th} ${s.thRight}`} style={{ width: '120px' }}>Harga Satuan (P)</th>
-                <th className={`${s.th} ${s.thRight}`} style={{ width: '120px' }}>Harga Satuan (A)</th>
-                <th className={`${s.th} ${s.thRight}`} style={{ width: '125px' }}>Total Plan</th>
-                <th className={`${s.th} ${s.thRight}`} style={{ width: '125px' }}>Total Actual</th>
-                <th className={`${s.th} ${s.thRight}`} style={{ width: '135px' }}>Varians (Rp)</th>
-                <th className={`${s.th} ${s.thCenter}`} style={{ width: '110px' }}>Status Evaluasi</th>
-                <th className={s.th} style={{ width: '130px' }}>Catatan / Ref</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
+          {loading ? (
+            <div className={s.loadingState}>
+              <Loader2 size={32} className="animate-spin" color="#0f172a" />
+              <p>Memuat analisis selisih harga...</p>
+            </div>
+          ) : items.length === 0 ? (
+            <div className={s.emptyState}>
+              <AlertTriangle size={36} color="#94a3b8" />
+              <p>Tidak ada data perbandingan harga yang sesuai filter.</p>
+            </div>
+          ) : (
+            <table className={s.table}>
+              <thead>
                 <tr>
-                  <td colSpan={13}>
-                    <div className={s.emptyState}>
-                      <Loader2 size={32} className="animate-spin" color="var(--primary, #2563eb)" />
-                      <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Memuat perbandingan harga...</span>
-                    </div>
-                  </td>
+                  <th className={s.th} style={{ width: '45px', textAlign: 'center' }}>No</th>
+                  <th className={s.th} style={{ width: '75px' }}>Bulan</th>
+                  <th className={s.th} style={{ width: '130px' }}>Sub Kategori</th>
+                  <th className={s.th} style={{ minWidth: '220px' }}>Deskripsi Planning (Awal Tahun)</th>
+                  <th className={s.th} style={{ minWidth: '220px' }}>Deskripsi Aktual Realisasi (PO/GL)</th>
+                  <th className={`${s.th} ${s.thCenter}`} style={{ width: '80px' }}>Qty (P / A)</th>
+                  <th className={`${s.th} ${s.thRight}`} style={{ width: '110px' }}>Harga Sat Plan</th>
+                  <th className={`${s.th} ${s.thRight}`} style={{ width: '110px' }}>Harga Sat Act</th>
+                  <th className={`${s.th} ${s.thRight}`} style={{ width: '120px' }}>Total Plan</th>
+                  <th className={`${s.th} ${s.thRight}`} style={{ width: '120px' }}>Total Actual</th>
+                  <th className={`${s.th} ${s.thRight}`} style={{ width: '120px' }}>Selisih (Variance)</th>
+                  <th className={`${s.th} ${s.thCenter}`} style={{ width: '120px' }}>Status Selisih</th>
+                  <th className={s.th} style={{ width: '130px' }}>Ref PR / PO</th>
                 </tr>
-              ) : items.length === 0 ? (
-                <tr>
-                  <td colSpan={13}>
-                    <div className={s.emptyState}>
-                      <AlertTriangle size={32} color="#94a3b8" />
-                      <div className={s.emptyTitle}>Tidak ada item yang cocok</div>
-                      <div className={s.emptySubtitle}>
-                        Cobalah ubah filter status, sub-kategori, atau kata kunci pencarian.
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                items.map((item, idx) => {
-                  const subMeta = getSubcatMeta(item.sub_kategori)
-                  const isSaving = item.variance_type === 'SAVING'
-                  const isOver = item.variance_type === 'OVER'
-                  const isMatch = item.variance_type === 'MATCH'
-                  const isUnrealized = item.variance_type === 'UNREALIZED'
-
-                  const trClass = isOver ? s.trOver : isSaving ? s.trSaving : ''
+              </thead>
+              <tbody>
+                {items.map((r, idx) => {
+                  const meta = getSubcatMeta(r.sub_kategori)
+                  const isSaving = r.variance_status === 'SAVING'
+                  const isOver = r.variance_status === 'OVER_BUDGET'
+                  const isMatch = r.variance_status === 'MATCH'
 
                   return (
-                    <tr key={item.id || idx} className={`${s.tr} ${trClass}`}>
-                      <td className={`${s.td} ${s.tdCenter}`} style={{ color: '#64748b', fontSize: '0.74rem' }}>
-                        {idx + 1}
+                    <tr key={r.id || idx} className={s.tr}>
+                      <td className={`${s.td} ${s.indexCell}`}>{idx + 1}</td>
+                      <td className={s.td}>
+                        <span className={s.monthBadge}>{r.month || '-'}</span>
                       </td>
-
-                      <td className={`${s.td} ${s.tdCenter}`}>
-                        <div className={s.badgeMonth}>
-                          <span className={s.monthPlan} title="Bulan Rencana">{item.month || '-'}</span>
-                          {item.bulan_actual && item.bulan_actual !== item.month && (
-                            <span className={s.monthAct} title="Bulan Realisasi">Act: {item.bulan_actual}</span>
-                          )}
-                        </div>
-                      </td>
-
                       <td className={s.td}>
                         <span
-                          className={s.badgeSubcat}
-                          style={{ color: subMeta.color, background: subMeta.bg }}
+                          className={s.subcatBadge}
+                          style={{ background: meta.bg, color: meta.color }}
                         >
-                          {subMeta.label}
+                          {meta.label}
                         </span>
                       </td>
-
                       <td className={s.td}>
-                        <div className={s.itemCell}>
-                          <span className={s.itemPlanName}>{item.item}</span>
-                          {item.item_actual ? (
-                            <span className={s.itemActName}>
-                              <span className={s.itemActPrefix}>↳ Real:</span> {item.item_actual}
-                            </span>
-                          ) : (
-                            <span className={s.itemActName} style={{ color: '#94a3b8', fontStyle: 'italic' }}>
-                              Belum ada item realisasi
-                            </span>
+                        <div className={s.itemName}>{r.item_planning}</div>
+                      </td>
+                      <td className={s.td}>
+                        <div className={s.actualItemName}>
+                          {r.item_actual || (
+                            <span className={s.unrealizedText}>Belum ada transaksi realisasi</span>
                           )}
                         </div>
                       </td>
-
-                      <td className={s.td}>
-                        <span className={s.badgePic}>{item.pic || '-'}</span>
+                      <td className={`${s.td} ${s.tdCenter}`}>
+                        <span className={s.qtyBadge}>
+                          {r.qty_plan} / {r.qty_actual || 0}
+                        </span>
                       </td>
-
-                      <td className={`${s.td} ${s.tdCenter}`} style={{ fontFamily: 'ui-monospace, monospace' }}>
-                        {item.qty != null ? item.qty : '-'} / {item.actual_qty != null ? item.actual_qty : '-'}
-                      </td>
-
                       <td className={`${s.td} ${s.tdRight}`}>
-                        {item.unit_price_plan != null ? formatRp(item.unit_price_plan) : '-'}
+                        {formatRp(r.unit_price_plan)}
                       </td>
-
                       <td className={`${s.td} ${s.tdRight}`}>
-                        {item.unit_price_actual != null ? formatRp(item.unit_price_actual) : '-'}
+                        {r.unit_price_actual ? formatRp(r.unit_price_actual) : '-'}
                       </td>
-
-                      <td className={`${s.td} ${s.tdRight}`} style={{ fontWeight: 600 }}>
-                        {formatRp(item.planning_amount)}
-                      </td>
-
-                      <td
-                        className={`${s.td} ${s.tdRight}`}
-                        style={{
-                          fontWeight: 700,
-                          color: isOver ? '#dc2626' : isSaving ? '#16a34a' : 'inherit'
-                        }}
-                      >
-                        {item.actual_amount > 0 ? formatRp(item.actual_amount) : '-'}
-                      </td>
-
                       <td className={`${s.td} ${s.tdRight}`}>
-                        {item.actual_amount > 0 ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
-                            <span style={{
-                              fontWeight: 700,
-                              color: isSaving ? '#16a34a' : isOver ? '#dc2626' : '#2563eb'
-                            }}>
-                              {item.selisih > 0 ? `+${formatRp(item.selisih)}` : formatRp(item.selisih)}
-                            </span>
-                            <span style={{
-                              fontSize: '0.7rem',
-                              fontWeight: 600,
-                              color: isSaving ? '#16a34a' : isOver ? '#dc2626' : '#64748b'
-                            }}>
-                              {item.selisih_percent > 0 ? `+${item.selisih_percent}%` : `${item.selisih_percent}%`}
-                            </span>
-                          </div>
+                        <strong>{formatRp(r.planning_amount)}</strong>
+                      </td>
+                      <td className={`${s.td} ${s.tdRight}`}>
+                        {r.actual_amount ? (
+                          <strong style={{ color: '#0f172a' }}>{formatRp(r.actual_amount)}</strong>
                         ) : (
-                          <span style={{ color: '#94a3b8' }}>-</span>
+                          <span className={s.textMuted}>-</span>
                         )}
                       </td>
-
+                      <td className={`${s.td} ${s.tdRight}`}>
+                        {r.actual_amount > 0 ? (
+                          <span
+                            className={
+                              isSaving
+                                ? s.varianceSaving
+                                : isOver
+                                ? s.varianceOver
+                                : s.varianceMatch
+                            }
+                          >
+                            {isSaving ? '- ' : isOver ? '+ ' : ''}
+                            {formatRp(Math.abs(r.price_variance))}
+                          </span>
+                        ) : (
+                          <span className={s.textMuted}>-</span>
+                        )}
+                      </td>
                       <td className={`${s.td} ${s.tdCenter}`}>
                         {isSaving && (
-                          <span className={s.badgeVarianceSaving}>
-                            <TrendingDown size={11} /> Saving
+                          <span className={s.badgeSaving}>
+                            <TrendingDown size={12} />
+                            <span>Cost Saving</span>
                           </span>
                         )}
                         {isOver && (
-                          <span className={s.badgeVarianceOver}>
-                            <TrendingUp size={11} /> Over
+                          <span className={s.badgeOver}>
+                            <TrendingUp size={12} />
+                            <span>Over Budget</span>
                           </span>
                         )}
                         {isMatch && (
-                          <span className={s.badgeVarianceMatch}>
-                            <CheckCircle2 size={11} /> Match
+                          <span className={s.badgeMatch}>
+                            <CheckCircle2 size={12} />
+                            <span>Sesuai Pagu</span>
                           </span>
                         )}
-                        {isUnrealized && (
-                          <span className={s.badgeVarianceOpen}>
-                            Open
+                        {!isSaving && !isOver && !isMatch && (
+                          <span className={s.badgeUnrealized}>
+                            Pending
                           </span>
                         )}
                       </td>
-
                       <td className={s.td}>
-                        <div className={s.remarksText} title={item.remarks || item.baris_ref || ''}>
-                          {item.baris_ref ? `Ref #${item.baris_ref} ` : ''}
-                          {item.status_detail || item.remarks || '-'}
-                        </div>
+                        {r.pr_po_ref ? (
+                          <span className={s.docRefPill}>{r.pr_po_ref}</span>
+                        ) : (
+                          <span className={s.textMuted}>-</span>
+                        )}
                       </td>
                     </tr>
                   )
-                })
-              )}
-            </tbody>
-          </table>
+                })}
+              </tbody>
+            </table>
+          )}
         </div>
 
-        {/* ─── Footer Strip ─── */}
+        {/* ─── Table Footer Summary ─── */}
         <div className={s.tableFooter}>
-          <span>
-            Menampilkan <strong>{items.length}</strong> item dari total <strong>{rawData.total_items}</strong> item planning
-          </span>
+          <div className={s.footerLeft}>
+            <span>
+              Menampilkan <strong>{items.length}</strong> item data (Filter aktif)
+            </span>
+          </div>
 
-          <div className={s.footerStats}>
-            <div className={s.footerStatItem}>
-              <span className={s.footerStatLabel}>Total Plan:</span>
-              <span className={s.footerStatVal}>{formatRp(currentTotalPlan)}</span>
+          <div className={s.footerRight}>
+            <div className={s.footerStat}>
+              <span className={s.statLabel}>Total Pagu Plan:</span>
+              <span className={s.statValue}>{formatRp(currentTotalPlan)}</span>
             </div>
-            <div className={s.footerStatItem}>
-              <span className={s.footerStatLabel}>Total Actual:</span>
-              <span className={s.footerStatVal}>{formatRp(currentTotalActual)}</span>
+            <div className={s.footerStat}>
+              <span className={s.statLabel}>Total Aktual:</span>
+              <span className={s.statValue} style={{ color: '#0f172a' }}>{formatRp(currentTotalActual)}</span>
             </div>
-            <div className={s.footerStatItem}>
-              <span className={s.footerStatLabel}>Net Selisih:</span>
+            <div className={s.footerStat}>
+              <span className={s.statLabel}>Net Variance:</span>
               <span
-                className={s.footerStatVal}
+                className={s.statValue}
                 style={{ color: currentNetVariance <= 0 ? '#16a34a' : '#dc2626' }}
               >
-                {currentNetVariance > 0 ? `+${formatRp(currentNetVariance)}` : formatRp(currentNetVariance)}
+                {currentNetVariance <= 0 ? 'Saving ' : 'Over '}
+                {formatRp(Math.abs(currentNetVariance))}
               </span>
             </div>
           </div>

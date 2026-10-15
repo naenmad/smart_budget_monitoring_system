@@ -37,24 +37,28 @@ const COLLAPSED_WIDTH = 68
 const SNAP_THRESHOLD = 140
 
 // Toggle untuk menampilkan/menyembunyikan modul arsip (PR upload & AI verification)
-// Ubah menjadi `true` jika sewaktu-waktu ingin memunculkan kembali ke menu sidebar
 export const SHOW_LEGACY_MODULES = false
 
 const CORE_MENU_CONFIG = [
   { 
-    group: null, 
+    group: 'Dashboard & Analisis', 
     items: [
-      { to: '/dashboard', label: 'Dashboard', roles: ['admin', 'manager'], icon: LayoutDashboard }
+      { to: '/dashboard', label: 'Dashboard Analisis', roles: ['admin', 'manager'], icon: LayoutDashboard },
+      { to: '/price-variance', label: 'Perbandingan Harga (Plan vs Act)', roles: ['admin', 'manager'], icon: Scale },
+      { to: '/out-of-plan', label: 'Out of Plan (OOP)', roles: ['admin', 'manager'], icon: AlertTriangle }
     ]
   },
   { 
-    group: 'Planning & Budget', 
+    group: 'Monitoring Khusus QC', 
     items: [
-      { to: '/planning', label: 'Data & Kelola Planning', roles: ['admin', 'manager'], icon: CalendarDays },
-      { to: '/out-of-plan', label: 'Out of Plan (OOP)', roles: ['admin', 'manager'], icon: AlertTriangle },
-      { to: '/preventive-cf', label: 'Preventive C/F', roles: ['admin', 'manager'], icon: Wrench },
-      { to: '/price-variance', label: 'Perbandingan Harga (Plan vs Act)', roles: ['admin', 'manager'], icon: Scale },
       { to: '/kalibrasi', label: 'Kalibrasi Alat (QC)', roles: ['admin', 'manager'], icon: Gauge },
+      { to: '/preventive-cf', label: 'Preventive C/F (Tooling)', roles: ['admin', 'manager'], icon: Wrench }
+    ]
+  },
+  { 
+    group: 'Master Data & Anggaran', 
+    items: [
+      { to: '/planning', label: 'Data Master Planning', roles: ['admin', 'manager'], icon: CalendarDays },
       { to: '/budget', label: 'Alokasi Budget (Setup)', roles: ['admin'], icon: PieChart }
     ]
   },
@@ -65,7 +69,7 @@ const CORE_MENU_CONFIG = [
     ]
   },
   { 
-    group: 'Pengaturan', 
+    group: 'Pengaturan Sistem', 
     items: [
       { to: '/users', label: 'Kelola Pengguna', roles: ['admin'], icon: UserCog }
     ]
@@ -91,7 +95,7 @@ const LEGACY_MENU_GROUPS = [
 ]
 
 const MENU_CONFIG = SHOW_LEGACY_MODULES 
-  ? [...CORE_MENU_CONFIG.slice(0, 2), ...LEGACY_MENU_GROUPS, ...CORE_MENU_CONFIG.slice(2)]
+  ? [...CORE_MENU_CONFIG.slice(0, 3), ...LEGACY_MENU_GROUPS, ...CORE_MENU_CONFIG.slice(3)]
   : CORE_MENU_CONFIG
 
 export default function Sidebar({ mode = 'open', setMode, isMobileOpen, onMobileClose }) {
@@ -101,11 +105,13 @@ export default function Sidebar({ mode = 'open', setMode, isMobileOpen, onMobile
   
   const [showPwdModal, setShowPwdModal] = useState(false)
   const [openGroups, setOpenGroups] = useState({
-    'Master Data': true,
-    'Planning & Budget': true,
-    'Purchase Requisition': true,
+    'Dashboard & Analisis': true,
+    'Monitoring Khusus QC': true,
+    'Master Data & Anggaran': true,
     'Operasional QA': true,
-    'Pengaturan': true
+    'Pengaturan Sistem': true,
+    'Purchase Requisition': true,
+    'Master Data & AI': true
   })
 
   // Detect mobile viewport (<= 768px)
