@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { budgetApi } from '../api/budgetApi'
 import { formatRp } from '../utils/format'
-import { X, Calendar, Search, Loader2, PackageCheck, FileText, CheckCircle2, Clock } from 'lucide-react'
+import { X, Calendar, Search, Loader2, PackageCheck, FileText, AlertTriangle, AlertCircle } from 'lucide-react'
 import s from './MonthlyItemDetailModal.module.css'
 
 export default function MonthlyItemDetailModal({ periode = '2026', month = 'Jan', onClose }) {
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('planned') // 'planned' | 'pr'
+  const [activeTab, setActiveTab] = useState('planned') // 'planned' | 'pr' | 'over' | 'oop'
   const [data, setData] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -28,26 +28,57 @@ export default function MonthlyItemDetailModal({ periode = '2026', month = 'Jan'
     }
   }
 
-  const plannedList = (data?.planned_items || []).filter(item => {
-    if (!searchQuery.trim()) return true
-    const q = searchQuery.toLowerCase().trim()
-    return (
-      (item.item || '').toLowerCase().includes(q) ||
-      (item.kategori_kode || '').toLowerCase().includes(q) ||
-      (item.remarks || '').toLowerCase().includes(q)
-    )
-  })
+  const allPlanned = data?.planned_items || []
+  const allPr = data?.pr_items || []
 
-  const prList = (data?.pr_items || []).filter(item => {
-    if (!searchQuery.trim()) return true
+  // Pre-filter Over Budget and OOP items
+  const overItems = useMemo(() => {
+    return allPr.filter(p =>
+      p.budget_status === 'OVER_PLAN' ||
+      (p.status_detail || '').toLowerCase().includes('over') ||
+      (Number(p.total_price || 0) > Number(p.planning_pagu || 0) && Number(p.planning_pagu || 0) > 0)
+    )
+  }, [allPr])
+
+  const oopItems = useMemo(() => {
+    return allPr.filter(p =>
+      p.budget_status === 'OOP' ||
+      (p.planning_item || '').toUpperCase().includes('OOP') ||
+      (p.planning_item || '').toLowerCase().includes('out of plan')
+    )
+  }, [allPr])
+
+  const oopTotalNominal = useMemo(() => {
+    return oopItems.reduce((acc, it) => acc + Number(it.total_price || 0), 0)
+  }, [oopItems])
+
+  // Filter based on active tab and search query
+  const displayList = useMemo(() => {
     const q = searchQuery.toLowerCase().trim()
-    return (
+
+    if (activeTab === 'planned') {
+      if (!q) return allPlanned
+      return allPlanned.filter(item =>
+        (item.item || '').toLowerCase().includes(q) ||
+        (item.kategori_kode || '').toLowerCase().includes(q) ||
+        (item.remarks || '').toLowerCase().includes(q) ||
+        (item.sub_kategori || '').toLowerCase().includes(q)
+      )
+    }
+
+    let source = allPr
+    if (activeTab === 'over') source = overItems
+    if (activeTab === 'oop') source = oopItems
+
+    if (!q) return source
+    return source.filter(item =>
       (item.pr_doc_num || '').toLowerCase().includes(q) ||
       (item.description || '').toLowerCase().includes(q) ||
       (item.kategori_kode || '').toLowerCase().includes(q) ||
-      (item.planning_item || '').toLowerCase().includes(q)
+      (item.planning_item || '').toLowerCase().includes(q) ||
+      (item.status_detail || '').toLowerCase().includes(q)
     )
-  })
+  }, [activeTab, searchQuery, allPlanned, allPr, overItems, oopItems])
 
   const summary = data?.summary || { total_planned: 0, total_pr: 0, total_gr: 0, saldo_pr: 0 }
   const isOver = summary.saldo_pr < 0
@@ -64,7 +95,7 @@ export default function MonthlyItemDetailModal({ periode = '2026', month = 'Jan'
             <div>
               <h2 className={s.title}>Detail Penggunaan Budget — Bulan {month} ({periode})</h2>
               <p className={s.subtitle}>
-                Rincian item perencanaan anggaran resmi dan transaksi Purchase Requisition pada bulan {month}
+                Rincian Master Plan, Transaksi PR, Over Budget, dan Pengeluaran Out of Plan bulan {month}
               </p>
             </div>
           </div>
@@ -84,8 +115,10 @@ export default function MonthlyItemDetailModal({ periode = '2026', month = 'Jan'
             <span className={`${s.chipValue} ${s.chipPr}`}>{formatRp(summary.total_pr)}</span>
           </div>
           <div className={s.summaryChip}>
-            <span className={s.chipLabel}>Realisasi GR</span>
-            <span className={`${s.chipValue} ${s.chipGr}`}>{formatRp(summary.total_gr)}</span>
+            <span className={s.chipLabel}>Out of Plan (OOP)</span>
+            <span className={`${s.chipValue}`} style={{ color: oopItems.length > 0 ? '#d97706' : 'var(--text-muted)' }}>
+              {formatRp(oopTotalNominal)} ({oopItems.length} trx)
+            </span>
           </div>
           <div className={s.summaryChip}>
             <span className={s.chipLabel}>Budget PR</span>
@@ -103,14 +136,30 @@ export default function MonthlyItemDetailModal({ periode = '2026', month = 'Jan'
               onClick={() => setActiveTab('planned')}
             >
               <PackageCheck size={13} style={{ display: 'inline', marginRight: 5, verticalAlign: 'middle' }} />
-              Item Perencanaan ({data?.planned_items?.length || 0})
+              Plan ({allPlanned.length})
             </button>
             <button
               className={`${s.tabBtn} ${activeTab === 'pr' ? s.tabBtnActive : ''}`}
               onClick={() => setActiveTab('pr')}
             >
               <FileText size={13} style={{ display: 'inline', marginRight: 5, verticalAlign: 'middle' }} />
-              Transaksi PR ({data?.pr_items?.length || 0})
+              Semua PR ({allPr.length})
+            </button>
+            <button
+              className={`${s.tabBtn} ${activeTab === 'over' ? s.tabBtnActive : ''}`}
+              onClick={() => setActiveTab('over')}
+              style={activeTab === 'over' ? { color: '#dc2626' } : {}}
+            >
+              <AlertTriangle size={13} style={{ display: 'inline', marginRight: 5, verticalAlign: 'middle', color: '#dc2626' }} />
+              Over Budget ({overItems.length})
+            </button>
+            <button
+              className={`${s.tabBtn} ${activeTab === 'oop' ? s.tabBtnActive : ''}`}
+              onClick={() => setActiveTab('oop')}
+              style={activeTab === 'oop' ? { color: '#d97706' } : {}}
+            >
+              <AlertCircle size={13} style={{ display: 'inline', marginRight: 5, verticalAlign: 'middle', color: '#d97706' }} />
+              Out of Plan ({oopItems.length})
             </button>
           </div>
 
@@ -118,7 +167,11 @@ export default function MonthlyItemDetailModal({ periode = '2026', month = 'Jan'
             <Search size={14} className={s.searchIcon} />
             <input
               type="text"
-              placeholder={activeTab === 'planned' ? "Cari nama barang atau kategori..." : "Cari no PR, deskripsi barang..."}
+              placeholder={
+                activeTab === 'planned'
+                  ? "Cari nama barang atau kategori..."
+                  : "Cari no PR, deskripsi, atau PIC..."
+              }
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               className={s.searchInput}
@@ -148,14 +201,14 @@ export default function MonthlyItemDetailModal({ periode = '2026', month = 'Jan'
                 </tr>
               </thead>
               <tbody>
-                {plannedList.length === 0 ? (
+                {displayList.length === 0 ? (
                   <tr>
                     <td colSpan={8} className={s.emptyState}>
                       {searchQuery ? `Tidak ada item yang cocok dengan "${searchQuery}"` : 'Tidak ada item perencanaan pada bulan ini.'}
                     </td>
                   </tr>
                 ) : (
-                  plannedList.map((item, idx) => (
+                  displayList.map((item, idx) => (
                     <tr key={item.id}>
                       <td style={{ color: 'var(--text-muted)' }}>{idx + 1}</td>
                       <td>
@@ -199,7 +252,7 @@ export default function MonthlyItemDetailModal({ periode = '2026', month = 'Jan'
                   <th style={{ width: 36 }}>#</th>
                   <th>Sumber & Dokumen</th>
                   <th>Deskripsi Transaksi</th>
-                  <th>GL & CC</th>
+                  <th>Account & CC</th>
                   <th>Pencocokan Planning</th>
                   <th style={{ textAlign: 'right' }}>Nominal</th>
                   <th style={{ textAlign: 'center' }}>Status</th>
@@ -207,14 +260,20 @@ export default function MonthlyItemDetailModal({ periode = '2026', month = 'Jan'
                 </tr>
               </thead>
               <tbody>
-                {prList.length === 0 ? (
+                {displayList.length === 0 ? (
                   <tr>
                     <td colSpan={8} className={s.emptyState}>
-                      {searchQuery ? `Tidak ada transaksi yang cocok dengan "${searchQuery}"` : 'Tidak ada transaksi actual pada bulan ini.'}
+                      {activeTab === 'over'
+                        ? 'Tidak ada transaksi Over Budget pada bulan ini. Semua pengeluaran sesuai pagu!'
+                        : activeTab === 'oop'
+                        ? 'Tidak ada transaksi Out of Plan (OOP) pada bulan ini.'
+                        : searchQuery
+                        ? `Tidak ada transaksi yang cocok dengan "${searchQuery}"`
+                        : 'Tidak ada transaksi actual pada bulan ini.'}
                     </td>
                   </tr>
                 ) : (
-                  prList.map((pr, idx) => (
+                  displayList.map((pr, idx) => (
                     <tr key={pr.id}>
                       <td style={{ color: 'var(--text-muted)' }}>{idx + 1}</td>
                       <td>
@@ -249,12 +308,12 @@ export default function MonthlyItemDetailModal({ periode = '2026', month = 'Jan'
                           </div>
                         )}
                       </td>
-                      <td style={{ textAlign: 'right', fontWeight: 700 }}>
+                      <td style={{ textAlign: 'right', fontWeight: 700, color: pr.budget_status === 'OOP' ? '#d97706' : pr.budget_status === 'OVER_PLAN' ? '#dc2626' : 'inherit' }}>
                         {formatRp(pr.total_price)}
                       </td>
                       <td style={{ textAlign: 'center' }}>
                         <span className={`${s.badgeStatus} ${pr.budget_status === 'ON_PLAN' ? s.statusClosed : pr.budget_status === 'OOP' ? s.statusOver : pr.budget_status === 'OVER_PLAN' ? s.statusOver : s.statusProses}`}>
-                          {pr.budget_status}
+                          {pr.budget_status === 'OOP' ? 'Out of Plan' : pr.budget_status === 'OVER_PLAN' ? 'Over Budget' : pr.budget_status}
                         </span>
                       </td>
                       <td style={{ fontSize: 11.5 }}>

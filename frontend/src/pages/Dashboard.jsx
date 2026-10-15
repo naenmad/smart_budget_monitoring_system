@@ -16,6 +16,7 @@ import KpiBudgetUsageReport from '../components/KpiBudgetUsageReport'
 import CancelledPlanningModal from '../components/CancelledPlanningModal'
 import ParetoSectionChart from '../components/ParetoSectionChart'
 import PeriodeSwitcher from '../components/SwitchComponent'
+import PreventiveCfSection from '../components/PreventiveCfSection'
 import { budgetApi } from '../api/budgetApi'
 import { prApi } from '../api/prApi'
 import { planningApi } from '../api/planningApi'
@@ -404,6 +405,9 @@ export default function Dashboard() {
               <BudgetChart title="" data={chartForm} />
             </div>
           </div>
+
+          {/* ── ROW 5: Preventive C/F Breakdown & Realisasi ── */}
+          <PreventiveCfSection periode={periode} />
         </div>
       )
     },

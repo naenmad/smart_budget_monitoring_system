@@ -96,7 +96,7 @@ export default function MonthlyBudgetUsageChart({ title = 'Monitoring Penggunaan
                         <span>{title}</span>
                     </div>
                     <div className={s.subtitle}>
-                        Perbandingan nominal anggaran planned vs Planning PR vs realisasi fisik GR per bulan
+                        Perbandingan nominal planned vs PR vs realisasi fisik GR (Klik bulan untuk rincian Plan, Over Budget, & Out of Plan)
                     </div>
                 </div>
 
@@ -135,7 +135,17 @@ export default function MonthlyBudgetUsageChart({ title = 'Monitoring Penggunaan
 
             <div className={s.chartArea}>
                 <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData} barCategoryGap="20%" barGap={3}>
+                    <BarChart
+                        data={chartData}
+                        barCategoryGap="20%"
+                        barGap={3}
+                        style={{ cursor: onMonthClick ? 'pointer' : 'default' }}
+                        onClick={(state) => {
+                            if (state?.activeLabel && onMonthClick) {
+                                onMonthClick(state.activeLabel)
+                            }
+                        }}
+                    >
                         <CartesianGrid vertical={false} stroke="var(--border-color)" strokeDasharray="3 3" />
                         <XAxis
                             dataKey="month"
