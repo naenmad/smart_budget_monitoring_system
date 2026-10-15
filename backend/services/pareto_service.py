@@ -88,7 +88,7 @@ class ParetoService:
         """
         Calculates Pareto analysis (80/20 rule) by Section / User and by Item.
         Compares Planning vs Actual PR and Actual GR.
-        Supports category filter: ALL, CALIBRATION, PREVENTIVE, CONSUMABLE, CAPEX.
+        Supports category filter: ALL, OPEX, CAPEX, CALIBRATION, PREVENTIVE, CONSUMABLE.
         Includes preventive breakdown if category is PREVENTIVE or ALL.
         """
         cat_upper = (category or "ALL").upper().strip()
@@ -119,6 +119,10 @@ class ParetoService:
             elif cat_upper == "CONSUMABLE":
                 pd_query = pd_query.filter(
                     PlanningDetail.sub_kategori.ilike("%Consumable%")
+                )
+            elif cat_upper in ["CAPEX", "OPEX"]:
+                pd_query = pd_query.join(Kategori, PlanningDetail.kategori_id == Kategori.id).filter(
+                    Kategori.tipe_formulir == cat_upper
                 )
             elif cat_upper in ["TRANSPORT", "TRANSPORTATION"]:
                 pd_query = pd_query.join(Kategori, PlanningDetail.kategori_id == Kategori.id).filter(
@@ -194,6 +198,10 @@ class ParetoService:
                 PrPoData.gl_account == "50032902",
                 ~PrPoData.description.ilike("%KALIBRASI%"),
                 ~PrPoData.status_detail.ilike("%Preventive%")
+            )
+        elif cat_upper in ["CAPEX", "OPEX"]:
+            pr_query = pr_query.join(Kategori, PrPoData.kategori_id == Kategori.id).filter(
+                Kategori.tipe_formulir == cat_upper
             )
         elif cat_upper in ["TRANSPORT", "TRANSPORTATION"]:
             pr_query = pr_query.filter(PrPoData.gl_account == "60290500")
@@ -313,17 +321,19 @@ class ParetoService:
             plan = planning_by_item.get(it, 0.0)
             act = actual_by_item.get(it, {
                 "pr": 0.0, "gr": 0.0, "count": 0,
-                "user": "QC ADMIN", "form": "E1 - Consumable", "budget_status": "ON_PLAN", "pr_count": 0
+                "user": "QC ADMIN", "form": "Consumables", "budget_status": "ON_PLAN", "pr_count": 0
             })
             item_list.append({
                 "name": it,
                 "planned_budget": plan,
                 "actual_pr": act["pr"],
                 "actual_gr": act["gr"],
+                "spend": act["pr"],
                 "variance": plan - act["pr"],
-                "form": "Consumables QC" if act["form"] in ["E-1", "E1", "50032902-123200"] else act["form"],
-                "budget_status": act["budget_status"],
-                "tipe_formulir": act.get("tipe_formulir", "OPEX")
+                "count": act["count"],
+                "user": act.get("user", "QC ADMIN"),
+                "form": act.get("form", "Consumables"),
+                "budget_status": act.get("budget_status", "ON_PLAN")
             })
 
         item_list.sort(key=lambda x: x["actual_pr"], reverse=True)

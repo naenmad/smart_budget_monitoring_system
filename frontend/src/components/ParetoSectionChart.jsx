@@ -30,10 +30,11 @@ import {
 
 const CATEGORIES = [
     { id: 'ALL', label: 'All Budget' },
-    { id: 'CALIBRATION', label: 'Calibration (E-9)' },
-    { id: 'PREVENTIVE', label: 'Preventive C/F (E-9)' },
-    { id: 'CONSUMABLE', label: 'Consumable (E1)' },
-    { id: 'CAPEX', label: 'Capex (I-1)' },
+    { id: 'OPEX', label: 'OPEX' },
+    { id: 'CAPEX', label: 'CAPEX' },
+    { id: 'CONSUMABLE', label: 'Consumable' },
+    { id: 'CALIBRATION', label: 'Calibration' },
+    { id: 'PREVENTIVE', label: 'Preventive C/F' },
 ]
 
 export default function ParetoSectionChart({ periode = '2026' }) {

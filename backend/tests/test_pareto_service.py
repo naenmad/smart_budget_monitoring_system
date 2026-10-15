@@ -10,3 +10,9 @@ def test_extract_user_from_comment():
     assert ParetoService.extract_user_from_comment("ASSY LINE 2") == "ASSY"
     assert ParetoService.extract_user_from_comment("") == "QC GENERAL"
     assert ParetoService.extract_user_from_comment(None) == "QC GENERAL"
+
+def test_classify_preventive_activity():
+    assert ParetoService.classify_preventive_activity("MODIFIKASI JIG FIXTURE", "") == "Modifikasi"
+    assert ParetoService.classify_preventive_activity("REPAIR CYLINDER", "") == "Perbaikan & Maintenance"
+    assert ParetoService.classify_preventive_activity("PIN GAUGE 5.0MM", "") == "Tooling & Inspection"
+    assert ParetoService.classify_preventive_activity("BOLT & NUT", "") == "Sparepart & Consumable CF"

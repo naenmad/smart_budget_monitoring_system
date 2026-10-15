@@ -175,7 +175,7 @@ export default function PrStatusModal({ status, onClose }) {
         const itemVariance = planAmount > 0 ? (planAmount - costPr) : -costPr
         const hasGr = Boolean(pr.gr_legal_number)
         const grAmount = Number(pr.actual_gr_amount ?? (hasGr ? costPr : 0))
-        const formLabel = pr.kategori_kode === 'E-1' ? 'E1 - Consumable' : (pr.kategori_kode || '-')
+        const formLabel = pr.kategori_kode === 'E-1' ? 'Consumable' : (pr.kategori_kode || '-')
         const picName = (pr.pic || extractUser(pr.comment_text)).toUpperCase()
 
         const prData = [
@@ -319,7 +319,7 @@ export default function PrStatusModal({ status, onClose }) {
                     const isItemOver = planAmount > 0 && costPr > planAmount
                     const hasGr = Boolean(pr.gr_legal_number)
                     const grAmount = Number(pr.actual_gr_amount ?? (hasGr ? costPr : 0))
-                    const formDisplay = pr.kategori_kode === 'E-1' ? 'E1 - Consumable' : (pr.kategori_kode || '-')
+                    const formDisplay = pr.kategori_kode === 'E-1' ? 'Consumable' : (pr.kategori_kode || '-')
                     const picName = (pr.pic || extractUser(pr.comment_text)).toUpperCase()
 
                     return (
