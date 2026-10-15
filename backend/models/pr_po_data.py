@@ -322,6 +322,12 @@ class PrPoData(db.Model):
         comment = (self.comment_text or "").upper()
         if "KALIBRASI" in desc or "CALIBRATION" in desc or "KALIBRASI" in comment or "CALIBRATION" in comment:
             return "Pak Aris"
+        if "VOUCHER" in desc or "PETTY CASH" in desc or "PETTYCASH" in desc:
+            return "Pak Andi Nurdiyana"
+        if ("BUSINESS TRIP" in desc and "CHINA" in desc) or "TRIP TO CHINA" in desc:
+            return "Pak Oxi Kurniawan"
+        if "LOOP PIN" in desc or "LOOP PINS" in desc:
+            return "Oxi Kurniawan"
         if self.pengaju and self.pengaju not in ["Tidak tercantum di GL", "KALIBRASI"]:
             return self.pengaju
         if self.planning_detail and (

@@ -9,6 +9,10 @@ def test_extract_user_from_comment():
     assert ParetoService.extract_user_from_comment("DIGITALISASI PROJECT") == "QC DIGITALIZATION"
     assert ParetoService.extract_user_from_comment("ASSY LINE 2") == "ASSY"
     assert ParetoService.extract_user_from_comment("JASA KALIBRASI VERNIER CALIPER") == "PAK ARIS"
+    assert ParetoService.extract_user_from_comment("", "Voucher Alfamart") == "PAK ANDI NURDIYANA"
+    assert ParetoService.extract_user_from_comment("", "Petty Cash Issue") == "PAK ANDI NURDIYANA"
+    assert ParetoService.extract_user_from_comment("", "Business trip to china on 3") == "PAK OXI KURNIAWAN"
+    assert ParetoService.extract_user_from_comment("", "LOOP PINS 5000 PCS") == "PAK OXI KURNIAWAN"
     assert ParetoService.extract_user_from_comment("") == "QC GENERAL"
     assert ParetoService.extract_user_from_comment(None) == "QC GENERAL"
 

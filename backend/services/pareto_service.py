@@ -28,6 +28,12 @@ class ParetoService:
             "CALIBRATION": "PAK ARIS",
             "ARIS": "PAK ARIS",
             "PAK ARIS": "PAK ARIS",
+            "ANDI N": "PAK ANDI NURDIYANA",
+            "ANDI NURDIYANA": "PAK ANDI NURDIYANA",
+            "PAK ANDI NURDIYANA": "PAK ANDI NURDIYANA",
+            "OXI": "PAK OXI KURNIAWAN",
+            "OXI KURNIAWAN": "PAK OXI KURNIAWAN",
+            "PAK OXI KURNIAWAN": "PAK OXI KURNIAWAN",
             "CUSTOMER": "CUSTOMER",
             "CUSTOMER CLAIM": "CUSTOMER",
             "ASSY": "ASSY",
@@ -62,6 +68,12 @@ class ParetoService:
         d = (desc or "").upper()
         if "KALIBRASI" in c or "CALIBRATION" in c or "KALIBRASI" in d or "CALIBRATION" in d:
             return "PAK ARIS"
+        if "VOUCHER" in d or "PETTY CASH" in d or "PETTYCASH" in d:
+            return "PAK ANDI NURDIYANA"
+        if ("BUSINESS TRIP" in d and "CHINA" in d) or "TRIP TO CHINA" in d:
+            return "PAK OXI KURNIAWAN"
+        if "LOOP PIN" in d:
+            return "PAK OXI KURNIAWAN"
         # Look for pattern: PIC : NAME or PIC NAME
         m = re.search(r"PIC\s*[:]?\s*([A-Z0-9_ ]+?)(?:/|$|\n)", c)
         if m:
@@ -249,6 +261,12 @@ class ParetoService:
             comment_upper = (pr.comment_text or "").upper()
             if "KALIBRASI" in desc_upper or "CALIBRATION" in desc_upper or "KALIBRASI" in comment_upper or "CALIBRATION" in comment_upper:
                 user = "PAK ARIS"
+            elif "VOUCHER" in desc_upper or "PETTY CASH" in desc_upper or "PETTYCASH" in desc_upper:
+                user = "PAK ANDI NURDIYANA"
+            elif ("BUSINESS TRIP" in desc_upper and "CHINA" in desc_upper) or "TRIP TO CHINA" in desc_upper:
+                user = "PAK OXI KURNIAWAN"
+            elif "LOOP PIN" in desc_upper:
+                user = "PAK OXI KURNIAWAN"
             elif pr.planning_detail and (
                 getattr(pr.planning_detail, "pic", None) in ["KALIBRASI", "Pak Aris", "PAK ARIS"] or
                 "KALIBRASI" in (getattr(pr.planning_detail, "item", "") or "").upper() or
