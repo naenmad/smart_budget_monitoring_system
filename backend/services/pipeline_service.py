@@ -331,7 +331,7 @@ class PipelineService:
 
         monthly_plan = {m: {'CAPEX': 0.0, 'OPEX': 0.0} for m in range(1, 13)}
         monthly_plan_sub = {
-            m: {'e1_expense': 0.0, 'e9_calibration': 0.0, 'e9_preventive': 0.0}
+            m: {'e1_expense': 0.0, 'marketing': 0.0, 'transportation': 0.0, 'e9_calibration': 0.0, 'e9_preventive': 0.0}
             for m in range(1, 13)
         }
         for row in planning_rows:
@@ -344,11 +344,16 @@ class PipelineService:
                 tipe = 'CAPEX' if row.tipe_formulir == 'CAPEX' else 'OPEX'
                 monthly_plan[m_num][tipe] += amt
                 item_upper = (row.item or '').upper()
+                kat_code = str(row.kat_kode or '')
                 if 'PREVENTIVE' in item_upper:
                     monthly_plan_sub[m_num]['e9_preventive'] += amt
                 elif 'KALIBRASI' in item_upper or 'CALIBRATION' in item_upper:
                     monthly_plan_sub[m_num]['e9_calibration'] += amt
-                elif row.kat_kode == '50032902-123200' or 'SUPPLIES' in item_upper:
+                elif kat_code.startswith('60290100') or 'MARKETING' in item_upper:
+                    monthly_plan_sub[m_num]['marketing'] += amt
+                elif kat_code.startswith('60290500') or kat_code.startswith('60290600') or 'TRANSPORT' in item_upper:
+                    monthly_plan_sub[m_num]['transportation'] += amt
+                elif kat_code.startswith('50032902') or 'SUPPLIES' in item_upper or 'CONSUMABLE' in item_upper:
                     monthly_plan_sub[m_num]['e1_expense'] += amt
 
         # 2. Ambil data Actual PR & GR (semua PR berstatus DONE) per bulan & per tipe form
@@ -376,11 +381,11 @@ class PipelineService:
         monthly_pr = {m: {'CAPEX': 0.0, 'OPEX': 0.0, 'count': 0} for m in range(1, 13)}
         monthly_gr = {m: {'CAPEX': 0.0, 'OPEX': 0.0} for m in range(1, 13)}
         monthly_pr_sub = {
-            m: {'e1_expense': 0.0, 'e9_calibration': 0.0, 'e9_preventive': 0.0}
+            m: {'e1_expense': 0.0, 'marketing': 0.0, 'transportation': 0.0, 'e9_calibration': 0.0, 'e9_preventive': 0.0}
             for m in range(1, 13)
         }
         monthly_gr_sub = {
-            m: {'e1_expense': 0.0, 'e9_calibration': 0.0, 'e9_preventive': 0.0}
+            m: {'e1_expense': 0.0, 'marketing': 0.0, 'transportation': 0.0, 'e9_calibration': 0.0, 'e9_preventive': 0.0}
             for m in range(1, 13)
         }
 
@@ -396,9 +401,10 @@ class PipelineService:
                 if has_gr:
                     monthly_gr[m_num][tipe] += amt
 
-                # Sub-component breakdown (Consumables, Kalibrasi, Preventive)
+                # Sub-component breakdown (Supplies, Marketing, Transportation, Kalibrasi, Preventive)
                 p_item = (row.plan_item or '').upper()
                 desc = (row.description or '').upper()
+                kat_code = str(row.kat_kode or '')
                 if 'PREVENTIVE' in p_item or 'PREVENTIVE' in desc:
                     monthly_pr_sub[m_num]['e9_preventive'] += amt
                     if has_gr:
@@ -407,7 +413,15 @@ class PipelineService:
                     monthly_pr_sub[m_num]['e9_calibration'] += amt
                     if has_gr:
                         monthly_gr_sub[m_num]['e9_calibration'] += amt
-                elif row.kat_kode == '50032902-123200' or 'SUPPLIES' in desc or 'CONSUMABLE' in desc:
+                elif kat_code.startswith('60290100') or 'MARKETING' in desc:
+                    monthly_pr_sub[m_num]['marketing'] += amt
+                    if has_gr:
+                        monthly_gr_sub[m_num]['marketing'] += amt
+                elif kat_code.startswith('60290500') or kat_code.startswith('60290600') or 'TRANSPORT' in desc:
+                    monthly_pr_sub[m_num]['transportation'] += amt
+                    if has_gr:
+                        monthly_gr_sub[m_num]['transportation'] += amt
+                elif kat_code.startswith('50032902') or 'SUPPLIES' in desc or 'CONSUMABLE' in desc:
                     monthly_pr_sub[m_num]['e1_expense'] += amt
                     if has_gr:
                         monthly_gr_sub[m_num]['e1_expense'] += amt
@@ -465,6 +479,14 @@ class PipelineService:
             e1_pr = monthly_pr_sub[m]['e1_expense']
             e1_gr = monthly_gr_sub[m]['e1_expense']
 
+            mkt_plan = monthly_plan_sub[m]['marketing']
+            mkt_pr = monthly_pr_sub[m]['marketing']
+            mkt_gr = monthly_gr_sub[m]['marketing']
+
+            trans_plan = monthly_plan_sub[m]['transportation']
+            trans_pr = monthly_pr_sub[m]['transportation']
+            trans_gr = monthly_gr_sub[m]['transportation']
+
             e9_cal_plan = monthly_plan_sub[m]['e9_calibration']
             e9_cal_pr = monthly_pr_sub[m]['e9_calibration']
             e9_cal_gr = monthly_gr_sub[m]['e9_calibration']
@@ -504,6 +526,22 @@ class PipelineService:
                         "actual_gr": e1_gr,
                         "persen_pr": round((e1_pr / e1_plan) * 100) if e1_plan > 0 else 0,
                         "persen_gr": round((e1_gr / e1_plan) * 100) if e1_plan > 0 else 0,
+                    },
+                    "marketing": {
+                        "name": "Marketing Expenses (60290100)",
+                        "plan": mkt_plan,
+                        "actual_pr": mkt_pr,
+                        "actual_gr": mkt_gr,
+                        "persen_pr": round((mkt_pr / mkt_plan) * 100) if mkt_plan > 0 else 0,
+                        "persen_gr": round((mkt_gr / mkt_plan) * 100) if mkt_plan > 0 else 0,
+                    },
+                    "transportation": {
+                        "name": "Transportation Expenses (60290500/600)",
+                        "plan": trans_plan,
+                        "actual_pr": trans_pr,
+                        "actual_gr": trans_gr,
+                        "persen_pr": round((trans_pr / trans_plan) * 100) if trans_plan > 0 else 0,
+                        "persen_gr": round((trans_gr / trans_plan) * 100) if trans_plan > 0 else 0,
                     },
                     "e9_calibration": {
                         "name": "Kalibrasi Alat (50032902)",

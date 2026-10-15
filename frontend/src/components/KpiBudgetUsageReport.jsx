@@ -16,7 +16,7 @@ export default function KpiBudgetUsageReport({
     monthlyData = []
 }) {
     const [themeType, setThemeType] = useState('opex') // 'opex' (Target ≤90%) | 'capex' (Target 100%)
-    const [opexSubTab, setOpexSubTab] = useState('ALL') // 'ALL' | 'E1' | 'E9_CAL' | 'E9_PREV'
+    const [opexSubTab, setOpexSubTab] = useState('ALL') // 'ALL' | 'E1' | 'MKT' | 'TRANS' | 'E9_CAL' | 'E9_PREV'
 
     const isOpex = themeType === 'opex'
     const targetKpi = isOpex ? 90 : 100
@@ -25,6 +25,8 @@ export default function KpiBudgetUsageReport({
     let themeLabel = 'ASSET BUDGET USAGE DEPT. (INVESTASI / CAPITAL)'
     if (isOpex) {
         if (opexSubTab === 'E1') themeLabel = 'EXPENSES BUDGET USAGE - SUPPLIES EXPENSES (50032902-123200)'
+        else if (opexSubTab === 'MKT') themeLabel = 'EXPENSES BUDGET USAGE - MARKETING EXPENSES (60290100-123200)'
+        else if (opexSubTab === 'TRANS') themeLabel = 'EXPENSES BUDGET USAGE - TRANSPORTATION EXPENSES (60290500/600)'
         else if (opexSubTab === 'E9_CAL') themeLabel = 'EXPENSES BUDGET USAGE - KALIBRASI ALAT UKUR (50032902-123200)'
         else if (opexSubTab === 'E9_PREV') themeLabel = 'EXPENSES BUDGET USAGE - PREVENTIVE C/F (50032902-123200)'
         else themeLabel = 'EXPENSES BUDGET USAGE - GENERAL LEDGER (ALL ACCOUNTS)'
@@ -34,6 +36,8 @@ export default function KpiBudgetUsageReport({
     let totalApproved = 0
     let totalUsage = 0
     let totalE1Usage = 0
+    let totalMktUsage = 0
+    let totalTransUsage = 0
     let totalE9CalUsage = 0
     let totalE9PrevUsage = 0
 
@@ -42,10 +46,14 @@ export default function KpiBudgetUsageReport({
         const mObj = monthlyData.find(m => m.month === key)
         
         const e1Usage = Number(mObj?.opex?.e1_expense?.actual_gr || 0)
+        const mktUsage = Number(mObj?.opex?.marketing?.actual_gr || 0)
+        const transUsage = Number(mObj?.opex?.transportation?.actual_gr || 0)
         const e9CalUsage = Number(mObj?.opex?.e9_calibration?.actual_gr || 0)
         const e9PrevUsage = Number(mObj?.opex?.e9_preventive?.actual_gr || 0)
 
         totalE1Usage += e1Usage
+        totalMktUsage += mktUsage
+        totalTransUsage += transUsage
         totalE9CalUsage += e9CalUsage
         totalE9PrevUsage += e9PrevUsage
 
@@ -59,6 +67,12 @@ export default function KpiBudgetUsageReport({
             if (opexSubTab === 'E1') {
                 approved = Number(mObj?.opex?.e1_expense?.plan || 0)
                 usage = e1Usage
+            } else if (opexSubTab === 'MKT') {
+                approved = Number(mObj?.opex?.marketing?.plan || 0)
+                usage = mktUsage
+            } else if (opexSubTab === 'TRANS') {
+                approved = Number(mObj?.opex?.transportation?.plan || 0)
+                usage = transUsage
             } else if (opexSubTab === 'E9_CAL') {
                 approved = Number(mObj?.opex?.e9_calibration?.plan || 0)
                 usage = e9CalUsage
@@ -85,6 +99,8 @@ export default function KpiBudgetUsageReport({
             approved,
             usage,
             e1Usage,
+            mktUsage,
+            transUsage,
             e9CalUsage,
             e9PrevUsage,
             pct: isRecorded ? pct : 0,
@@ -194,9 +210,23 @@ export default function KpiBudgetUsageReport({
                     <button
                         className={`${s.subTabBtn} ${opexSubTab === 'E1' ? s.active : ''}`}
                         onClick={() => setOpexSubTab('E1')}
-                        title="Supplies Expenses & Perlengkapan Kerja QC (50032902-123200)"
+                        title="Supplies Expenses & Perlengkapan Kerja QC (50032902)"
                     >
-                        Consumables QC
+                        Supplies Expenses
+                    </button>
+                    <button
+                        className={`${s.subTabBtn} ${opexSubTab === 'MKT' ? s.active : ''}`}
+                        onClick={() => setOpexSubTab('MKT')}
+                        title="Marketing Expenses (60290100)"
+                    >
+                        Marketing Expenses
+                    </button>
+                    <button
+                        className={`${s.subTabBtn} ${opexSubTab === 'TRANS' ? s.active : ''}`}
+                        onClick={() => setOpexSubTab('TRANS')}
+                        title="Transportation Expenses (60290500 / 60290600)"
+                    >
+                        Transportation
                     </button>
                     <button
                         className={`${s.subTabBtn} ${opexSubTab === 'E9_CAL' ? s.active : ''}`}
@@ -329,6 +359,20 @@ export default function KpiBudgetUsageReport({
                                         <td key={m.monthName}>{m.e1Usage > 0 ? formatRp(m.e1Usage) : '-'}</td>
                                     ))}
                                     <td>{formatRp(totalE1Usage)}</td>
+                                </tr>
+                                <tr className={s.subRow}>
+                                    <td className={s.rowHeaderSub}>&nbsp;&nbsp;↳ Marketing Expenses (60290100)</td>
+                                    {matrix.map(m => (
+                                        <td key={m.monthName}>{m.mktUsage > 0 ? formatRp(m.mktUsage) : '-'}</td>
+                                    ))}
+                                    <td>{formatRp(totalMktUsage)}</td>
+                                </tr>
+                                <tr className={s.subRow}>
+                                    <td className={s.rowHeaderSub}>&nbsp;&nbsp;↳ Transportation (60290500/600)</td>
+                                    {matrix.map(m => (
+                                        <td key={m.monthName}>{m.transUsage > 0 ? formatRp(m.transUsage) : '-'}</td>
+                                    ))}
+                                    <td>{formatRp(totalTransUsage)}</td>
                                 </tr>
                                 <tr className={s.subRow}>
                                     <td className={s.rowHeaderSub}>&nbsp;&nbsp;↳ Kalibrasi Alat (50032902)</td>

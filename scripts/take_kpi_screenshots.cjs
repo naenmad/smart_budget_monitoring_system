@@ -64,53 +64,73 @@ async function main() {
     console.log('📸 3. Capturing Budget KPI Report (OPEX - Supplies Expenses)...');
     await page.evaluate(() => {
       const subTabs = Array.from(document.querySelectorAll('button'));
-      const btn = subTabs.find(t => t.textContent && t.textContent.includes('Supplies Expenses'));
+      const btn = subTabs.find(t => t.textContent && t.textContent.trim() === 'Supplies Expenses');
       if (btn) btn.click();
     });
     await sleep(800);
     await page.screenshot({ path: path.join(OUT_DIR, '03_kpi_report_opex_supplies_expenses.png') });
 
-    // 4. Budget KPI Report - Subtab Kalibrasi Alat
-    console.log('📸 4. Capturing Budget KPI Report (OPEX - Kalibrasi Alat)...');
+    // 4. Budget KPI Report - Subtab Marketing Expenses
+    console.log('📸 4. Capturing Budget KPI Report (OPEX - Marketing Expenses)...');
     await page.evaluate(() => {
       const subTabs = Array.from(document.querySelectorAll('button'));
-      const btn = subTabs.find(t => t.textContent && t.textContent.includes('Kalibrasi Alat'));
+      const btn = subTabs.find(t => t.textContent && t.textContent.trim() === 'Marketing Expenses');
       if (btn) btn.click();
     });
     await sleep(800);
-    await page.screenshot({ path: path.join(OUT_DIR, '04_kpi_report_opex_kalibrasi_alat.png') });
+    await page.screenshot({ path: path.join(OUT_DIR, '04_kpi_report_opex_marketing_expenses.png') });
 
-    // 5. Budget KPI Report - Subtab Preventive C/F
-    console.log('📸 5. Capturing Budget KPI Report (OPEX - Preventive C/F)...');
+    // 5. Budget KPI Report - Subtab Transportation
+    console.log('📸 5. Capturing Budget KPI Report (OPEX - Transportation)...');
     await page.evaluate(() => {
       const subTabs = Array.from(document.querySelectorAll('button'));
-      const btn = subTabs.find(t => t.textContent && t.textContent.includes('Preventive C/F'));
+      const btn = subTabs.find(t => t.textContent && t.textContent.trim() === 'Transportation');
       if (btn) btn.click();
     });
     await sleep(800);
-    await page.screenshot({ path: path.join(OUT_DIR, '05_kpi_report_opex_preventive_cf.png') });
+    await page.screenshot({ path: path.join(OUT_DIR, '05_kpi_report_opex_transportation.png') });
 
-    // 6. Budget KPI Report - Mode Investasi (CAPEX)
-    console.log('📸 6. Capturing Budget KPI Report (CAPEX - Investasi)...');
+    // 6. Budget KPI Report - Subtab Kalibrasi Alat
+    console.log('📸 6. Capturing Budget KPI Report (OPEX - Kalibrasi Alat)...');
+    await page.evaluate(() => {
+      const subTabs = Array.from(document.querySelectorAll('button'));
+      const btn = subTabs.find(t => t.textContent && t.textContent.trim() === 'Kalibrasi Alat');
+      if (btn) btn.click();
+    });
+    await sleep(800);
+    await page.screenshot({ path: path.join(OUT_DIR, '06_kpi_report_opex_kalibrasi_alat.png') });
+
+    // 7. Budget KPI Report - Subtab Preventive C/F
+    console.log('📸 7. Capturing Budget KPI Report (OPEX - Preventive C/F)...');
+    await page.evaluate(() => {
+      const subTabs = Array.from(document.querySelectorAll('button'));
+      const btn = subTabs.find(t => t.textContent && t.textContent.trim() === 'Preventive C/F');
+      if (btn) btn.click();
+    });
+    await sleep(800);
+    await page.screenshot({ path: path.join(OUT_DIR, '07_kpi_report_opex_preventive_cf.png') });
+
+    // 8. Budget KPI Report - Mode Investasi (CAPEX)
+    console.log('📸 8. Capturing Budget KPI Report (CAPEX - Investasi)...');
     await page.evaluate(() => {
       const buttons = Array.from(document.querySelectorAll('button'));
       const capexBtn = buttons.find(t => t.textContent && t.textContent.includes('Investasi'));
       if (capexBtn) capexBtn.click();
     });
     await sleep(800);
-    await page.screenshot({ path: path.join(OUT_DIR, '06_kpi_report_capex_investasi.png') });
+    await page.screenshot({ path: path.join(OUT_DIR, '08_kpi_report_capex_investasi.png') });
 
-    // 7. Pareto KPI Spend Analysis Tab
-    console.log('📸 7. Capturing Pareto 80/20 Spend KPI Analysis...');
+    // 9. Pareto KPI Spend Analysis Tab
+    console.log('📸 9. Capturing Pareto 80/20 Spend KPI Analysis...');
     await page.evaluate(() => {
       const tabs = Array.from(document.querySelectorAll('button'));
       const paretoTab = tabs.find(t => t.textContent && t.textContent.includes('Pareto Analysis'));
       if (paretoTab) paretoTab.click();
     });
     await sleep(1200);
-    await page.screenshot({ path: path.join(OUT_DIR, '07_kpi_pareto_spend_analysis.png') });
+    await page.screenshot({ path: path.join(OUT_DIR, '09_kpi_pareto_spend_analysis.png') });
 
-    console.log('✅ All 7 KPI Dashboard screenshots captured successfully in screenshot/KPI/!');
+    console.log('✅ All KPI Dashboard screenshots captured successfully in screenshot/KPI/!');
   } catch (err) {
     console.error('❌ Error capturing KPI screenshots:', err);
   } finally {
