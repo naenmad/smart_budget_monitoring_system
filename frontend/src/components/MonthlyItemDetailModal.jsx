@@ -111,7 +111,7 @@ export default function MonthlyItemDetailModal({ periode = '2026', month = 'Jan'
             <span className={`${s.chipValue} ${s.chipPlanned}`}>{formatRp(summary.total_planned)}</span>
           </div>
           <div className={s.summaryChip}>
-            <span className={s.chipLabel}>Komitmen PR</span>
+            <span className={s.chipLabel}>Plan PR</span>
             <span className={`${s.chipValue} ${s.chipPr}`}>{formatRp(summary.total_pr)}</span>
           </div>
           <div className={s.summaryChip}>

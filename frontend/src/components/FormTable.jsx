@@ -171,7 +171,7 @@ export default function FormTable({ data = {}, onRowClick }) {
                     <span className={s.kpiVal}>{formatRp(metrics.budget)}</span>
                 </div>
                 <div className={s.kpiItem}>
-                    <span className={s.kpiLabel}>Planned PR (Komitmen)</span>
+                    <span className={s.kpiLabel}>Plan PR</span>
                     <span className={`${s.kpiVal} ${s.blueVal}`}>
                         {formatRp(metrics.actualPr)} <span className={s.pctSub}>({metrics.pctPr}%)</span>
                     </span>

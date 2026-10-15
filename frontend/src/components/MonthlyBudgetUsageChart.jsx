@@ -81,7 +81,7 @@ export default function MonthlyBudgetUsageChart({ title = 'Monitoring Penggunaan
 
     const legends = [
         { label: 'Planned Budget', color: COLORS.plan },
-        { label: 'Terpakai PR (Komitmen)', color: COLORS.actual_pr },
+        { label: 'Plan PR', color: COLORS.actual_pr },
         { label: 'Realisasi GR (Barang Diterima)', color: COLORS.actual_gr },
     ]
 
