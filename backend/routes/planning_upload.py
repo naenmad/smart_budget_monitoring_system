@@ -497,3 +497,158 @@ def get_preventive_cf():
         "monthly_stats": monthly_stats,
         "data": [i.to_dict() for i in items]
     }), 200
+
+
+# ------------------------------------------------------------------
+# Dedicated Price Variance & Item Realization (Plan vs Actual)
+# GET /api/v1/planning/price-variance?periode=2026&bulan=&sub_kategori=&variance_status=&search=
+# ------------------------------------------------------------------
+@planning_bp.route("/price-variance", methods=["GET"])
+def get_price_variance():
+    """Mendapatkan Perbandingan Harga Planning vs Actual Item (Price Variance)"""
+    periode = request.args.get("periode", "2026").strip()
+    bulan = request.args.get("bulan", "").strip()
+    sub_kategori = request.args.get("sub_kategori", "").strip()
+    variance_status = request.args.get("variance_status", "ALL").strip().upper()
+    search = request.args.get("search", "").strip()
+
+    # Query PlanningDetail for this header / periode
+    query = PlanningDetail.query.join(
+        PlanningHeader, PlanningDetail.planning_header_id == PlanningHeader.id
+    ).filter(
+        PlanningHeader.periode == periode,
+        PlanningDetail.status_realisasi != "CANCELLED"
+    )
+
+    if bulan and bulan != "ALL":
+        query = query.filter(
+            (PlanningDetail.month == bulan) | 
+            (PlanningDetail.month.like(f"{bulan}%")) |
+            (PlanningDetail.bulan_actual == bulan)
+        )
+
+    if sub_kategori and sub_kategori != "ALL":
+        query = query.filter(PlanningDetail.sub_kategori == sub_kategori)
+
+    if search:
+        search_filter = f"%{search}%"
+        query = query.filter(
+            PlanningDetail.item.ilike(search_filter) |
+            PlanningDetail.item_actual.ilike(search_filter) |
+            PlanningDetail.pic.ilike(search_filter) |
+            PlanningDetail.remarks.ilike(search_filter) |
+            PlanningDetail.status_detail.ilike(search_filter) |
+            PlanningDetail.baris_ref.ilike(search_filter)
+        )
+
+    items = query.order_by(PlanningDetail.id.asc()).all()
+
+    # Prepare item records with calculated fields
+    result_items = []
+    total_plan = 0.0
+    total_actual = 0.0
+    realized_plan = 0.0
+    over_count = 0
+    over_amount = 0.0
+    saving_count = 0
+    saving_amount = 0.0
+    match_count = 0
+    unrealized_count = 0
+    realized_count = 0
+
+    monthly_stats = {}
+    subcat_stats = {}
+
+    for i in items:
+        plan_val = float(i.planning_amount or 0.0)
+        act_val = float(i.actual_amount or 0.0)
+        selisih_val = act_val - plan_val
+        selisih_pct = ((selisih_val / plan_val) * 100.0) if plan_val > 0 else 0.0
+
+        qty_val = float(i.qty) if i.qty is not None else None
+        act_qty_val = float(i.actual_qty) if i.actual_qty is not None else None
+
+        unit_price_plan = (plan_val / qty_val) if (qty_val and qty_val > 0) else None
+        unit_price_act = (act_val / act_qty_val) if (act_qty_val and act_qty_val > 0) else None
+
+        unit_price_var = (unit_price_act - unit_price_plan) if (unit_price_act is not None and unit_price_plan is not None) else None
+        unit_price_var_pct = ((unit_price_var / unit_price_plan) * 100.0) if (unit_price_var is not None and unit_price_plan and unit_price_plan > 0) else None
+
+        if act_val > 0:
+            realized_count += 1
+            realized_plan += plan_val
+            if act_val > plan_val:
+                v_type = "OVER"
+                over_count += 1
+                over_amount += (act_val - plan_val)
+            elif act_val < plan_val:
+                v_type = "SAVING"
+                saving_count += 1
+                saving_amount += (plan_val - act_val)
+            else:
+                v_type = "MATCH"
+                match_count += 1
+        else:
+            unrealized_count += 1
+            v_type = "UNREALIZED"
+
+        total_plan += plan_val
+        total_actual += act_val
+
+        # Subcategory breakdown
+        sc = i.sub_kategori or "Other"
+        if sc not in subcat_stats:
+            subcat_stats[sc] = {"plan": 0.0, "actual": 0.0, "variance": 0.0, "count": 0, "realized_count": 0}
+        subcat_stats[sc]["plan"] += plan_val
+        subcat_stats[sc]["actual"] += act_val
+        subcat_stats[sc]["variance"] += (act_val - plan_val) if act_val > 0 else 0.0
+        subcat_stats[sc]["count"] += 1
+        if act_val > 0:
+            subcat_stats[sc]["realized_count"] += 1
+
+        # Month breakdown
+        m = i.month or "Unknown"
+        if m not in monthly_stats:
+            monthly_stats[m] = {"plan": 0.0, "actual": 0.0, "count": 0, "realized_count": 0}
+        monthly_stats[m]["plan"] += plan_val
+        monthly_stats[m]["actual"] += act_val
+        monthly_stats[m]["count"] += 1
+        if act_val > 0:
+            monthly_stats[m]["realized_count"] += 1
+
+        # Check variance_status filter
+        if variance_status != "ALL" and v_type != variance_status:
+            continue
+
+        item_dict = i.to_dict()
+        item_dict.update({
+            "unit_price_plan": unit_price_plan,
+            "unit_price_actual": unit_price_act,
+            "unit_price_variance": unit_price_var,
+            "unit_price_variance_pct": round(unit_price_var_pct, 1) if unit_price_var_pct is not None else None,
+            "selisih": selisih_val,
+            "selisih_percent": round(selisih_pct, 1),
+            "variance_type": v_type
+        })
+        result_items.append(item_dict)
+
+    return jsonify({
+        "success": True,
+        "periode": periode,
+        "total_items": len(items),
+        "filtered_items": len(result_items),
+        "realized_items": realized_count,
+        "unrealized_items": unrealized_count,
+        "total_planning_amount": total_plan,
+        "total_actual_amount": total_actual,
+        "realized_planning_amount": realized_plan,
+        "net_variance": total_actual - realized_plan,
+        "over_budget_count": over_count,
+        "over_budget_amount": over_amount,
+        "saving_count": saving_count,
+        "saving_amount": saving_amount,
+        "match_count": match_count,
+        "subcat_stats": subcat_stats,
+        "monthly_stats": monthly_stats,
+        "data": result_items
+    }), 200

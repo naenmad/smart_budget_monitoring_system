@@ -16,6 +16,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'))
 const Planning = lazy(() => import('./pages/Planning'))
 const OutOfPlan = lazy(() => import('./pages/OutOfPlan'))
 const PreventiveCf = lazy(() => import('./pages/PreventiveCf'))
+const PriceVariance = lazy(() => import('./pages/PriceVariance'))
 const Budget = lazy(() => import('./pages/Budget'))
 const EntertaintCost = lazy(() => import('./pages/EntertaintCost'))
 const Users = lazy(() => import('./pages/Users'))
@@ -104,15 +105,17 @@ export default function App() {
                   {/* Master Data */}
                   <Route path="/master/item-mapping" element={<ProtectedRoute roles={['admin']}><ItemMapping /></ProtectedRoute>} />
 
-                  {/* Planning & Out of Plan */}
+                  {/* Planning, Out of Plan, Preventive CF & Price Variance */}
                   <Route path="/planning" element={<ProtectedRoute><Planning /></ProtectedRoute>} />
                   <Route path="/out-of-plan" element={<ProtectedRoute><OutOfPlan /></ProtectedRoute>} />
                   <Route path="/preventive-cf" element={<ProtectedRoute><PreventiveCf /></ProtectedRoute>} />
+                  <Route path="/price-variance" element={<ProtectedRoute><PriceVariance /></ProtectedRoute>} />
                   <Route path="/planning/upload" element={<Navigate to="/planning?tab=upload" replace />} />
                   <Route path="/planning/list" element={<Navigate to="/planning?tab=list" replace />} />
                   <Route path="/planning/spreadsheet" element={<Navigate to="/planning?tab=spreadsheet" replace />} />
                   <Route path="/planning/out-of-budget" element={<Navigate to="/out-of-plan" replace />} />
                   <Route path="/planning/preventive-cf" element={<Navigate to="/preventive-cf" replace />} />
+                  <Route path="/planning/price-variance" element={<Navigate to="/price-variance" replace />} />
 
                   {/* PR */}
                   <Route path="/pr/upload" element={<ProtectedRoute roles={['admin']}><PrUpload /></ProtectedRoute>} />
@@ -137,5 +140,5 @@ export default function App() {
       </BrowserRouter>
     </ThemeProvider>
   </QueryClientProvider>
-)
+  )
 }

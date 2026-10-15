@@ -38,6 +38,10 @@ export const planningApi = {
   getPreventiveCf: (params = {}) =>
     api.get('/planning/preventive-cf', { params }),
 
+  // Dedicated Price Variance & Item Realization (Plan vs Actual)
+  getPriceVariance: (params = {}) =>
+    api.get('/planning/price-variance', { params }),
+
   // Download Planning Excel Report
   downloadExcel: (periode = '2026') =>
     api.get('/planning/export', {

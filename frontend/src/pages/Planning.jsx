@@ -6,24 +6,26 @@ import {
   Database,
   FileSpreadsheet,
   Wrench,
-  AlertTriangle
+  AlertTriangle,
+  Scale
 } from 'lucide-react'
 import PlanningList from './PlanningList'
 import PlanningUpload from './PlanningUpload'
 import DatabaseSpreadsheet from './DatabaseSpreadsheet'
 import OutOfPlan from './OutOfPlan'
 import PreventiveCfView from './PreventiveCfView'
+import PriceVariance from './PriceVariance'
 import s from './Planning.module.css'
 
 export default function Planning() {
   const [searchParams, setSearchParams] = useSearchParams()
   const tabParam = searchParams.get('tab')
 
-  // Tabs: 'list' | 'preventive' | 'oob' | 'spreadsheet' | 'upload'
+  // Tabs: 'list' | 'variance' | 'preventive' | 'oob' | 'spreadsheet' | 'upload'
   const [activeTab, setActiveTab] = useState(() => tabParam || 'list')
 
   useEffect(() => {
-    if (tabParam && ['list', 'preventive', 'oob', 'spreadsheet', 'upload'].includes(tabParam)) {
+    if (tabParam && ['list', 'variance', 'preventive', 'oob', 'spreadsheet', 'upload'].includes(tabParam)) {
       setActiveTab(tabParam)
     }
   }, [tabParam])
@@ -39,7 +41,7 @@ export default function Planning() {
 
   return (
     <div className={s.container}>
-      {/* ── Header ── */}
+      {/* ─── Header ─── */}
       <div className={s.header}>
         <div className={s.titleArea}>
           <h1 className={s.title}>
@@ -47,11 +49,11 @@ export default function Planning() {
             Master &amp; Data Planning Anggaran
           </h1>
           <p className={s.subtitle}>
-            Kelola master alokasi anggaran, pantau rincian item planning per Account, monitor Preventive C/F &amp; Out of Budget, dan sinkronisasi file Excel.
+            Kelola master alokasi anggaran, pantau rincian item planning per Account, monitor varians harga belanja, Preventive C/F &amp; Out of Budget, dan sinkronisasi file Excel.
           </p>
         </div>
 
-        {/* ── Sub-Nav Tabs ── */}
+        {/* ─── Sub-Nav Tabs ─── */}
         <div className={s.tabNav}>
           <button
             onClick={() => handleTabChange('list')}
@@ -59,6 +61,14 @@ export default function Planning() {
           >
             <Database size={16} />
             <span>Data Planning</span>
+          </button>
+
+          <button
+            onClick={() => handleTabChange('variance')}
+            className={`${s.tabBtn} ${activeTab === 'variance' ? s.tabBtnActive : ''}`}
+          >
+            <Scale size={16} />
+            <span>Perbandingan Harga</span>
           </button>
 
           <button
@@ -95,9 +105,10 @@ export default function Planning() {
         </div>
       </div>
 
-      {/* ── Tab Content ── */}
+      {/* ─── Tab Content ─── */}
       <div className={s.tabContent} key={activeTab}>
         {activeTab === 'list' && <PlanningList />}
+        {activeTab === 'variance' && <PriceVariance />}
         {activeTab === 'preventive' && <PreventiveCfView />}
         {activeTab === 'oob' && <OutOfPlan />}
         {activeTab === 'spreadsheet' && <DatabaseSpreadsheet />}
